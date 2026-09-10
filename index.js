@@ -218,7 +218,7 @@ const server = http.createServer(app);
 
 // Telegram Bot Setup
 const tgToken = process.env.TELEGRAM_BOT_TOKEN;
-if tgToken:) {
+if (!tgToken) {
     console.error('TELEGRAM_BOT_TOKEN not set in environment variables!');
 }
 
