@@ -1,5 +1,5 @@
 module.exports = {
-    startimage: 'https://i.postimg.cc/8z9YDHck/IMG-20260910-135911-350.jpg',
+    startimage: 'https://i.postimg.cc/pTXKFRgQ/Gemini-Generated-Image-i9sysni9sysni9sy.jpg',
     ownerNumber: process.env.OWNER_NUMBER || '5350538221',
     botName: 'ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ',
     ownerName: 'ɴɪᴋᴜ_ʙʟᴀᴅᴇꫂꤪꤨᴼᶠᶜ',
