@@ -1290,9 +1290,9 @@ function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'Public' : 'Private';
     
     return `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃   💀  *SYED MINI BOT*  💀      ┃
+┃   💀  *Niku666 MD BOT*  💀      ┃
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  🤖 *BOT NAME*  : SYED MINI    ┃
+┃  🤖 *BOT NAME*  : nikuMD     ┃
 ┃  👤 *OWNER*     : ${settings.ownerName || 'SYED'}
 ┃  📦 *VERSION*   : ${settings.version}
 ┃  ⚙️ *MODE*      : ${mode}
@@ -1300,24 +1300,20 @@ function generateMenuText(userName, session) {
 ┃  👥 *USER*      : ${userName}
 ┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
 ┃  📋 *CATEGORIES*                ┃
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  ✨ .allmenu      (300+ Commands) ┃
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫ ┃
 ┃  👑 .ownermenu              ┃
-┃  👥 .groupmenu            ┃
-┃  🤖 .aimenu                    ┃
+┃  👥 .groupmenu            ┃                    ┃
 ┃  ⬇️ .downloadmenu     ┃
 ┃  🛠️ .toolsmenu           ┃
-┃  🎉 .funmenu          ┃
-┃  🎮 .gamemenu           ┃
+┃  🎉 .funmenu          ┃           ┃
 ┃  🎌 .animemenu                 ┃
 ┃  🏷️ .stickermenu             ┃
 ┃  🖼️ .imagemenu                ┃
 ┃  ✏️ .textmakermenu       ┃
-┃  🏢 .logomenu         ┃
-┃  🕌 .islamicmenu          ┃
+┃  🏢 .logomenu         ┃          ┃
 ┃  🎯 .miscmenu                 ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-☠️  *POWERED BY : SYED MINI*  ☠️`;
+☠️  Canal : https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l  ☠️`;
 }
 
 
@@ -1483,7 +1479,7 @@ io.on('connection', (socket) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, async () => {
-    console.log(`\u{1F311} SYED MINI BOT v${settings.version} Server running on port ${PORT}`);
+    console.log(`\u{1F311} niku666MDBOT v${settings.version} Server running on port ${PORT}`);
     console.log(`\u{1F4E1} Total commands loaded: 120+`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     await loadExistingSessions();
