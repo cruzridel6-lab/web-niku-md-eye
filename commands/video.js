@@ -1,6 +1,6 @@
 const axios = require('axios');
 const yts = require('yt-search');
-const { getDirectUrl } = require('../lib/youtube');
+const { getDirectUrl, downloadDirectFile } = require('../lib/youtube');
 
 const AXIOS_DEFAULTS = {
     timeout: 60000,
@@ -126,8 +126,9 @@ async function videoCommand(sock, chatId, message) {
             throw new Error(`No pude obtener el archivo desde YouTube${sourceSummary}. Intenta con otro enlace o más tarde.`);
         }
 
+        const videoBuffer = await downloadDirectFile(videoData.download);
         await sock.sendMessage(chatId, {
-            video: { url: videoData.download },
+            video: videoBuffer,
             mimetype: 'video/mp4',
             fileName: `${(videoData.title || videoTitle || 'youtube-video').replace(/[^\w\s-]/g, '').trim() || 'youtube-video'}.mp4`,
             caption: `*${videoData.title || videoTitle || 'YouTube Video'}*\n\n> *Downloaded by NIKU MD BOT*`
