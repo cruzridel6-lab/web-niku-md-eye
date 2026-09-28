@@ -93,6 +93,7 @@ async function videoCommand(sock, chatId, message) {
 
         let videoData;
         let downloadSuccess = false;
+        const failedSources = [];
         const apiMethods = [
             { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
             { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
@@ -112,10 +113,14 @@ async function videoCommand(sock, chatId, message) {
                 }
             } catch (err) {
                 console.log(`${apiMethod.name} failed:`, err.message);
+                failedSources.push(apiMethod.name);
             }
         }
         
-        if (!downloadSuccess) throw new Error('All download sources failed.');
+        if (!downloadSuccess) {
+            const sourceSummary = failedSources.length ? ` (${failedSources.join(', ')})` : '';
+            throw new Error(`No pude obtener el archivo desde YouTube${sourceSummary}. Intenta con otro enlace o más tarde.`);
+        }
 
         await sock.sendMessage(chatId, {
             video: { url: videoData.download },
@@ -126,7 +131,9 @@ async function videoCommand(sock, chatId, message) {
 
     } catch (error) {
         console.error('Video error:', error);
-        await sock.sendMessage(chatId, { text: `❌ Error: ${error.message}` }, { quoted: message });
+        await sock.sendMessage(chatId, {
+            text: `❌ ${error.message}\n\n🔗 Enlace original:\n${message.message?.conversation?.match(/https?:\/\/\S+/i)?.[0] || 'Revisa el enlace de YouTube.'}`
+        }, { quoted: message });
     }
 }
 
