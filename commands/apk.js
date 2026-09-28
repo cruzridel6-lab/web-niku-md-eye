@@ -36,7 +36,7 @@ async function apkCommand(sock, chatId, message) {
       q: appName,
     };
 
-    const response = await axios.get(apiUrl, { params });
+    const response = await axios.get(apiUrl, { params, timeout: 30000 });
 
     if (!response.data || response.data.status !== 200 || !response.data.result) {
       await sock.sendMessage(
@@ -47,7 +47,10 @@ async function apkCommand(sock, chatId, message) {
       return;
     }
 
-    const { name, lastup, package, size, icon, dllink } = response.data.result;
+    const { name, lastup, package: packageName, size, icon, dllink } = response.data.result;
+    if (!dllink || typeof dllink !== 'string') {
+      throw new Error('The APK provider returned no download link.');
+    }
 
     // Send thumbnail preview
     await sock.sendMessage(
@@ -76,7 +79,7 @@ async function apkCommand(sock, chatId, message) {
     const details = `📦 *APK Details* 📦\n\n` +
       `🔖 *Name*: ${name}\n` +
       `📅 *Last Update*: ${lastup}\n` +
-      `📦 *Package*: ${package}\n` +
+      `📦 *Package*: ${packageName || 'Unknown'}\n` +
       `📏 *Size*: ${size}\n\n` +
       `> © POWERED BY niku66 MD BOT`;
 

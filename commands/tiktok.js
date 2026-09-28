@@ -13,7 +13,8 @@ async function tiktokCommand(sock, from, msg, q) {
             const videoData = res.data.data;
             const videoUrl = videoData.play; // This is the direct MP4 URL
             const musicUrl = videoData.music;
-            const author = videoData.author.nickname;
+            const author = videoData.author?.nickname || videoData.author?.unique_id || 'Unknown';
+            if (!videoUrl) throw new Error('TikTok API returned no playable video URL.');
             const title = videoData.title || "TikTok Video";
 
             const caption = `*\u1F3A5 TikTok Downloader*\n\n` +

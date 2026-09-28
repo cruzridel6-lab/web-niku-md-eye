@@ -1,5 +1,6 @@
 const axios = require('axios');
 const yts = require('yt-search');
+const { getDirectUrl } = require('../lib/youtube');
 
 const AXIOS_DEFAULTS = {
     timeout: 60000,
@@ -95,7 +96,11 @@ async function videoCommand(sock, chatId, message) {
         const apiMethods = [
             { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
             { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
-            { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) }
+            { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) },
+            { name: 'yt-dlp', method: async () => ({
+                download: await getDirectUrl(videoUrl, 'best[ext=mp4][height<=720]/best[ext=mp4]/best'),
+                title: videoTitle
+            }) }
         ];
         
         for (const apiMethod of apiMethods) {
@@ -115,8 +120,8 @@ async function videoCommand(sock, chatId, message) {
         await sock.sendMessage(chatId, {
             video: { url: videoData.download },
             mimetype: 'video/mp4',
-            fileName: `${videoData.title.replace(/[^\w\s-]/g, '')}.mp4`,
-            caption: `*${videoData.title}*\n\n> *Downloaded by OLD-STUDIO*`
+            fileName: `${(videoData.title || videoTitle || 'youtube-video').replace(/[^\w\s-]/g, '').trim() || 'youtube-video'}.mp4`,
+            caption: `*${videoData.title || videoTitle || 'YouTube Video'}*\n\n> *Downloaded by NIKU MD BOT*`
         }, { quoted: message });
 
     } catch (error) {

@@ -6,16 +6,15 @@ const utils = {
     // 1. News Command
     news: async (sock, from, msg) => {
         try {
-            const res = await axios.get('https://newsapi.org/v2/top-headlines?country=us&apiKey=YOUR_API_KEY'); // Placeholder
-            // Using a free fallback if no key
             const fallback = await axios.get('https://api.siputzx.my.id/api/tools/news');
-            if (fallback.data.status) {
-                let text = `*\u{1F4F0} LATEST NEWS* \n\n`;
-                fallback.data.data.forEach((n, i) => {
-                    if (i < 5) text += `${i+1}. *${n.title}*\n🔗 ${n.url}\n\n`;
-                });
-                await sock.sendMessage(from, { text }, { quoted: msg });
+            if (!fallback.data?.status || !Array.isArray(fallback.data.data) || !fallback.data.data.length) {
+                throw new Error('No news available');
             }
+            let text = `*\u{1F4F0} LATEST NEWS* \n\n`;
+            fallback.data.data.slice(0, 5).forEach((n, i) => {
+                text += `${i+1}. *${n.title || 'Untitled'}*\n🔗 ${n.url || 'N/A'}\n\n`;
+            });
+            await sock.sendMessage(from, { text }, { quoted: msg });
         } catch (e) { await sock.sendMessage(from, { text: "❌ News API Error" }); }
     },
 
@@ -37,9 +36,8 @@ const utils = {
         if (!q) return sock.sendMessage(from, { text: "❌ Provide a query." });
         try {
             const res = await axios.get(`https://api.siputzx.my.id/api/tools/wikipedia?q=${encodeURIComponent(q)}`);
-            if (res.data.status) {
-                await sock.sendMessage(from, { text: `*\u{1F4D2} WIKIPEDIA: ${q}*\n\n${res.data.data}` }, { quoted: msg });
-            }
+            if (!res.data?.status || !res.data?.data) throw new Error('No Wikipedia result');
+            await sock.sendMessage(from, { text: `*\u{1F4D2} WIKIPEDIA: ${q}*\n\n${res.data.data}` }, { quoted: msg });
         } catch (e) { await sock.sendMessage(from, { text: "❌ Wikipedia Error" }); }
     },
 
@@ -48,14 +46,13 @@ const utils = {
         if (!q) return sock.sendMessage(from, { text: "❌ Provide a city." });
         try {
             const res = await axios.get(`https://api.siputzx.my.id/api/tools/weather?city=${encodeURIComponent(q)}`);
-            if (res.data.status) {
-                const w = res.data.data;
-                const text = `*\u{26C5} WEATHER: ${q.toUpperCase()}*\n\n` +
-                    `*Temp:* ${w.temp}°C\n` +
-                    `*Condition:* ${w.condition}\n` +
-                    `*Humidity:* ${w.humidity}%`;
-                await sock.sendMessage(from, { text }, { quoted: msg });
-            }
+            if (!res.data?.status || !res.data?.data) throw new Error('No weather result');
+            const w = res.data.data;
+            const text = `*\u{26C5} WEATHER: ${q.toUpperCase()}*\n\n` +
+                `*Temp:* ${w.temp ?? 'N/A'}°C\n` +
+                `*Condition:* ${w.condition || 'N/A'}\n` +
+                `*Humidity:* ${w.humidity ?? 'N/A'}%`;
+            await sock.sendMessage(from, { text }, { quoted: msg });
         } catch (e) { await sock.sendMessage(from, { text: "❌ City not found." }); }
     },
 
@@ -131,9 +128,8 @@ const utils = {
         const textToTrt = q.split(' ').slice(1).join(' ');
         try {
             const res = await axios.get(`https://api.siputzx.my.id/api/tools/translate?text=${encodeURIComponent(textToTrt)}&to=${lang}`);
-            if (res.data.status) {
-                await sock.sendMessage(from, { text: `*\u{1F310} TRANSLATION (${lang})*\n\n${res.data.data}` }, { quoted: msg });
-            }
+            if (!res.data?.status || !res.data?.data) throw new Error('No translation result');
+            await sock.sendMessage(from, { text: `*\u{1F310} TRANSLATION (${lang})*\n\n${res.data.data}` }, { quoted: msg });
         } catch (e) { await sock.sendMessage(from, { text: "❌ Translation Error" }); }
     },
 

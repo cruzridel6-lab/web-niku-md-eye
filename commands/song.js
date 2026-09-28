@@ -3,6 +3,7 @@ const yts = require('yt-search');
 const fs = require('fs').promises;
 const path = require('path');
 const { toAudio } = require('../lib/converter');
+const { getDirectUrl } = require('../lib/youtube');
 
 const AXIOS_DEFAULTS = {
     timeout: 60000,
@@ -119,7 +120,11 @@ async function songCommand(sock, chatId, message) {
                 const res = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${encodeURIComponent(video.url)}`, AXIOS_DEFAULTS);
                 if (res.data.status && res.data.result.download.url) return { download: res.data.result.download.url, title: res.data.result.metadata.title };
                 throw new Error('Vreden failed');
-            }}
+            }},
+            { name: 'yt-dlp', method: async () => ({
+                download: await getDirectUrl(video.url, 'bestaudio[ext=m4a]/bestaudio/best'),
+                title: video.title
+            }) }
         ];
         
         for (const apiMethod of apiMethods) {
@@ -168,7 +173,7 @@ async function songCommand(sock, chatId, message) {
         await sock.sendMessage(chatId, {
             audio: finalBuffer,
             mimetype: 'audio/mpeg',
-            fileName: `${finalTitle.replace(/[^\w\s-]/g, '')}.mp3`,
+            fileName: `${(finalTitle || 'youtube-audio').replace(/[^\w\s-]/g, '').trim() || 'youtube-audio'}.mp3`,
             ptt: false
         }, { quoted: message });
 

@@ -936,7 +936,7 @@ class BotSession {
                                             break;
                                         }
                                         case 'downloadmenu': {
-                                            const text = `*\u{1F4E5} DOWNLOAD MENU*\n\n\u{25FB} .song\n\u{25FB} .video\n\u{25FB} .insta\n\u{25FB} .tiktok\n\u{25FB} .facebook\n\u{25FB} .youtube\n\u{25FB} .spotify\n\u{25FB} .apk`;
+                                            const text = `*\u{1F4E5} DOWNLOAD MENU*\n\n\u{25FB} .song\n\u{25FB} .video\n\u{25FB} .insta\n\u{25FB} .tiktok\n\u{25FB} .facebook\n\u{25FB} .youtube\n\u{25FB} .spotify\n\u{25FB} .apk <app>\n\u{25FB} .game <game>\n\u{25FB} .playstore <app>`;
                                             await this.sock.sendMessage(from, { text }, { quoted: msg });
                                             break;
                                         }
@@ -954,17 +954,18 @@ class BotSession {
                                         // ===== MEDIA & DOWNLOAD =====
                                         case 'song': await commands.song(this.sock, from, msg); break;
                                         case 'video': await commands.video(this.sock, from, msg); break;
+                                        case 'youtube': case 'yt': await commands.youtube(this.sock, from, msg, q); break;
                                         case 'insta': case 'ig': await commands.insta(this.sock, from, msg, q); break;
                                         case 'tiktok': case 'tt': await commands.tiktok(this.sock, from, msg, q); break;
                                         case 'facebook': case 'fb': await commands.facebook(this.sock, from, msg); break;
-                                        case 'youtube': case 'yt': await commands.youtube(this.sock, from, msg, q); break;
                                         case 'pinterest': case 'pin': await commands.pinterest(this.sock, from, msg, q); break;
                                         case 'twitter': case 'x': case 'twit': await commands.twitter(this.sock, from, msg, q); break;
                                         case 'reddit': await commands.reddit(this.sock, from, msg, q); break;
                                         case 'spotify': case 'spot': await commands.spotify(this.sock, from, msg, q); break;
                                         case 'mediafire': case 'mf': await commands.mf(this.sock, from, msg, q); break;
                                         case 'gdrive': await commands.gdrive(this.sock, from, msg, q); break;
-                                        case 'apk': await commands.apk(this.sock, from, msg); break;
+                                        case 'apk': case 'game': case 'juego': await commands.apk(this.sock, from, msg); break;
+                                        case 'playstore': case 'ps': await commands.playstore(this.sock, from, msg, q); break;
 
                                         // ===== GROUP MANAGEMENT =====
                                         case 'kick': await commands.kick(this.sock, from, msg, isAdmin); break;
@@ -1055,7 +1056,7 @@ class BotSession {
                                         case 'wyr': case 'wouldyourather': await commands.wouldyourather(this.sock, from, msg); break;
 
                                         // ===== TOOLS =====
-                                        case 'ping': await commands.utils.ping(this.sock, from, msg); break;
+                                        case 'ping': await commands.ping(this.sock, from, msg); break;
                                         case 'dp': await commands.dp(this.sock, from, msg); break;
                                         case 'vv': await commands.vv(this.sock, from, msg); break;
                                         case 'translate': case 'trt': await commands.utils.trt(this.sock, from, msg, q); break;
@@ -1077,7 +1078,6 @@ class BotSession {
                                         case 'google': case 'gsearch': await commands.google(this.sock, from, msg, q); break;
                                         case 'wiki': case 'wikipedia': await commands.utils.wiki(this.sock, from, msg, q); break;
                                         case 'yts': case 'ytsearch': await commands.yts(this.sock, from, msg, q); break;
-                                        case 'playstore': case 'ps': await commands.playstore(this.sock, from, msg, q); break;
                                         case 'npm': await commands.npm(this.sock, from, msg, q); break;
                                         case 'sticker': case 's': await commands.sticker(this.sock, from, msg); break;
                                         case 'toimg': case 'img': await commands.toimg(this.sock, from, msg); break;
@@ -1117,7 +1117,6 @@ class BotSession {
                                         case 'speedtest': case 'speed': await commands.speedtest(this.sock, from, msg); break;
                                         case 'device': case 'dev': await commands.device(this.sock, from, msg); break;
                                         case 'runtime': case 'rt': await commands.runtime(this.sock, from, msg); break;
-                                        case 'ping': await commands.ping(this.sock, from, msg); break;
 
                                         // ===== UTILITIES =====
                                         case 'timer': await commands.timer(this.sock, from, msg, q); break;
@@ -1142,12 +1141,21 @@ class BotSession {
                                         case 'forward': case 'fwd': await commands.forward(this.sock, from, msg, isOwner, q); break;
                                         case 'clear': await commands.clear(this.sock, from, msg); break;
                                         case 'save': await commands.save(this.sock, from, msg); break;
+                                        case 'hack': await commands.hack(this.sock, from, msg, q); break;
+                                        case 'repo': await commands.repo(this.sock, from, msg, args); break;
                                         case 'backup': await commands.backup(this.sock, from, msg, isOwner); break;
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
                                     }
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
+                                    try {
+                                        await this.sock.sendMessage(from, {
+                                            text: `❌ No pude completar .${commandName}. ${e.message || 'Error interno.'}`
+                                        }, { quoted: msg });
+                                    } catch (replyError) {
+                                        this.sendLog(`Command reply error (${commandName}): ` + replyError.message, 'error');
+                                    }
                                 }
                             })();
                         }
