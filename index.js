@@ -925,29 +925,21 @@ class BotSession {
                                             const allMenuCmd = require('./commands/allmenu');
                                             await allMenuCmd(this.sock, from, msg, this, commands); 
                                             break;
-                                        case 'ownermenu': {
-                                            const text = `*\u{1F451} OWNER MENU*\n\n\u{25FB} .public\n\u{25FB} .private\n\u{25FB} .block\n\u{25FB} .unblock\n\u{25FB} .restart\n\u{25FB} .shutdown\n\u{25FB} .bcall\n\u{25FB} .bcgc`;
-                                            await this.sock.sendMessage(from, { text }, { quoted: msg });
-                                            break;
-                                        }
-                                        case 'groupmenu': {
-                                            const text = `*\u{1F465} GROUP MENU*\n\n\u{25FB} .kick\n\u{25FB} .add\n\u{25FB} .promote\n\u{25FB} .demote\n\u{25FB} .mute\n\u{25FB} .unmute\n\u{25FB} .tagall\n\u{25FB} .hidetag\n\u{25FB} .grouplink\n\u{25FB} .groupinfo`;
-                                            await this.sock.sendMessage(from, { text }, { quoted: msg });
-                                            break;
-                                        }
-                                        case 'downloadmenu': {
-                                            const text = `*\u{1F4E5} DOWNLOAD MENU*\n\n\u{25FB} .song\n\u{25FB} .video\n\u{25FB} .insta\n\u{25FB} .tiktok\n\u{25FB} .facebook\n\u{25FB} .youtube\n\u{25FB} .spotify\n\u{25FB} .apk <app>\n\u{25FB} .game <game>\n\u{25FB} .playstore <app>`;
-                                            await this.sock.sendMessage(from, { text }, { quoted: msg });
-                                            break;
-                                        }
-                                        case 'aimenu': {
-                                            const text = `*\u{1F916} AI MENU*\n\n\u{25FB} .ai\n\u{25FB} .chatbot\n\u{25FB} .gali`;
-                                            await this.sock.sendMessage(from, { text }, { quoted: msg });
-                                            break;
-                                        }
+                                        case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
+                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
+                                        case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
+                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
+                                        case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
+                                        case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
+                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 GAME MENU', ['game', 'coinflip', 'roll', 'trivia', 'riddle', 'wouldyourather', 'character']); break;
+                                        case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'manga']); break;
+                                        case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'emojimix', 'toimg']); break;
+                                        case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
+                                        case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
+                                        case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGO MENU', []); break;
+                                        case 'miscmenu': await sendCategoryMenu(this.sock, from, msg, '🎯 MISC MENU', ['runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'news', 'movie']); break;
                                         case 'bugmenu': {
-                                            const text = `*\u{1F41B} BUG MENU*\n\n\u{25FB} .crash\n\u{25FB} .freeze\n\u{25FB} .bug`;
-                                            await this.sock.sendMessage(from, { text }, { quoted: msg });
+                                            await sendCategoryMenu(this.sock, from, msg, '🐛 BUG MENU', ['crash', 'freeze', 'bug']);
                                             break;
                                         }
 
@@ -1293,35 +1285,44 @@ class BotSession {
 
 
 // =================== MENU GENERATOR ===================
+async function sendCategoryMenu(sock, from, msg, title, names) {
+    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name));
+    const lines = available.length
+        ? available.map(name => `┃  • .${name}`)
+        : ['┃  • Sin comandos activos por ahora'];
+    const width = 33;
+    const border = '━'.repeat(width);
+    const text = [`┏${border}┓`, `┃${title.padStart(Math.floor((width + title.length) / 2)).padEnd(width)}┃`, `┣${border}┫`, ...lines, `┗${border}┛`, '', `Total: ${available.length} comando(s)`].join('\n');
+    await sock.sendMessage(from, { text }, { quoted: msg });
+}
+
 function generateMenuText(userName, session) {
-    const s = botData.statusSettings[session.userId] || {};
     const mode = session.isPublic ? 'Public' : 'Private';
-    
-    return `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃   💀  *Niku666 MD BOT*  💀      ┃
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  🤖 *BOT NAME*  : nikuMD     ┃
-┃  👤 *OWNER*     : ${settings.ownerName || 'SYED'}
-┃  📦 *VERSION*   : ${settings.version}
-┃  ⚙️ *MODE*      : ${mode}
-┃  🔑 *PREFIX*    : ${settings.prefix}
-┃  👥 *USER*      : ${userName}
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
-┃  📋 *CATEGORIES*                ┃
-┣━━━━━━━━━━━━━━━━━━━━━━━━━━━┫ ┃
-┃  👑 .ownermenu              ┃
-┃  👥 .groupmenu            ┃                    ┃
-┃  ⬇️ .downloadmenu     ┃
-┃  🛠️ .toolsmenu           ┃
-┃  🎉 .funmenu          ┃           ┃
-┃  🎌 .animemenu                 ┃
-┃  🏷️ .stickermenu             ┃
-┃  🖼️ .imagemenu                ┃
-┃  ✏️ .textmakermenu       ┃
-┃  🏢 .logomenu         ┃          ┃
-┃  🎯 .miscmenu                 ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-☠️  Canal : https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l  ☠️`;
+    const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
+    const lines = [
+        '💀  NIKU MD MINI BOT  💀', '',
+        `🤖 BOT NAME : ${settings.botName || 'niku MD'}`,
+        `👤 OWNER    : ${settings.ownerName || 'SYED'}`,
+        `📦 VERSION  : ${settings.version || '3.0.0'}`,
+        `⚙️ MODE     : ${mode}`,
+        `🔑 PREFIX   : ${settings.prefix || '.'}`,
+        `👥 USER     : ${userName || 'User'}`, '',
+        '📋  CATEGORIES', '',
+        `✨ .allmenu       (${commandCount} comandos)`,
+        '👑 .ownermenu', '👥 .groupmenu', '🤖 .aimenu',
+        '⬇️ .downloadmenu', '🛠️ .toolsmenu', '🎉 .funmenu',
+        '🎮 .gamemenu', '🎌 .animemenu', '🏷️ .stickermenu',
+        '🖼️ .imagemenu', '✏️ .textmakermenu', '🏢 .logomenu', '🎯 .miscmenu'
+    ];
+    const width = 33;
+    const border = '━'.repeat(width);
+    const center = (text) => {
+        const length = [...text].length;
+        const left = Math.max(0, Math.floor((width - length) / 2));
+        const right = Math.max(0, width - length - left);
+        return `┃${' '.repeat(left)}${text}${' '.repeat(right)}┃`;
+    };
+    return [`┏${border}┓`, ...lines.map(center), `┗${border}┛`, '', '☠️  POWERED BY : niku MD  ☠️`'].join('\n');
 }
 
 
