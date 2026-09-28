@@ -1258,17 +1258,18 @@ class BotSession {
                     }, 5000);
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
-                        const welcomeText = `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI BOT* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
-                            `*\u{1F311} CONNECTED SUCCESSFULLY* \u{2705}\n\n` +
-                            `Your WhatsApp has been linked to the most powerful automation system.\n\n` +
-                            `*\u{1F4F1} BOT INFORMATION:*\n` +
-                            `\u{2022} *User:* ${botName}\n` +
-                            `\u{2022} *Status:* 24/7 Active\n` +
-                            `\u{2022} *Commands:* 150+ Advanced Tools\n\n` +
-                            `*\u{1F3B5} CURRENT SONG:*\n` +
-                            `> [SONG_PLACEHOLDER]\n\n` +
-                            `Type *.menu* to explore all features.\n\n` +
-                            `> © POWERED BY SYED MINI BOT v3.0`;
+                        const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
+                        const welcomeText = `◬━━━〈 *Niku MD BOT* 〉━━━◬\n\n` +
+                            `*🌑 CONECTADO CORRECTAMENTE* ✅\n\n` +
+                            `Tu WhatsApp ha sido vinculado al sistema de automatización de Niku MD.\n\n` +
+                            `*📱 INFORMACIÓN DEL BOT:*\n` +
+                            `• *Usuario:* ${botName}\n` +
+                            `• *Estado:* Activo 24/7\n` +
+                            `• *Comandos:* ${commandCount} herramientas disponibles\n\n` +
+                            `*🎵 CANCIÓN ACTUAL:*\n` +
+                            `> Sin canción seleccionada\n\n` +
+                            `Escribe *.menu* para explorar todas las funciones.\n\n` +
+                            `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
 
                         await this.sock.sendMessage(botNumber, { 
                             image: { url: settings.startimage },
