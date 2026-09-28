@@ -957,6 +957,7 @@ class BotSession {
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
                                         case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
                                         case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGO MENU', []); break;
+                                        case 'islamicmenu': await sendCategoryMenu(this.sock, from, msg, '🕌 ISLAMIC MENU', ['quran', 'hadith', 'prayer', 'qibla', 'asmaulhusna']); break;
                                         case 'miscmenu': await sendCategoryMenu(this.sock, from, msg, '🎯 MISC MENU', ['runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'news', 'movie']); break;
                                         case 'bugmenu': {
                                             await sendCategoryMenu(this.sock, from, msg, '🐛 BUG MENU', ['crash', 'freeze', 'bug']);
@@ -1366,41 +1367,41 @@ function generateMenuText(userName, session) {
     const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
     const botName = settings.botName || 'ɴɪᴋᴜ MD';
     const ownerName = settings.ownerName || 'SYED';
-    const width = 39;
+    const width = 41;
     const border = '━'.repeat(width);
-    const fit = (value) => [...value].slice(0, width).join('');
+    const fit = (value) => [...String(value)].slice(0, width).join('');
+    const row = (value = '') => {
+        const text = fit(value);
+        return `┃${text.padEnd(width)}┃`;
+    };
     const center = (value) => {
         const text = fit(value);
-        const length = [...text].length;
-        const left = Math.max(0, Math.floor((width - length) / 2));
-        return `┃${' '.repeat(left)}${text}${' '.repeat(Math.max(0, width - length - left))}┃`;
+        const left = Math.max(0, Math.floor((width - [...text].length) / 2));
+        return row(`${' '.repeat(left)}${text}`);
     };
-    const row = (value) => `┃ ${fit(value).padEnd(width - 2)} ┃`;
     const lines = [
-        `🤖 ${botName}`,
-        '',
-        `👋 Hola, ${userName || 'Usuario'}`,
-        '',
-        '『 📊 INFORMACIÓN 』',
-        `▢ 👑 Creador: ${ownerName}`,
-        `▢ ⚙️ Prefijo: ${prefix}`,
-        `▢ 📦 Versión: ${settings.version || '3.0.0'}`,
-        `▢ 🌐 Modo: ${mode}`,
-        `▢ 🧩 Comandos: ${commandCount}`,
-        '',
-        '『 📁 CATEGORÍAS 』',
-        `✨ ${prefix}allmenu · Todos los comandos`,
-        `👑 ${prefix}ownermenu   👥 ${prefix}groupmenu`,
-        `🤖 ${prefix}aimenu       ⬇️ ${prefix}downloadmenu`,
-        `🛠️ ${prefix}toolsmenu    🎉 ${prefix}funmenu`,
-        `🎮 ${prefix}gamemenu      🎌 ${prefix}animemenu`,
-        `🏷️ ${prefix}stickermenu   🖼️ ${prefix}imagemenu`,
-        `✏️ ${prefix}textmakermenu  🎯 ${prefix}miscmenu`,
-        '',
-        '📢 Canal oficial',
-        'Pulsa el botón para unirte'
+        center('💀 NIKU MD MINI BOT 💀'),
+        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        row(`🤖 BOT: ${botName}`),
+        row(`👤 PROPIETARIO: ${ownerName}`),
+        row(`📦 VERSIÓN: ${settings.version || '3.0.0'}  •  ${mode}`),
+        row(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
+        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        center('📋 MENÚ PRINCIPAL'),
+        row(`✨ ${prefix}allmenu  •  ${commandCount} comandos`),
+        row(`👑 ${prefix}ownermenu      👥 ${prefix}groupmenu`),
+        row(`🤖 ${prefix}aimenu          ⬇️ ${prefix}downloadmenu`),
+        row(`🛠️ ${prefix}toolsmenu       🎉 ${prefix}funmenu`),
+        row(`🎮 ${prefix}gamemenu        🎌 ${prefix}animemenu`),
+        row(`🏷️ ${prefix}stickermenu     🖼️ ${prefix}imagemenu`),
+        row(`✏️ ${prefix}textmakermenu   🏢 ${prefix}logomenu`),
+        row(`🕌 ${prefix}islamicmenu     🎯 ${prefix}miscmenu`),
+        row(`🐛 ${prefix}bugmenu`),
+        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        center('📢 CANAL OFICIAL'),
+        center('Pulsa el botón para unirte')
     ];
-    return [`┏${border}┓`, center(`❈ ${botName} ❈`), ...lines.slice(2).map(line => line ? row(line) : row('')), `┗${border}┛`, '', center('☠️ POWERED BY NIKU MD ☠️')].join('\n');
+    return [`┏${border}┓`, ...lines, `┗${border}┛`, '', center('☠️ POWERED BY NIKU MD ☠️')].join('\n');
 }
 
 
