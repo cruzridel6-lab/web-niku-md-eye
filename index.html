@@ -8,19 +8,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#030603;
-    --bg-panel:rgba(6,16,8,0.85);
-    --bg-panel-2:rgba(4,10,5,0.9);
-    --grid:rgba(57,255,20,0.05);
-    --green:#39ff14;
-    --green-dim:#12a52a;
-    --green-deep:#064d16;
-    --green-glass:rgba(57,255,20,0.08);
-    --border:rgba(57,255,20,0.25);
-    --text:#d4ffd4;
-    --muted:#5f9d6a;
-    --amber:#ffd23f;
-    --danger:#ff4d4d;
+    --bg:#080a16;
+    --bg-panel:rgba(16,20,42,0.86);
+    --bg-panel-2:rgba(12,15,32,0.94);
+    --grid:rgba(112,154,255,0.07);
+    --green:#63f5d1;
+    --green-dim:#38bda8;
+    --green-deep:#123d4d;
+    --green-glass:rgba(99,245,209,0.09);
+    --border:rgba(130,155,255,0.28);
+    --text:#edf2ff;
+    --muted:#9aa8cc;
+    --amber:#ffc875;
+    --danger:#ff7195;
+    --violet:#9b8cff;
     --radius:14px;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -47,7 +48,7 @@
   .glow-orb{
     position:fixed;top:-10%;left:50%;transform:translateX(-50%);
     width:60vw;height:60vw;max-width:900px;max-height:900px;
-    background:radial-gradient(circle,rgba(57,255,20,0.10) 0%,transparent 65%);
+    background:radial-gradient(circle,rgba(99,245,209,0.12) 0%,rgba(155,140,255,0.08) 30%,transparent 68%);
     filter:blur(40px);z-index:-2;pointer-events:none;
     animation:orbPulse 8s ease-in-out infinite alternate;
   }
@@ -97,14 +98,17 @@
   .modal-close:hover{color:var(--green);}
   .modal-body{padding:22px;}
   .modal-body p{color:var(--muted);font-size:.85rem;margin-bottom:16px;}
-  .channel-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+  .channel-list{display:flex;flex-direction:column;gap:12px;margin-bottom:18px;}
   .channel-item{
-    display:flex;align-items:center;gap:10px;padding:12px 14px;
-    background:rgba(57,255,20,.04);border:1px solid var(--border);border-radius:8px;
+    display:flex;align-items:center;gap:12px;padding:14px;
+    background:linear-gradient(135deg,rgba(99,245,209,.08),rgba(155,140,255,.08));border:1px solid var(--border);border-radius:12px;
     text-decoration:none;color:var(--text);font-size:.82rem;transition:.25s;
   }
   .channel-item:hover{background:var(--green-glass);border-color:var(--green);transform:translateX(4px);}
-  .channel-item i{color:var(--green);width:18px;}
+  .channel-item i{color:var(--green);width:22px;font-size:1.1rem;text-align:center;}
+  .channel-item span{flex:1;}
+  .channel-item small{display:block;color:var(--muted);font-size:.68rem;margin-top:2px;}
+  .channel-join{color:var(--green);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;}
   .btn{
     display:inline-flex;align-items:center;justify-content:center;gap:8px;
     background:var(--green);color:#01120a;font-weight:700;font-size:.82rem;
@@ -238,6 +242,18 @@
   .waiting .dot{width:7px;height:7px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:blink 1.3s infinite;}
 
   .link-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+  .official-card{display:flex;align-items:center;gap:16px;padding:20px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(135deg,rgba(99,245,209,.08),rgba(155,140,255,.08));text-decoration:none;color:var(--text);transition:.3s;}
+  .official-card:hover{transform:translateY(-4px);border-color:var(--green);box-shadow:0 14px 35px rgba(99,245,209,.12);}
+  .official-card i{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:var(--green-glass);color:var(--green);font-size:1.35rem;}
+  .official-card strong{display:block;font-size:.9rem;margin-bottom:3px;}
+  .official-card span{color:var(--muted);font-size:.72rem;}
+  .join-arrow{margin-left:auto;color:var(--green);}
+  .review-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;}
+  .review-card{padding:20px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.025);}
+  .review-card .stars{color:var(--amber);letter-spacing:2px;font-size:.8rem;margin-bottom:12px;}
+  .review-card p{font-size:.82rem;color:var(--text);margin-bottom:14px;}
+  .review-card cite{font-size:.7rem;color:var(--muted);font-style:normal;}
+  .sample-note{color:var(--muted);font-size:.68rem;margin-top:-12px;margin-bottom:20px;}
 
   footer{text-align:center;padding:50px 20px;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border);margin-top:40px;}
   footer span{color:var(--green);}
@@ -273,22 +289,20 @@
 <div class="glow-orb"></div>
 <div class="particles" id="particles"></div>
 
-<!-- Channel modal -->
+<!-- Official channels modal -->
 <div id="channelModal" class="modal">
   <div class="modal-content">
     <div class="modal-head">
-      <h2>required_channels.sh</h2>
+      <h2>official_channels.sh</h2>
       <button class="modal-close" id="modalClose">&times;</button>
     </div>
     <div class="modal-body">
-      <p>// Follow the official channels below to unlock pairing access and receive live updates.</p>
+      <p>// Únete a los dos canales oficiales para recibir novedades y soporte del bot.</p>
       <div class="channel-list">
-        <a href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l target="_blank" class="channel-item"><i class="fab fa-whatsapp"></i><span>WhatsApp Channel — Updates</span></a>
-        <a href="https://t.me/grupozonaoscura" target="_blank" class="channel-item"><i class="fab fa-whatsapp"></i><span>Telegram grupo — Support</span></a>
-        <a href="https://t.me/Dark_Zone_666" target="_blank" class="channel-item"><i class="fab fa-youtube"></i><span>Telegam chanel</span></a>
-        <a href="http://t.me/BanWhasabot_bot" target="_blank" class="channel-item"><i class="fab fa-whatsapp"></i><span>bot de baneo — Announcements</span></a>
+        <a href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-whatsapp"></i><span><strong>Canal oficial de WhatsApp</strong><small>Novedades y actualizaciones</small></span><b class="channel-join">Unirse</b></a>
+        <a href="https://t.me/Dark_Zone_666" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-telegram-plane"></i><span><strong>Canal oficial de Telegram</strong><small>Noticias y soporte</small></span><b class="channel-join">Unirse</b></a>
       </div>
-      <button class="btn" id="confirmFollow"><i class="fas fa-check"></i> I've followed all channels</button>
+      <button class="btn" id="confirmFollow"><i class="fas fa-arrow-right"></i> Continuar a la web</button>
     </div>
   </div>
 </div>
@@ -304,7 +318,8 @@
   <div class="nav-links" id="navLinks">
     <a href="#features">features</a>
     <a href="#connect">connect</a>
-    <a href="#links">links</a>
+    <a href="#links">canales oficiales</a>
+    <a href="#reviews">opiniones</a>
   </div>
   <button class="nav-toggle" id="navToggle"><i class="fas fa-bars"></i></button>
 </nav>
@@ -361,13 +376,21 @@
     </div>
   </section>
 
-  <section id="links" class="panel" data-label="./links">
-    <h2><i class="fas fa-external-link-alt"></i> Links</h2>
+  <section id="links" class="panel" data-label="./official-channels">
+    <h2><i class="fas fa-broadcast-tower"></i> Canales oficiales</h2>
     <div class="link-grid">
-      <a class="btn btn-outline" href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp Channel</a>
-      <a class="btn btn-outline" href="https://t.me/Dark_Zone_666" target="_blank"><i class="fab fa-whatsapp"></i> Telegram Channel</a>
-      <a class="btn btn-outline" href="https://t.me/grupozonaoscura" target="_blank"><i class="fab fa-youtube"></i> Telegram Grupo</a>
-      <a class="btn btn-outline" href="http://t.me/BanWhasabot_bot" target="_blank"><i class="fab fa-whatsapp"></i> bot de baneo</a>
+      <a class="official-card" href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i><span><strong>WhatsApp oficial</strong><span>Únete para recibir novedades</span></span><i class="fas fa-arrow-up-right-from-square join-arrow"></i></a>
+      <a class="official-card" href="https://t.me/Dark_Zone_666" target="_blank" rel="noopener"><i class="fab fa-telegram-plane"></i><span><strong>Telegram oficial</strong><span>Noticias, soporte y avisos</span></span><i class="fas fa-arrow-up-right-from-square join-arrow"></i></a>
+    </div>
+  </section>
+
+  <section id="reviews" class="panel" data-label="./community-feedback">
+    <h2><i class="fas fa-comment-dots"></i> Lo que destaca la comunidad</h2>
+    <p class="sample-note">Opiniones de muestra para ilustrar la experiencia del bot; no representan testimonios verificados.</p>
+    <div class="review-grid">
+      <article class="review-card"><div class="stars">★★★★★</div><p>“El bot responde rápido y tiene muchas herramientas útiles para el grupo.”</p><cite>— Usuario de muestra</cite></article>
+      <article class="review-card"><div class="stars">★★★★★</div><p>“La conexión es sencilla y los comandos de multimedia son muy prácticos.”</p><cite>— Comunidad NIKU, ejemplo</cite></article>
+      <article class="review-card"><div class="stars">★★★★★</div><p>“Me gusta que el panel sea claro y que las novedades estén en los canales oficiales.”</p><cite>— Opinión demostrativa</cite></article>
     </div>
   </section>
 </main>
