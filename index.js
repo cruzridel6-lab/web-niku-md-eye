@@ -1360,37 +1360,46 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
 }
 
 function generateMenuText(userName, session) {
-    const mode = session.isPublic ? 'Public' : 'Private';
+    const mode = session.isPublic ? 'Público' : 'Privado';
+    const prefix = settings.prefix || '.';
     const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
-    const lines = [
-        '💀 NIKU MD MINI BOT 💀',
-        '· · · · · · · · · · · · · · · · · · · · ·',
-        `🤖 ${settings.botName || 'niku MD'}`,
-        `👤 ${settings.ownerName || 'SYED'}`,
-        `📦 v${settings.version || '3.0.0'}  •  ${mode}`,
-        `🔑 Prefijo: ${settings.prefix || '.'}  •  ${userName || 'User'}`,
-        '· · · · · · · · · · · · · · · · · · · · ·',
-        '📋 MENÚ PRINCIPAL',
-        `✨ .allmenu  •  ${commandCount} comandos`,
-        '👑 .ownermenu   👥 .groupmenu',
-        '🤖 .aimenu      ⬇️ .downloadmenu',
-        '🛠️ .toolsmenu   🎉 .funmenu',
-        '🎮 .gamemenu    🎌 .animemenu',
-        '🏷️ .stickermenu  🖼️ .imagemenu',
-        '✏️ .textmakermenu  🎯 .miscmenu',
-        '· · · · · · · · · · · · · · · · · · · · ·',
-        '📢 CANAL OFICIAL',
-        'Pulsa el botón para unirte'
-    ];
-    const width = 41;
+    const botName = settings.botName || 'ɴɪᴋᴜ MD';
+    const ownerName = settings.ownerName || 'SYED';
+    const width = 39;
     const border = '━'.repeat(width);
-    const center = (text) => {
+    const fit = (value) => [...value].slice(0, width).join('');
+    const center = (value) => {
+        const text = fit(value);
         const length = [...text].length;
         const left = Math.max(0, Math.floor((width - length) / 2));
-        const right = Math.max(0, width - length - left);
-        return `┃${' '.repeat(left)}${text}${' '.repeat(right)}┃`;
+        return `┃${' '.repeat(left)}${text}${' '.repeat(Math.max(0, width - length - left))}┃`;
     };
-    return [`┏${border}┓`, ...lines.map(center), `┗${border}┛`, '', center('☠️ POWERED BY : niku MD ☠️')].join('\n');
+    const row = (value) => `┃ ${fit(value).padEnd(width - 2)} ┃`;
+    const lines = [
+        `🤖 ${botName}`,
+        '',
+        `👋 Hola, ${userName || 'Usuario'}`,
+        '',
+        '『 📊 INFORMACIÓN 』',
+        `▢ 👑 Creador: ${ownerName}`,
+        `▢ ⚙️ Prefijo: ${prefix}`,
+        `▢ 📦 Versión: ${settings.version || '3.0.0'}`,
+        `▢ 🌐 Modo: ${mode}`,
+        `▢ 🧩 Comandos: ${commandCount}`,
+        '',
+        '『 📁 CATEGORÍAS 』',
+        `✨ ${prefix}allmenu · Todos los comandos`,
+        `👑 ${prefix}ownermenu   👥 ${prefix}groupmenu`,
+        `🤖 ${prefix}aimenu       ⬇️ ${prefix}downloadmenu`,
+        `🛠️ ${prefix}toolsmenu    🎉 ${prefix}funmenu`,
+        `🎮 ${prefix}gamemenu      🎌 ${prefix}animemenu`,
+        `🏷️ ${prefix}stickermenu   🖼️ ${prefix}imagemenu`,
+        `✏️ ${prefix}textmakermenu  🎯 ${prefix}miscmenu`,
+        '',
+        '📢 Canal oficial',
+        'Pulsa el botón para unirte'
+    ];
+    return [`┏${border}┓`, center(`❈ ${botName} ❈`), ...lines.slice(2).map(line => line ? row(line) : row('')), `┗${border}┛`, '', center('☠️ POWERED BY NIKU MD ☠️')].join('\n');
 }
 
 
