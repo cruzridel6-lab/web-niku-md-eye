@@ -515,6 +515,20 @@ const sessions = {};
 const userSockets = {}; 
 const messageLogs = {}; 
 
+function getDashboardStats() {
+    const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
+    return {
+        activeSockets: connectedSessions.length,
+        totalUsers: connectedSessions.length,
+        connectedUsers: connectedSessions.length,
+        pendingUsers: Object.keys(sessions).length - connectedSessions.length,
+        updatedAt: new Date().toISOString()
+    };
+}
+
+function broadcastDashboardStats() {
+    if (typeof io !== 'undefined') io.emit('stats', getDashboardStats());
+}
 // Load existing sessions on startup
 async function loadExistingSessions() {
     try {
@@ -592,7 +606,9 @@ class BotSession {
                 user: this.userId
             });
         }
-        io.emit('total-active', Object.values(sessions).filter(s => s.isConnected).length);
+        const stats = getDashboardStats();
+        io.emit('total-active', stats.activeSockets);
+        io.emit('stats', stats);
     }
 
     async getAIResponse(userJid, userMessage, systemPrompt = "Helpful assistant.") {
@@ -1340,6 +1356,8 @@ function generateMenuText(userName, session) {
 
 // =================== SOCKET.IO ===================
 io.on('connection', (socket) => {
+    socket.emit('stats', getDashboardStats());
+
     // Admin auth
     socket.on('admin-auth', (password) => {
         const adminPass = process.env.ADMIN_PASSWORD || 'syed_techteaM';
@@ -1355,6 +1373,7 @@ io.on('connection', (socket) => {
         userSockets[userId] = socket.id;
         if (!sessions[userId]) sessions[userId] = new BotSession(userId);
         sessions[userId].sendConnectionStatus();
+        broadcastDashboardStats();
     });
 
     // Pair request - still available via web for web users
@@ -1494,6 +1513,7 @@ io.on('connection', (socket) => {
                 break;
             }
         }
+        broadcastDashboardStats();
     });
 });
 
@@ -1504,4 +1524,7 @@ server.listen(PORT, async () => {
     console.log(`\u{1F4E1} Total commands loaded: 120+`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
     await loadExistingSessions();
+    broadcastDashboardStats();
 });
+
+setInterval(broadcastDashboardStats, 5000).unref();
