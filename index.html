@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ :: TERMINAL</title>
+<title>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ :: PANEL</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -265,6 +265,25 @@
   }
   #toast.show{transform:translateX(-50%) translateY(0);}
 
+  /* ---------- Minimal Spanish visual layer ---------- */
+  :root{
+    --bg:#070a12;--bg-panel:rgba(13,18,31,.88);--bg-panel-2:rgba(9,13,24,.97);
+    --grid:rgba(136,158,205,.045);--green:#6ff7d2;--green-dim:#43c4aa;
+    --green-glass:rgba(111,247,210,.07);--border:rgba(154,177,225,.18);
+    --text:#f3f6fb;--muted:#98a6bd;--amber:#f3c879;--violet:#a99cff;
+  }
+  body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.01em;}
+  .scanlines{opacity:.06;}
+  .glow-orb{background:radial-gradient(circle,rgba(111,247,210,.09),rgba(169,156,255,.06) 32%,transparent 68%);filter:blur(54px);}
+  header h1{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-weight:800;letter-spacing:-.06em;text-shadow:0 0 28px rgba(111,247,210,.18);}
+  header h1 .glitch-wrap::before,header h1 .glitch-wrap::after{display:none;}
+  .eyebrow{letter-spacing:1.5px;background:rgba(111,247,210,.05);}
+  nav{height:68px;background:rgba(7,10,18,.82);}
+  .nav-links a{text-transform:none;}
+  section.panel{border-radius:20px;box-shadow:0 18px 60px rgba(0,0,0,.16);}
+  .feature-item,.official-card,.review-card{border-radius:16px;background:rgba(255,255,255,.018);}
+  .btn{border-radius:12px;background:var(--green);box-shadow:0 10px 28px rgba(111,247,210,.12);}
+
   @media(max-width:768px){
     nav{padding:0 18px;}
     .nav-links{
@@ -302,7 +321,7 @@
         <a href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-whatsapp"></i><span><strong>Canal oficial de WhatsApp</strong><small>Novedades y actualizaciones</small></span><b class="channel-join">Unirse</b></a>
         <a href="https://t.me/Dark_Zone_666" target="_blank" rel="noopener" class="channel-item"><i class="fab fa-telegram-plane"></i><span><strong>Canal oficial de Telegram</strong><small>Noticias y soporte</small></span><b class="channel-join">Unirse</b></a>
       </div>
-      <button class="btn" id="confirmFollow"><i class="fas fa-check"></i> Ya me uní — continuar</button>
+      <button class="btn" id="confirmFollow"><i class="fas fa-check"></i> Ya me uní · Continuar</button>
     </div>
   </div>
 </div>
@@ -312,12 +331,12 @@
     <div class="mark">$_</div>
     <div>
       <div class="name">ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</div>
-      <div class="tag">whatsapp automation</div>
+      <div class="tag">automatización de WhatsApp</div>
     </div>
   </div>
   <div class="nav-links" id="navLinks">
-    <a href="#features">features</a>
-    <a href="#connect">connect</a>
+    <a href="#features">funciones</a>
+    <a href="#connect">conectar</a>
     <a href="#links">canales oficiales</a>
     <a href="#reviews">opiniones</a>
   </div>
@@ -325,54 +344,54 @@
 </nav>
 
 <header>
-  <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESSION READY // NODE ONLINE</div>
+  <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
   <h1><span class="glitch-wrap" data-text="ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ">ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</span></h1>
-  <p class="sub">A fast, minimal WhatsApp automation core — built &amp; maintained by <strong>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</strong>.</p>
+  <p class="sub">Un núcleo rápido y minimalista para automatizar WhatsApp, creado y mantenido por <strong>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</strong>.</p>
 
   <div class="stats-row">
-    <div class="stat-card"><i class="fas fa-signal"></i><div><div class="stat-value" id="activeSockets">0</div><div class="stat-label">Enchufes activos</div></div></div>
+    <div class="stat-card"><i class="fas fa-signal"></i><div><div class="stat-value" id="activeSockets">0</div><div class="stat-label">Conexiones activas</div></div></div>
     <div class="stat-card"><i class="fas fa-users"></i><div><div class="stat-value" id="totalUsers">0</div><div class="stat-label">Usuarios conectados</div></div></div>
   </div>
 </header>
 
 <main>
   <section id="features" class="panel" data-label="./features">
-    <h2><i class="fas fa-star"></i> Features</h2>
+    <h2><i class="fas fa-star"></i> Funciones</h2>
     <div class="feature-grid">
-      <div class="feature-item"><i class="fas fa-reply"></i><h3>Auto Replies</h3><p>Smart automated responses based on customizable triggers.</p></div>
-      <div class="feature-item"><i class="fas fa-image"></i><h3>Media Tools</h3><p>Download, convert, and manage media files with ease.</p></div>
-      <div class="feature-item"><i class="fas fa-puzzle-piece"></i><h3>Commands System</h3><p>Extend functionality with custom commands and scripts.</p></div>
-      <div class="feature-item"><i class="fas fa-shield-alt"></i><h3>Security</h3><p>Built-in safeguards to protect your privacy and session data.</p></div>
+      <div class="feature-item"><i class="fas fa-reply"></i><h3>Respuestas automáticas</h3><p>Respuestas inteligentes basadas en activadores configurables.</p></div>
+      <div class="feature-item"><i class="fas fa-image"></i><h3>Herramientas multimedia</h3><p>Descarga, convierte y gestiona archivos multimedia fácilmente.</p></div>
+      <div class="feature-item"><i class="fas fa-puzzle-piece"></i><h3>Sistema de comandos</h3><p>Amplía el bot con comandos y automatizaciones personalizadas.</p></div>
+      <div class="feature-item"><i class="fas fa-shield-alt"></i><h3>Protección</h3><p>Controles integrados para cuidar tus sesiones y tu privacidad.</p></div>
     </div>
   </section>
 
   <section id="connect" class="panel" data-label="./connect">
-    <h2><i class="fas fa-link"></i> Connect to WhatsApp</h2>
+    <h2><i class="fas fa-link"></i> Conectar con WhatsApp</h2>
     <div class="instructions">
-      <h3>How to connect</h3>
+      <h3>Cómo conectar tu número</h3>
       <ol>
-        <li>Enter your WhatsApp number with country code (no "+", no spaces, no brackets)</li>
-        <li>Click "Request Pairing Code"</li>
-        <li>Copy the 8-digit code</li>
-        <li>Open WhatsApp → Settings → Linked Devices → Link a Device</li>
-        <li>Paste the code when prompted</li>
+        <li>Escribe tu número con código de país, sin «+», espacios ni paréntesis.</li>
+        <li>Pulsa «Solicitar código de vinculación».</li>
+        <li>Copia el código de ocho dígitos.</li>
+        <li>Abre WhatsApp → Ajustes → Dispositivos vinculados.</li>
+        <li>Introduce el código cuando WhatsApp lo solicite.</li>
       </ol>
     </div>
 
     <div class="input-box">
       <div class="input-group">
         <i class="fas fa-phone"></i>
-        <input type="tel" id="phone" placeholder="e.g. 923300000000 (with country code)">
+        <input type="tel" id="phone" placeholder="Ej.: 5491112345678 (con código de país)">
       </div>
-      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Request Pairing Code</button>
+      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Solicitar código</button>
     </div>
 
     <div id="status"></div>
 
     <div class="code-wrap" id="codeWrap">
       <div class="code-box" id="pairingCode" onclick="copyCode()">0000 0000</div>
-      <div class="copy-hint">Tap the code to copy</div>
-      <div class="waiting"><span class="dot"></span> Waiting for device to link...</div>
+      <div class="copy-hint">Toca el código para copiarlo</div>
+      <div class="waiting"><span class="dot"></span> Esperando la vinculación del dispositivo...</div>
     </div>
   </section>
 
@@ -385,29 +404,29 @@
   </section>
 
   <section id="reviews" class="panel" data-label="./community-feedback">
-    <h2><i class="fas fa-comment-dots"></i> Lo que destaca la comunidad</h2>
-    <p class="sample-note">Opiniones de muestra para ilustrar la experiencia del bot; no representan testimonios verificados.</p>
+    <h2><i class="fas fa-comment-dots"></i> Opiniones de la comunidad</h2>
+    <p class="sample-note">Comparte tu experiencia en nuestros canales oficiales. Este espacio se actualizará con comentarios reales de usuarios.</p>
     <div class="review-grid">
-      <article class="review-card"><div class="stars">★★★★★</div><p>“El bot responde rápido y tiene muchas herramientas útiles para el grupo.”</p><cite>— Usuario de muestra</cite></article>
-      <article class="review-card"><div class="stars">★★★★★</div><p>“La conexión es sencilla y los comandos de multimedia son muy prácticos.”</p><cite>— Comunidad NIKU, ejemplo</cite></article>
-      <article class="review-card"><div class="stars">★★★★★</div><p>“Me gusta que el panel sea claro y que las novedades estén en los canales oficiales.”</p><cite>— Opinión demostrativa</cite></article>
+      <article class="review-card"><div class="stars">✦ ✦ ✦ ✦ ✦</div><p>¿Ya conectaste tu número? Cuéntanos qué función te resulta más útil.</p><cite>— Comparte tu experiencia</cite></article>
+      <article class="review-card"><div class="stars">✦ ✦ ✦ ✦ ✦</div><p>Tu opinión puede ayudar a mejorar el panel y los comandos del bot.</p><cite>— Comunidad NIKU</cite></article>
+      <article class="review-card"><div class="stars">✦ ✦ ✦ ✦ ✦</div><p>Envía tus comentarios por los canales oficiales para aparecer en esta sección.</p><cite>— Participa en la comunidad</cite></article>
     </div>
   </section>
 </main>
 
-<footer>&copy; <span id="year"></span> <span>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</span> — All rights reserved.</footer>
+<footer>&copy; <span id="year"></span> <span>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</span> — Todos los derechos reservados.</footer>
 
-<div id="toast">CODE COPIED!</div>
+<div id="toast">¡CÓDIGO COPIADO!</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 /* ---------------- Boot sequence ---------------- */
 const bootLines = [
   "booting ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ kernel...",
-  "loading whatsapp bridge module... OK",
-  "initializing socket layer... OK",
-  "verifying session store... OK",
-  "welcome, operator."
+  "cargando puente de WhatsApp... OK",
+  "iniciando conexión en tiempo real... OK",
+  "verificando sesiones activas... OK",
+  "bienvenido al panel."
 ];
 const bootEl = document.getElementById('bootText');
 let li = 0, ci = 0;
@@ -489,19 +508,19 @@ const pairingCode = document.getElementById('pairingCode');
 function copyCode(){
   const code = pairingCode.innerText;
   if(code === '0000 0000') return;
-  navigator.clipboard.writeText(code.replace(/\s/g,'')).then(()=>showToast('CODE COPIED TO CLIPBOARD!'));
+  navigator.clipboard.writeText(code.replace(/\s/g,'')).then(()=>showToast('¡CÓDIGO COPIADO!'));
 }
 
 requestBtn.addEventListener('click', ()=>{
   const number = phoneInput.value.replace(/\D/g,'');
   if(!number || number.length < 10){
-    setStatus('Enter a valid phone number with country code.', 'error');
+    setStatus('Introduce un número válido con código de país.', 'error');
     phoneInput.focus();
     return;
   }
   requestBtn.disabled = true;
-  requestBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Requesting...';
-  setStatus('Sending pairing request to server...', 'warning');
+  requestBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Solicitando...';
+  setStatus('Enviando la solicitud de vinculación...', 'warning');
 
   const userId = 'user_' + Math.random().toString(36).substr(2,9);
   socket.emit('set-user', userId);
@@ -510,16 +529,16 @@ requestBtn.addEventListener('click', ()=>{
 
 socket.on('pairing-code', (code)=>{
   requestBtn.disabled = false;
-  requestBtn.innerHTML = '<i class="fas fa-key"></i> Request Pairing Code';
-  setStatus('Pairing code generated. Link it in WhatsApp within 60 seconds.', 'success');
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Solicitar código';
+  setStatus('Código generado. Vincula WhatsApp durante los próximos 60 segundos.', 'success');
   codeWrap.style.display = 'block';
   pairingCode.innerText = code;
 });
 
 socket.on('pair-error', (msg)=>{
   requestBtn.disabled = false;
-  requestBtn.innerHTML = '<i class="fas fa-key"></i> Request Pairing Code';
-  setStatus(msg || 'Failed to generate pairing code. Try again.', 'error');
+  requestBtn.innerHTML = '<i class="fas fa-key"></i> Solicitar código';
+  setStatus(msg || 'No se pudo generar el código. Inténtalo de nuevo.', 'error');
 });
 
 socket.on('connection-status', (status)=>{
@@ -527,8 +546,8 @@ socket.on('connection-status', (status)=>{
     pairingCode.innerText = 'LINKED';
     pairingCode.style.color = '#39ff14';
     pairingCode.style.borderColor = '#39ff14';
-    setStatus('Device linked successfully!', 'success');
-    showToast('CONNECTED SUCCESSFULLY!');
+    setStatus('¡Dispositivo vinculado correctamente!', 'success');
+    showToast('¡CONEXIÓN COMPLETADA!');
     setTimeout(()=>location.reload(), 3000);
   }
 });
@@ -538,7 +557,7 @@ socket.on('stats', (data)=>{
     if(typeof data.activeSockets !== 'undefined') document.getElementById('activeSockets').innerText = data.activeSockets;
     if(typeof data.totalUsers !== 'undefined') document.getElementById('totalUsers').innerText = data.totalUsers;
     const status = document.getElementById('nodeStatus');
-    if(status) status.innerHTML = `<span class="pulse"></span> ${data.activeSockets > 0 ? 'NODE ONLINE // USERS CONNECTED' : 'NODE ONLINE // WAITING FOR USERS'}`;
+    if(status) status.innerHTML = `<span class="pulse"></span> ${data.activeSockets > 0 ? 'NODO EN LÍNEA // USUARIOS CONECTADOS' : 'NODO EN LÍNEA // ESPERANDO USUARIOS'}`;
   }
 });
 
