@@ -53,6 +53,8 @@ async function getOkatsuVideoByUrl(youtubeUrl) {
 }
 
 async function videoCommand(sock, chatId, message) {
+    let resolvedVideoUrl = '';
+    let requestedQuery = '';
     try {
         // Loading reactions
         const loadEmojis = ['📥', '⏳', '🎥'];
@@ -62,6 +64,7 @@ async function videoCommand(sock, chatId, message) {
         const messageContent = message.message?.ephemeralMessage?.message || message.message?.viewOnceMessage?.message || message.message?.viewOnceMessageV2?.message || message.message;
         const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
         const query = text.replace(/^\.video\s+/i, '').trim();
+        requestedQuery = query;
         
         if (!query || query.toLowerCase() === '.video') {
             await sock.sendMessage(chatId, { text: 'Usage: .video <name or link>' }, { quoted: message });
@@ -85,6 +88,7 @@ async function videoCommand(sock, chatId, message) {
             videoTitle = videos[0].title;
             videoThumbnail = videos[0].thumbnail;
         }
+        resolvedVideoUrl = videoUrl;
 
         await sock.sendMessage(chatId, {
             image: { url: videoThumbnail || 'https://i.postimg.cc/y6GV9P3H/file-000000004c307206bc366893b817568c-(1).png' },
@@ -132,7 +136,7 @@ async function videoCommand(sock, chatId, message) {
     } catch (error) {
         console.error('Video error:', error);
         await sock.sendMessage(chatId, {
-            text: `❌ ${error.message}\n\n🔗 Enlace original:\n${message.message?.conversation?.match(/https?:\/\/\S+/i)?.[0] || 'Revisa el enlace de YouTube.'}`
+            text: `❌ ${error.message}\n\n🔗 Video solicitado:\n${resolvedVideoUrl || requestedQuery || 'No se pudo leer la búsqueda.'}`
         }, { quoted: message });
     }
 }
