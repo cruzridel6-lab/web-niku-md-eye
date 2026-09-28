@@ -6,7 +6,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageFromContent, normalizeMessageContent, isJidGroup, generateMessageIDV2 } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const { OpenAI } = require('openai');
 const os = require('os');
@@ -919,20 +919,8 @@ class BotSession {
                                         case 'menu': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = generateMenuText(customName, this);
-                                            const menuMessage = {
-                                                image: { url: settings.startimage },
-                                                caption: menuText,
-                                                footer: 'NIKU MD • Comunidad oficial',
-                                                templateButtons: [{
-                                                    index: 1,
-                                                    urlButton: {
-                                                        displayText: '📢 Unirse al canal oficial',
-                                                        url: settings.whatsappChannel
-                                                    }
-                                                }]
-                                            };
                                             try {
-                                                await this.sock.sendMessage(from, menuMessage, { quoted: msg });
+                                                await sendOfficialChannelMenu(this.sock, from, menuText, msg);
                                                 // Send the song.mp3 file if it exists in the root directory
                                                 const songPath = path.join(__dirname, 'song.mp3');
                                                 if (fs.existsSync(songPath)) {
@@ -944,8 +932,11 @@ class BotSession {
                                                         ptt: false 
                                                     }, { quoted: msg });
                                                 }
-                                            } catch (e) { 
-                                                await this.sock.sendMessage(from, { text: menuText }, { quoted: msg }); 
+                                            } catch (e) {
+                                                this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
+                                                await this.sock.sendMessage(from, {
+                                                    text: `${menuText}\n\n🔗 Canal oficial:\n${settings.whatsappChannel}`
+                                                }, { quoted: msg });
                                             }
                                             break;
                                         }
@@ -1313,6 +1304,49 @@ class BotSession {
 
 
 // =================== MENU GENERATOR ===================
+async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
+    const button = {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+            display_text: '📢 Unirse al canal oficial',
+            url: settings.whatsappChannel,
+            merchant_url: settings.whatsappChannel
+        })
+    };
+    const content = {
+        interactiveMessage: {
+            body: { text: caption },
+            footer: { text: 'NIKU MD • Comunidad oficial' },
+            nativeFlowMessage: {
+                buttons: [button],
+                messageVersion: 1
+            }
+        }
+    };
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, content, {
+        logger: sock.logger,
+        userJid,
+        messageId: generateMessageIDV2(userJid),
+        timestamp: new Date()
+    });
+    const normalized = normalizeMessageContent(fullMessage.message);
+    const additionalNodes = [{
+        tag: 'biz',
+        attrs: {},
+        content: [{
+            tag: 'interactive',
+            attrs: { type: 'native_flow', v: '1' },
+            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+        }]
+    }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    await sock.relayMessage(jid, fullMessage.message, {
+        messageId: fullMessage.key.id,
+        additionalNodes
+    });
+}
+
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name));
     const lines = available.length
@@ -1328,21 +1362,26 @@ function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'Public' : 'Private';
     const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
     const lines = [
-        '💀  NIKU MD MINI BOT  💀', '',
-        `🤖 BOT NAME : ${settings.botName || 'niku MD'}`,
-        `👤 OWNER    : ${settings.ownerName || 'SYED'}`,
-        `📦 VERSION  : ${settings.version || '3.0.0'}`,
-        `⚙️ MODE     : ${mode}`,
-        `🔑 PREFIX   : ${settings.prefix || '.'}`,
-        `👥 USER     : ${userName || 'User'}`, '',
-        '📋  CATEGORIES', '',
-        `✨ .allmenu       (${commandCount} comandos)`,
-        '👑 .ownermenu', '👥 .groupmenu', '🤖 .aimenu',
-        '⬇️ .downloadmenu', '🛠️ .toolsmenu', '🎉 .funmenu',
-        '🎮 .gamemenu', '🎌 .animemenu', '🏷️ .stickermenu',
-        '🖼️ .imagemenu', '✏️ .textmakermenu', '🏢 .logomenu', '🎯 .miscmenu'
+        '💀 NIKU MD MINI BOT 💀',
+        '· · · · · · · · · · · · · · · · · · · · ·',
+        `🤖 ${settings.botName || 'niku MD'}`,
+        `👤 ${settings.ownerName || 'SYED'}`,
+        `📦 v${settings.version || '3.0.0'}  •  ${mode}`,
+        `🔑 Prefijo: ${settings.prefix || '.'}  •  ${userName || 'User'}`,
+        '· · · · · · · · · · · · · · · · · · · · ·',
+        '📋 MENÚ PRINCIPAL',
+        `✨ .allmenu  •  ${commandCount} comandos`,
+        '👑 .ownermenu   👥 .groupmenu',
+        '🤖 .aimenu      ⬇️ .downloadmenu',
+        '🛠️ .toolsmenu   🎉 .funmenu',
+        '🎮 .gamemenu    🎌 .animemenu',
+        '🏷️ .stickermenu  🖼️ .imagemenu',
+        '✏️ .textmakermenu  🎯 .miscmenu',
+        '· · · · · · · · · · · · · · · · · · · · ·',
+        '📢 CANAL OFICIAL',
+        'Pulsa el botón para unirte'
     ];
-    const width = 33;
+    const width = 41;
     const border = '━'.repeat(width);
     const center = (text) => {
         const length = [...text].length;
@@ -1350,7 +1389,7 @@ function generateMenuText(userName, session) {
         const right = Math.max(0, width - length - left);
         return `┃${' '.repeat(left)}${text}${' '.repeat(right)}┃`;
     };
-    return [`┏${border}┓`, ...lines.map(center), `┗${border}┛`, '', center('📢 CANAL OFICIAL'), center('Usa el botón para unirte'), '', center('☠️ POWERED BY : niku MD ☠️')].join('\n');
+    return [`┏${border}┓`, ...lines.map(center), `┗${border}┛`, '', center('☠️ POWERED BY : niku MD ☠️')].join('\n');
 }
 
 
