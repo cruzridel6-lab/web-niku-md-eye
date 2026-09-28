@@ -99,13 +99,14 @@ async function videoCommand(sock, chatId, message) {
         let downloadSuccess = false;
         const failedSources = [];
         const apiMethods = [
-            { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
-            { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
-            { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) },
-            { name: 'yt-dlp', method: async () => ({
+            // getDirectUrl usa cnv.cx primero y deja yt-dlp como respaldo interno.
+            { name: 'cnv.cx / yt-dlp', method: async () => ({
                 download: await getDirectUrl(videoUrl, 'best[ext=mp4][height<=720]/best[ext=mp4]/best'),
                 title: videoTitle
-            }) }
+            }) },
+            { name: 'EliteProTech', method: () => getEliteProTechVideoByUrl(videoUrl) },
+            { name: 'Yupra', method: () => getYupraVideoByUrl(videoUrl) },
+            { name: 'Okatsu', method: () => getOkatsuVideoByUrl(videoUrl) }
         ];
         
         for (const apiMethod of apiMethods) {
