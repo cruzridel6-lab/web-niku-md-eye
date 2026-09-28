@@ -903,8 +903,20 @@ class BotSession {
                                         case 'menu': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = generateMenuText(customName, this);
+                                            const menuMessage = {
+                                                image: { url: settings.startimage },
+                                                caption: menuText,
+                                                footer: 'NIKU MD • Comunidad oficial',
+                                                templateButtons: [{
+                                                    index: 1,
+                                                    urlButton: {
+                                                        displayText: '📢 Unirse al canal oficial',
+                                                        url: settings.whatsappChannel
+                                                    }
+                                                }]
+                                            };
                                             try {
-                                                await this.sock.sendMessage(from, { image: { url: settings.startimage }, caption: menuText }, { quoted: msg });
+                                                await this.sock.sendMessage(from, menuMessage, { quoted: msg });
                                                 // Send the song.mp3 file if it exists in the root directory
                                                 const songPath = path.join(__dirname, 'song.mp3');
                                                 if (fs.existsSync(songPath)) {
@@ -1322,7 +1334,7 @@ function generateMenuText(userName, session) {
         const right = Math.max(0, width - length - left);
         return `┃${' '.repeat(left)}${text}${' '.repeat(right)}┃`;
     };
-    return [`┏${border}┓`, ...lines.map(center), `┗${border}┛`, '', '☠️  POWERED BY : niku MD  ☠️`'].join('\n');
+    return [`┏${border}┓`, ...lines.map(center), `┗${border}┛`, '', center('📢 CANAL OFICIAL'), center('Usa el botón para unirte'), '', center('☠️ POWERED BY : niku MD ☠️')].join('\n');
 }
 
 
