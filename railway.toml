@@ -1,5 +1,8 @@
 [build]
 builder = "NIXPACKS"
 
+[phases.setup]
+aptPkgs = ["ffmpeg"]
+
 [deploy]
 startCommand = "npm start"
