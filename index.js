@@ -957,7 +957,6 @@ class BotSession {
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
                                         case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
                                         case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGO MENU', []); break;
-                                        case 'islamicmenu': await sendCategoryMenu(this.sock, from, msg, '🕌 ISLAMIC MENU', ['quran', 'hadith', 'prayer', 'qibla', 'asmaulhusna']); break;
                                         case 'miscmenu': await sendCategoryMenu(this.sock, from, msg, '🎯 MISC MENU', ['runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'news', 'movie']); break;
                                         case 'bugmenu': {
                                             await sendCategoryMenu(this.sock, from, msg, '🐛 BUG MENU', ['crash', 'freeze', 'bug']);
@@ -1395,7 +1394,7 @@ function generateMenuText(userName, session) {
         row(`🎮 ${prefix}gamemenu        🎌 ${prefix}animemenu`),
         row(`🏷️ ${prefix}stickermenu     🖼️ ${prefix}imagemenu`),
         row(`✏️ ${prefix}textmakermenu   🏢 ${prefix}logomenu`),
-        row(`🕌 ${prefix}islamicmenu     🎯 ${prefix}miscmenu`),
+        row(`🎯 ${prefix}miscmenu`),
         row(`🐛 ${prefix}bugmenu`),
         row('· · · · · · · · · · · · · · · · · · · · ·'),
         center('📢 CANAL OFICIAL'),
