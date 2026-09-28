@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["...", "ffmpeg", "deno"]
+nixPkgs = ["...", "ffmpeg", "deno", "python3"]
 
 [start]
 cmd = "npm start"
