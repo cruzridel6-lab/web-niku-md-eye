@@ -1323,6 +1323,36 @@ class BotSession {
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
+    const categoryButton = {
+        name: 'single_select',
+        buttonParamsJson: JSON.stringify({
+            title: '📋 ELEGIR UNA CATEGORÍA',
+            sections: [{
+                title: 'Categorías disponibles',
+                rows: [
+                    ['allmenu', '✨ Todos los comandos'],
+                    ['ownermenu', '👑 Propietario'],
+                    ['groupmenu', '👥 Grupos'],
+                    ['aimenu', '🤖 Inteligencia artificial'],
+                    ['downloadmenu', '⬇️ Descargas'],
+                    ['toolsmenu', '🛠️ Herramientas'],
+                    ['funmenu', '🎉 Diversión'],
+                    ['gamemenu', '🎮 Juegos'],
+                    ['animemenu', '🎌 Anime'],
+                    ['stickermenu', '🏷️ Stickers'],
+                    ['imagemenu', '🖼️ Imágenes'],
+                    ['textmakermenu', '✏️ Text Maker'],
+                    ['logomenu', '🏢 Logos'],
+                    ['miscmenu', '🎯 Misceláneos'],
+                    ['bugmenu', '🐛 Bugs']
+                ].map(([id, title]) => ({
+                    title,
+                    description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
+                    id: `menu_${id}`
+                }))
+            }]
+        })
+    };
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
@@ -1336,7 +1366,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
             body: { text: caption },
             footer: { text: 'NIKU MD • Comunidad oficial' },
             nativeFlowMessage: {
-                buttons: [channelButton],
+                buttons: [categoryButton, channelButton],
                 messageVersion: 1
             }
         }
