@@ -316,12 +316,10 @@
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
   .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
-  .banner-controls{width:min(1100px,calc(100% - 32px));margin:12px auto 0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;animation:bannerIn .9s .1s ease both;}
-  .banner-brand{display:inline-flex;align-items:center;gap:9px;padding:12px 16px;border:1px solid rgba(169,156,255,.35);border-radius:13px;background:rgba(169,156,255,.08);color:var(--text);font-weight:800;letter-spacing:.05em;}
-  .banner-brand i{color:var(--violet);}
-  .banner-statuses{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
-  .banner-chip{display:inline-flex;align-items:center;gap:7px;padding:10px 12px;border:1px solid rgba(255,92,92,.3);border-radius:12px;background:rgba(255,62,62,.07);color:#ffb0b0;font-size:.68rem;font-weight:700;letter-spacing:.04em;}
-  .banner-chip i{color:#ff6363;}
+  .banner-nav{width:min(1100px,calc(100% - 32px));margin:12px auto 0;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;animation:bannerIn .9s .1s ease both;}
+  .banner-nav a{display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.035);color:var(--text);font-size:.74rem;font-weight:700;text-decoration:none;transition:transform .2s,border-color .2s,background .2s;}
+  .banner-nav a:hover{transform:translateY(-2px);border-color:var(--green);background:var(--green-glass);}
+  .banner-nav a i{color:var(--green);}
   @keyframes bannerIn{from{opacity:0;transform:translateY(-12px) scale(.985);}to{opacity:1;transform:translateY(0) scale(1);}}
   @media(max-width:768px){.comment-form{grid-template-columns:1fr;}.comment-form .btn{width:100%;}.comment-meta{flex-direction:column;gap:2px;}}
   @media(max-width:768px){.quick-strip,.steps-grid{grid-template-columns:1fr;}}
@@ -376,25 +374,16 @@
       <div class="tag">automatización de WhatsApp</div>
     </div>
   </div>
-  <div class="nav-links" id="navLinks">
-    <a href="#features">funciones</a>
-    <a href="#connect">conectar</a>
-    <a href="#links">canales oficiales</a>
-    <a href="#faq">ayuda</a>
-    <a href="#comments">comentarios</a>
-  </div>
-  <button class="nav-toggle" id="navToggle"><i class="fas fa-bars"></i></button>
 </nav>
 <div class="hero-banner" role="img" aria-label="Banner oficial de NIKU MD">
   <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="Banner oficial de NIKU MD BOT">
 </div>
-<div class="banner-controls" aria-label="Indicadores del banner">
-  <div class="banner-brand"><i class="fas fa-skull-crossbones"></i> NIKUBLADE BOT MD <small>· SPECIAL</small></div>
-  <div class="banner-statuses">
-    <div class="banner-chip"><i class="fas fa-triangle-exclamation"></i> NIVEL MÁXIMO</div>
-    <div class="banner-chip"><i class="fas fa-fingerprint"></i> BLOQUEO BIOMÉTRICO</div>
-    <div class="banner-chip"><i class="fas fa-gauge-high"></i> CIBERSEGURIDAD</div>
-  </div>
+<div class="banner-nav" aria-label="Navegación principal">
+  <a href="#features"><i class="fas fa-star"></i> Funciones</a>
+  <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
+  <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
+  <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
+  <a href="#comments"><i class="fas fa-comment-dots"></i> Comentarios</a>
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -542,12 +531,6 @@ for(let i=0;i<40;i++){
   p.style.animationDelay = (Math.random()*14)+'s';
   pWrap.appendChild(p);
 }
-
-/* ---------------- Nav toggle ---------------- */
-const navToggle = document.getElementById('navToggle');
-const navLinks = document.getElementById('navLinks');
-navToggle.addEventListener('click', ()=> navLinks.classList.toggle('active'));
-navLinks.querySelectorAll('a').forEach(a=>a.addEventListener('click', ()=>navLinks.classList.remove('active')));
 
 /* ---------------- Channel modal ---------------- */
 const channelModal = document.getElementById('channelModal');
