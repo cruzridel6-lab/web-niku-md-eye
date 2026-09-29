@@ -773,7 +773,19 @@ class BotSession {
                         if (!messageContent) return;
 
                         let type = Object.keys(messageContent)[0];
-                        const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
+                        let text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
+                        const selectedRowId = messageContent.listResponseMessage?.singleSelectReply?.selectedRowId ||
+                            messageContent.buttonsResponseMessage?.selectedButtonId ||
+                            messageContent.templateButtonReplyMessage?.selectedId;
+                        const flowParams = messageContent.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
+                        if (!selectedRowId && flowParams) {
+                            try {
+                                const parsed = JSON.parse(flowParams);
+                                if (parsed.id) text = parsed.id;
+                            } catch (e) {}
+                        }
+                        if (selectedRowId) text = selectedRowId;
+                        if (text.startsWith('menu_')) text = `.${text.slice(5)}`;
 
                         // Handle snipe for deleted messages
                         if (!isMe && !isStatus) {
@@ -1307,7 +1319,37 @@ class BotSession {
 
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
-    const button = {
+    const categoryButton = {
+        name: 'single_select',
+        buttonParamsJson: JSON.stringify({
+            title: '📋 Elegir categoría',
+            sections: [{
+                title: 'Categorías disponibles',
+                rows: [
+                    ['allmenu', '✨ Todos los comandos'],
+                    ['ownermenu', '👑 Propietario'],
+                    ['groupmenu', '👥 Grupos'],
+                    ['aimenu', '🤖 Inteligencia artificial'],
+                    ['downloadmenu', '⬇️ Descargas'],
+                    ['toolsmenu', '🛠️ Herramientas'],
+                    ['funmenu', '🎉 Diversión'],
+                    ['gamemenu', '🎮 Juegos'],
+                    ['animemenu', '🎌 Anime'],
+                    ['stickermenu', '🏷️ Stickers'],
+                    ['imagemenu', '🖼️ Imágenes'],
+                    ['textmakermenu', '✏️ Text Maker'],
+                    ['logomenu', '🏢 Logos'],
+                    ['miscmenu', '🎯 Misceláneos'],
+                    ['bugmenu', '🐛 Bugs']
+                ].map(([id, title]) => ({
+                    title,
+                    description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
+                    id: `menu_${id}`
+                }))
+            }]
+        })
+    };
+    const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
             display_text: '📢 Unirse al canal oficial',
@@ -1320,7 +1362,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
             body: { text: caption },
             footer: { text: 'NIKU MD • Comunidad oficial' },
             nativeFlowMessage: {
-                buttons: [button],
+                buttons: [categoryButton, channelButton],
                 messageVersion: 1
             }
         }
