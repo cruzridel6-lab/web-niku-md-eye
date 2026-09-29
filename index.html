@@ -316,6 +316,22 @@
   .comment-avatar{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:12px;background:var(--green-glass);color:var(--green);font-weight:800;}
   .comment-content{min-width:0;flex:1;}.comment-meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;}.comment-meta strong{font-size:.82rem;}.comment-meta time{font-size:.68rem;color:var(--muted);white-space:nowrap;}.comment-content p{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere;}
   .comments-empty{color:var(--muted);font-size:.8rem;padding:18px;text-align:center;border:1px dashed var(--border);border-radius:14px;}
+  .admin-login{max-width:420px;display:grid;gap:12px;}
+  .admin-login input{width:100%;border:1px solid var(--border);border-radius:12px;background:rgba(0,0,0,.22);color:var(--text);font:inherit;font-size:.82rem;padding:12px 14px;outline:none;}
+  .admin-login input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(111,247,210,.1);}
+  .admin-status{min-height:20px;color:var(--amber);font-size:.75rem;}
+  #adminConsole{display:none;}
+  .console-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;color:var(--muted);font-size:.75rem;}
+  .console-live{color:var(--green);font-weight:700;}
+  .console-output{height:360px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
+  .console-line{padding:9px 8px;border-bottom:1px solid rgba(154,177,225,.1);white-space:pre-wrap;overflow-wrap:anywhere;}
+  .console-line:last-child{border-bottom:0;}
+  .console-line.group{border-left:2px solid var(--violet);}
+  .console-line.private{border-left:2px solid var(--green);}
+  .console-time{color:var(--muted);margin-right:8px;}
+  .console-chat{color:var(--amber);}
+  .console-sender{color:var(--green);font-weight:700;}
+  .console-empty{color:var(--muted);padding:30px;text-align:center;}
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
   .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
@@ -398,6 +414,7 @@
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
   <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
   <a href="#comments"><i class="fas fa-comment-dots"></i> Comentarios</a>
+  <a href="#admin"><i class="fas fa-shield-halved"></i> Admin</a>
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -495,6 +512,22 @@
       <button class="btn" type="submit"><i class="fas fa-paper-plane"></i> Publicar</button>
     </form>
     <div id="commentsList" class="comments-list"><div class="comments-empty">Todavía no hay comentarios. Sé el primero en participar.</div></div>
+  </section>
+  <section id="admin" class="panel" data-label="./admin">
+    <h2><i class="fas fa-shield-halved"></i> Panel administrativo</h2>
+    <div id="adminLoginBox">
+      <p class="sample-note">Acceso privado para supervisar los chats del bot en tiempo real.</p>
+      <form id="adminLoginForm" class="admin-login">
+        <input id="adminUsername" type="text" autocomplete="username" placeholder="Usuario" required>
+        <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+        <button class="btn" type="submit"><i class="fas fa-lock"></i> Entrar al panel</button>
+        <div id="adminStatus" class="admin-status" aria-live="polite"></div>
+      </form>
+    </div>
+    <div id="adminConsole">
+      <div class="console-toolbar"><span class="console-live">● CONSOLA EN TIEMPO REAL</span><span id="adminMessageCount">0 mensajes</span></div>
+      <div id="adminConsoleOutput" class="console-output"><div class="console-empty">Esperando mensajes del bot...</div></div>
+    </div>
   </section>
 </main>
 
@@ -618,7 +651,65 @@ const commentForm = document.getElementById('commentForm');
 const commentName = document.getElementById('commentName');
 const commentText = document.getElementById('commentText');
 const commentsList = document.getElementById('commentsList');
-
+const adminLoginForm = document.getElementById('adminLoginForm');
+const adminLoginBox = document.getElementById('adminLoginBox');
+const adminConsole = document.getElementById('adminConsole');
+const adminUsername = document.getElementById('adminUsername');
+const adminPassword = document.getElementById('adminPassword');
+const adminStatus = document.getElementById('adminStatus');
+const adminConsoleOutput = document.getElementById('adminConsoleOutput');
+const adminMessageCount = document.getElementById('adminMessageCount');
+const adminMessages = new Map();
+function renderAdminChatMessage(entry){
+  if(!entry?.id || adminMessages.has(entry.id)) return;
+  adminMessages.set(entry.id,entry);
+  const empty = adminConsoleOutput.querySelector('.console-empty');
+  if(empty) empty.remove();
+  const line = document.createElement('div');
+  line.className = `console-line ${entry.isGroup ? 'group' : 'private'}`;
+  const date = entry.timestamp ? new Date(entry.timestamp) : new Date();
+  const time = document.createElement('span');
+  time.className='console-time';
+  time.textContent=`[${date.toLocaleTimeString('es-ES')}]`;
+  const chat = document.createElement('span');
+  chat.className='console-chat';
+  chat.textContent=`${entry.isGroup ? 'GRUPO' : 'CHAT'} ${entry.chatName || entry.chatId}: `;
+  const sender = document.createElement('span');
+  sender.className='console-sender';
+  sender.textContent=`${entry.sender || 'Usuario'}${entry.fromMe ? ' (BOT)' : ''}: `;
+  const message = document.createElement('span');
+  message.textContent=entry.text || `[${entry.type || 'mensaje'}]`;
+  line.append(time,chat,sender,message);
+  adminConsoleOutput.appendChild(line);
+  adminConsoleOutput.scrollTop=adminConsoleOutput.scrollHeight;
+  adminMessageCount.textContent=`${adminMessages.size} mensajes`;
+}
+function renderAdminChatHistory(entries=[]){
+  adminMessages.clear();
+  adminConsoleOutput.innerHTML='';
+  entries.forEach(renderAdminChatMessage);
+  if(!entries.length) adminConsoleOutput.innerHTML='<div class="console-empty">Esperando mensajes del bot...</div>';
+  adminMessageCount.textContent=`${adminMessages.size} mensajes`;
+}
+if(adminLoginForm){
+  adminLoginForm.addEventListener('submit',(event)=>{
+    event.preventDefault();
+    adminStatus.textContent='Verificando acceso...';
+    socket.emit('admin-auth',{username:adminUsername.value,password:adminPassword.value});
+  });
+}
+socket.on('admin-auth-success',()=>{
+  adminStatus.textContent='';
+  adminLoginBox.style.display='none';
+  adminConsole.style.display='block';
+  showToast('Panel administrativo abierto');
+});
+socket.on('admin-auth-fail',()=>{
+  adminStatus.textContent='Usuario o contraseña incorrectos.';
+  adminPassword.value='';
+});
+socket.on('admin-chat-history',renderAdminChatHistory);
+socket.on('admin-chat-message',renderAdminChatMessage);
 function renderComments(comments = []){
   commentsList.innerHTML = '';
   if(!comments.length){
