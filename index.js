@@ -1499,7 +1499,7 @@ function generateMenuText(userName, session) {
         center(boxRow('❖ 『 MENÚ PRINCIPAL 』 ❖')),
         center(bottom),
         ...categories.map(([icon, command, description]) =>
-            center(boxRow(`${icon} ${prefix}${command}   ───  ${description}`))
+            center(`${icon} ${prefix}${command}   ───  ${description}`)
         ),
         '',
         center('─── ❖ ──────── ✦ ──────── ❖ ───'),
