@@ -348,7 +348,7 @@
 </style>
 </head>
 <body>
-
+<audio id="bootAudio" src="/song.mp3" preload="auto" aria-hidden="true"></audio>
 <div id="boot">
   <div class="boot-panel">
     <div class="boot-brand"><strong>NIKU MD // SISTEMA</strong><span>INICIO SEGURO</span></div>
@@ -518,7 +518,25 @@ const bootEl = document.getElementById('bootText');
 const bootProgress = document.getElementById('bootProgress');
 const bootPercent = document.getElementById('bootPercent');
 const bootStatus = document.getElementById('bootStatus');
+const bootAudio = document.getElementById('bootAudio');
 let li = 0, ci = 0;
+let bootAudioTimer;
+function startBootAudio(){
+  if(!bootAudio) return;
+  bootAudio.volume = 0.35;
+  const play = ()=>{
+    const attempt = bootAudio.play();
+    if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{});
+    clearTimeout(bootAudioTimer);
+    bootAudioTimer = setTimeout(()=>{
+      bootAudio.pause();
+      bootAudio.currentTime = 0;
+    }, 12000);
+  };
+  play();
+  window.addEventListener('pointerdown', play, { once:true, passive:true });
+}
+startBootAudio();
 function typeBoot(){
   if(li >= bootLines.length){
     bootProgress.style.width = '100%';
