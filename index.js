@@ -126,6 +126,7 @@ const commands = {
     npm: require('./commands/npm'),
     sticker: require('./commands/sticker'),
     toimg: require('./commands/toimg'),
+    logo: require('./commands/logo'),
     tomp3: require('./commands/tomp3'),
     tts: require('./commands/tts'),
     blur: require('./commands/blur'),
@@ -968,7 +969,7 @@ class BotSession {
                                         case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'emojimix', 'toimg']); break;
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
                                         case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
-                                        case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGO MENU', []); break;
+                                        case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGOS', ['logo']); break;
                                         case 'miscmenu': await sendCategoryMenu(this.sock, from, msg, '🎯 MISC MENU', ['runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'news', 'movie']); break;
                                         case 'bugmenu': {
                                             await sendCategoryMenu(this.sock, from, msg, '🐛 BUG MENU', ['crash', 'freeze', 'bug']);
@@ -1154,6 +1155,7 @@ class BotSession {
                                         case 'movie': case 'imdb': await commands.movie(this.sock, from, msg, q); break;
                                         case 'anime': await commands.anime(this.sock, from, msg, q); break;
                                         case 'manga': await commands.manga(this.sock, from, msg, q); break;
+                                        case 'logo': await commands.logo(this.sock, from, msg, q); break;
                                         case 'lyrics': await commands.lyrics(this.sock, from, msg, q); break;
                                         case 'remind': case 'reminder': await commands.remind(this.sock, from, msg, q); break;
                                         case 'tagme': await commands.tagme(this.sock, from, msg); break;
