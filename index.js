@@ -1324,7 +1324,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const categoryButton = {
         name: 'single_select',
         buttonParamsJson: JSON.stringify({
-            title: '📋 Elegir categoría',
+            title: '📋 ELEGIR UNA CATEGORÍA',
             sections: [{
                 title: 'Categorías disponibles',
                 rows: [
@@ -1354,7 +1354,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
-            display_text: '📢 Unirse al canal oficial',
+            display_text: '📢 UNIRSE AL CANAL OFICIAL',
             url: settings.whatsappChannel,
             merchant_url: settings.whatsappChannel
         })
