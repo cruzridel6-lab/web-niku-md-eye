@@ -1399,6 +1399,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     }
     const width = 41;
     const border = '━'.repeat(width);
+    const divider = `┣${border}┫`;
     const charWidth = (char) => {
         const code = char.codePointAt(0);
         if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
@@ -1420,9 +1421,9 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     };
     const lines = [
         center(title),
-        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        divider,
         ...available.map(name => center(`• .${name}`)),
-        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        divider,
         center(`Total: ${available.length} comando(s)`)
     ];
     const text = [`┏${border}┓`, ...lines, `┗${border}┛`].join('\n');
@@ -1437,6 +1438,7 @@ function generateMenuText(userName, session) {
     const ownerName = settings.ownerName || 'SYED';
     const width = 41;
     const border = '━'.repeat(width);
+    const divider = `┣${border}┫`;
     const charWidth = (char) => {
         const code = char.codePointAt(0);
         if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
@@ -1488,15 +1490,15 @@ function generateMenuText(userName, session) {
     ];
     const lines = [
         center('💀 NIKU MD MINI BOT 💀'),
-        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        divider,
         row(`🤖 BOT: ${botName}`),
         row(`👤 PROPIETARIO: ${ownerName}`),
         row(`📦 VERSIÓN: ${settings.version || '3.0.0'}  •  ${mode}`),
         row(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
-        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        divider,
         center('📋 MENÚ PRINCIPAL'),
         ...menuItems.map(center),
-        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        divider,
         center('📢 CANAL OFICIAL'),
         center('Pulsa el botón para unirte')
     ];
