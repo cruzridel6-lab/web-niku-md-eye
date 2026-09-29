@@ -1439,65 +1439,33 @@ function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'Público' : 'Privado';
     const prefix = settings.prefix || '.';
     const botName = settings.botName || 'ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ';
-    const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇꫂꤪꤨᴼᶠᶜ';
+    const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇᴼᶠᶜ';
     const version = settings.version || '3.0.0';
-    const width = 43;
-    const visualWidth = (value) => [...String(value)].reduce((total, char) => {
-        const code = char.codePointAt(0);
-        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return total;
-        return total + (((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) ? 2 : 1);
-    }, 0);
-    const fit = (value) => [...String(value)].reduce((result, char) => {
-        const next = result.width + visualWidth(char);
-        return next > width ? result : { text: result.text + char, width: next };
-    }, { text: '', width: 0 }).text;
-    const center = (value) => {
-        const text = fit(value);
-        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
-    };
-    const infoRow = (value = '') => {
-        const text = fit(value);
-        return `│ ${text}${' '.repeat(Math.max(0, width - visualWidth(text) - 1))}│`;
-    };
-    const menuRow = (value = '') => {
-        const text = fit(value);
-        return `│ ${text}${' '.repeat(Math.max(0, width - visualWidth(text) - 1))}│`;
-    };
-    const menuRows = [
-        ['✨', 'allmenu', 'Comandos'],
-        ['👑', 'ownermenu', 'Creador'],
-        ['👥', 'groupmenu', 'Grupos'],
-        ['🤖', 'aimenu', 'IA'],
-        ['⬇️', 'download', 'Descargas'],
-        ['🛠️', 'toolsmenu', 'Herramientas'],
-        ['🎉', 'funmenu', 'Juegos']
-    ];
-    const infoTop = `┌───⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ ${'─'.repeat(10)}┐`;
-    const infoBottom = `└${'─'.repeat(width)}┘`;
-    const menuTop = `╭${'─'.repeat(width)}╮`;
-    const menuBottom = `╰${'─'.repeat(width)}╯`;
     const lines = [
-        center('───〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕───'),
+        '─〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕─',
         '',
-        center(infoTop),
-        infoRow(''),
-        infoRow(`🤖 ʙᴏᴛ: \`${botName}\``),
-        infoRow(`👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: \`${ownerName}\``),
-        infoRow('👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`'),
-        infoRow(`📦 ᴠᴇʀsɪóɴ: \`${version}\``),
-        infoRow(`🌐 ᴍᴏᴅᴏ: \`${mode}\``),
-        infoRow(`🔑 ᴘʀᴇғɪᴊᴏ: \`[ ${prefix} ]\``),
-        infoRow(''),
-        infoBottom,
+        '⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ',
         '',
-        menuTop,
-        menuRow('『 MENÚ PRINCIPAL 』'),
-        ...menuRows.map(([icon, command, description]) => menuRow(`${icon} \`${prefix}${command}\` ─── ${description}`)),
+        `🤖 ʙᴏᴛ: \`${botName}\``,
+        `👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: \`${ownerName}\``,
+        '👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`',
+        `📦 ᴠᴇʀsɪóɴ: \`${version}\``,
+        `🌐 ᴍᴏᴅᴏ: \`${mode}\``,
+        `🔑 ᴘʀᴇғɪᴊᴏ: \`[ ${prefix} ]\``,
         '',
-        center(menuBottom),
+        '『 MENÚ PRINCIPAL 』',
+        '',
+        `✨ \`${prefix}allmenu\` • \`Comandos\``,
+        `👑 \`${prefix}ownermenu\` • \`Creador\``,
+        `👥 \`${prefix}groupmenu\` • \`Grupos\``,
+        `🤖 \`${prefix}aimenu\` • \`IA\``,
+        `⬇️ \`${prefix}download\` • \`Descargas\``,
+        `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
+        `🎉 \`${prefix}funmenu\` • \`Juegos\``,
+        '',
         '> NIKU MD • Comunidad oficial'
     ];
-    return ['```', lines.join('\n'), '```'].join('\n');
+    return lines.join('\n');
 }
 
 // =================== SOCKET.IO ===================
