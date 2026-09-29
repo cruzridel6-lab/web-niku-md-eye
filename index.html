@@ -313,6 +313,10 @@
   .comment-avatar{display:grid;place-items:center;flex:0 0 36px;height:36px;border-radius:12px;background:var(--green-glass);color:var(--green);font-weight:800;}
   .comment-content{min-width:0;flex:1;}.comment-meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;}.comment-meta strong{font-size:.82rem;}.comment-meta time{font-size:.68rem;color:var(--muted);white-space:nowrap;}.comment-content p{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere;}
   .comments-empty{color:var(--muted);font-size:.8rem;padding:18px;text-align:center;border:1px dashed var(--border);border-radius:14px;}
+  .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
+  .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
+  .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
+  @keyframes bannerIn{from{opacity:0;transform:translateY(-12px) scale(.985);}to{opacity:1;transform:translateY(0) scale(1);}}
   @media(max-width:768px){.comment-form{grid-template-columns:1fr;}.comment-form .btn{width:100%;}.comment-meta{flex-direction:column;gap:2px;}}
   @media(max-width:768px){.quick-strip,.steps-grid{grid-template-columns:1fr;}}
 
@@ -375,7 +379,9 @@
   </div>
   <button class="nav-toggle" id="navToggle"><i class="fas fa-bars"></i></button>
 </nav>
-
+<div class="hero-banner" role="img" aria-label="Banner oficial de NIKU MD">
+  <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="Banner oficial de NIKU MD BOT">
+</div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
   <h1><span class="glitch-wrap" data-text="ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ">ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</span></h1>
