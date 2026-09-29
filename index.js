@@ -1459,6 +1459,10 @@ function generateMenuText(userName, session) {
         const text = fit(value);
         return `│ ${text}${' '.repeat(Math.max(0, width - visualWidth(text) - 1))}│`;
     };
+    const menuRow = (value = '') => {
+        const text = fit(value);
+        return `│ ${text}${' '.repeat(Math.max(0, width - visualWidth(text) - 1))}│`;
+    };
     const menuRows = [
         ['✨', 'allmenu', 'Comandos'],
         ['👑', 'ownermenu', 'Creador'],
@@ -1470,7 +1474,7 @@ function generateMenuText(userName, session) {
     ];
     const infoTop = `┌───⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ ${'─'.repeat(10)}┐`;
     const infoBottom = `└${'─'.repeat(width)}┘`;
-    const menuTop = `╭───『 MENÚ PRINCIPAL 』${'─'.repeat(17)}╮`;
+    const menuTop = `╭${'─'.repeat(width)}╮`;
     const menuBottom = `╰${'─'.repeat(width)}╯`;
     const lines = [
         center('───〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕───'),
@@ -1486,9 +1490,9 @@ function generateMenuText(userName, session) {
         infoRow(''),
         infoBottom,
         '',
-        center(menuTop),
-        infoRow(''),
-        ...menuRows.map(([icon, command, description]) => center(`│ ${icon} \`${prefix}${command}\` ─── ${description}`)),
+        menuTop,
+        menuRow('『 MENÚ PRINCIPAL 』'),
+        ...menuRows.map(([icon, command, description]) => menuRow(`${icon} \`${prefix}${command}\` ─── ${description}`)),
         '',
         center(menuBottom),
         '> NIKU MD • Comunidad oficial'
