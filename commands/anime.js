@@ -1,31 +1,47 @@
 const axios = require('axios');
 
-module.exports = async function(sock, chatId, msg, q) {
-    if (!q) return await sock.sendMessage(chatId, { text: '\u26A0\uFE0F .anime <anime name>' }, { quoted: msg });
-    
+module.exports = async function animeCommand(sock, chatId, msg, q = '') {
+    const query = String(q || '').trim();
+    if (!query) {
+        return sock.sendMessage(chatId, { text: '⚠️ Uso: .anime <nombre del anime>' }, { quoted: msg });
+    }
+
     try {
-        await sock.sendMessage(chatId, { text: '\u1F3A8 Searching anime...' }, { quoted: msg });
-        
-        const response = await axios.get(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(q)}&limit=3`, { timeout: 10000 });
-        const animes = response.data.data;
-        
-        if (!animes || !animes.length) return await sock.sendMessage(chatId, { text: '\u274C No anime found!' }, { quoted: msg });
-        
-        const anime = animes[0];
-        const text = `*\u1F3A8 ${anime.title}*\n\n` +
-            `\u2B50 Score: ${anime.score}/10\n` +
-            `\u1F4DA Episodes: ${anime.episodes || 'Unknown'}\n` +
-            `\u1F4C5 Status: ${anime.status}\n` +
-            `\u1F4DC Genre: ${anime.genres.map(g => g.name).join(', ')}\n` +
-            `\u1F4CB Synopsis: ${anime.synopsis?.substring(0, 300) || 'N/A'}...\n\n` +
-            `\u1F517 ${anime.url}`;
-        
-        if (anime.images?.jpg?.image_url) {
-            await sock.sendMessage(chatId, { image: { url: anime.images.jpg.image_url }, caption: text }, { quoted: msg });
+        await sock.sendMessage(chatId, { text: '🔎 Buscando anime...' }, { quoted: msg });
+        const response = await axios.get('https://api.jikan.moe/v4/anime', {
+            params: { q: query, limit: 1, sfw: true },
+            timeout: 15000,
+            headers: { Accept: 'application/json', 'User-Agent': 'NIKU-MD/3.0' }
+        });
+        const anime = response.data?.data?.[0];
+        if (!anime) {
+            return sock.sendMessage(chatId, { text: `❌ No encontré resultados para: ${query}` }, { quoted: msg });
+        }
+
+        const genres = Array.isArray(anime.genres) && anime.genres.length
+            ? anime.genres.map(g => g.name).join(', ')
+            : 'No disponible';
+        const synopsis = String(anime.synopsis || 'Sin sinopsis disponible').replace(/\s+/g, ' ').slice(0, 500);
+        const text = `🎨 *${anime.title || query}*\n\n` +
+            `⭐ Puntuación: ${anime.score ?? 'N/D'}/10\n` +
+            `📚 Episodios: ${anime.episodes ?? 'N/D'}\n` +
+            `📅 Estado: ${anime.status || 'N/D'}\n` +
+            `📜 Géneros: ${genres}\n` +
+            `📝 Sinopsis: ${synopsis}${synopsis.length >= 500 ? '…' : ''}\n\n` +
+            `🔗 ${anime.url || 'Enlace no disponible'}`;
+
+        const imageUrl = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url;
+        if (imageUrl) {
+            await sock.sendMessage(chatId, { image: { url: imageUrl }, caption: text }, { quoted: msg });
         } else {
             await sock.sendMessage(chatId, { text }, { quoted: msg });
         }
-    } catch (e) {
-        await sock.sendMessage(chatId, { text: '\u274C Error: ' + e.message }, { quoted: msg });
+    } catch (error) {
+        const status = error.response?.status;
+        const message = status === 429 || status === 504
+            ? '⏳ Jikan está temporalmente ocupado. Espera unos segundos e inténtalo otra vez.'
+            : '❌ No pude consultar anime ahora. Revisa tu conexión o prueba otra vez.';
+        console.error('Error en anime:', status || error.message);
+        await sock.sendMessage(chatId, { text: message }, { quoted: msg });
     }
 };

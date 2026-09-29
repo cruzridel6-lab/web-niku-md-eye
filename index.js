@@ -786,6 +786,7 @@ class BotSession {
                         }
                         if (selectedRowId) text = selectedRowId;
                         if (text.startsWith('menu_')) text = `.${text.slice(5)}`;
+                        if (text.startsWith('cmd_')) text = `.${text.slice(4)}`;
 
                         // Handle snipe for deleted messages
                         if (!isMe && !isStatus) {
@@ -953,9 +954,8 @@ class BotSession {
                                             }
                                             break;
                                         }
-                                        case 'allmenu': 
-                                            const allMenuCmd = require('./commands/allmenu');
-                                            await allMenuCmd(this.sock, from, msg, this, commands); 
+                                        case 'allmenu':
+                                            await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
@@ -1083,7 +1083,7 @@ class BotSession {
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
                                         case 'dp': await commands.dp(this.sock, from, msg); break;
                                         case 'vv': await commands.vv(this.sock, from, msg); break;
-                                        case 'translate': case 'trt': await commands.utils.trt(this.sock, from, msg, q); break;
+                                        case 'translate': case 'trt': await commands.translate(this.sock, from, msg, q); break;
                                         case 'base64': await commands.base64(this.sock, from, msg, q); break;
                                         case 'qr': await commands.qr(this.sock, from, msg, q); break;
                                         case 'shorturl': case 'tinyurl': await commands.utils.short(this.sock, from, msg, q); break;
@@ -1393,13 +1393,58 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name));
-    const lines = available.length
-        ? available.map(name => `┃  • .${name}`)
-        : ['┃  • Sin comandos activos por ahora'];
-    const width = 33;
-    const border = '━'.repeat(width);
-    const text = [`┏${border}┓`, `┃${title.padStart(Math.floor((width + title.length) / 2)).padEnd(width)}┃`, `┣${border}┫`, ...lines, `┗${border}┛`, '', `Total: ${available.length} comando(s)`].join('\n');
-    await sock.sendMessage(from, { text }, { quoted: msg });
+    if (!available.length) {
+        await sock.sendMessage(from, { text: `${title}\n\nNo hay comandos activos en esta categoría.` }, { quoted: msg });
+        return;
+    }
+    const commandRows = available.map(name => ({
+        title: `.${name}`,
+        description: `Ejecutar el comando .${name}`,
+        id: `cmd_${name}`
+    }));
+    const sections = [];
+    for (let index = 0; index < commandRows.length; index += 25) {
+        sections.push({
+            title: `${title} · ${Math.floor(index / 25) + 1}`,
+            rows: commandRows.slice(index, index + 25)
+        });
+    }
+    sections[0].rows.unshift({ title: '↩️ Volver al menú', description: 'Regresar a las categorías', id: 'menu_menu' });
+    const button = {
+        name: 'single_select',
+        buttonParamsJson: JSON.stringify({
+            title: '📋 Elegir comando',
+            sections
+        })
+    };
+    const content = {
+        interactiveMessage: {
+            body: { text: `${title}\n\nSelecciona un comando para ejecutarlo:` },
+            footer: { text: 'NIKU MD • Menú interactivo' },
+            nativeFlowMessage: { buttons: [button], messageVersion: 1 }
+        }
+    };
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(from, content, {
+        logger: sock.logger,
+        userJid,
+        messageId: generateMessageIDV2(userJid),
+        timestamp: new Date()
+    });
+    const additionalNodes = [{
+        tag: 'biz',
+        attrs: {},
+        content: [{
+            tag: 'interactive',
+            attrs: { type: 'native_flow', v: '1' },
+            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+        }]
+    }];
+    if (!isJidGroup(from)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    await sock.relayMessage(from, fullMessage.message, {
+        messageId: fullMessage.key.id,
+        additionalNodes
+    });
 }
 
 function generateMenuText(userName, session) {
