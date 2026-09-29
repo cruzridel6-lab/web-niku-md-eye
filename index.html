@@ -531,18 +531,20 @@ function startBootAudio(){
     bootAudioTimer = setTimeout(()=>{
       bootAudio.pause();
       bootAudio.currentTime = 0;
-    }, 12000);
+    }, 55000);
   };
   play();
   window.addEventListener('pointerdown', play, { once:true, passive:true });
 }
-startBootAudio();
 function typeBoot(){
   if(li >= bootLines.length){
     bootProgress.style.width = '100%';
     bootPercent.textContent = '100%';
     bootStatus.textContent = 'Carga completada · entrando...';
-    setTimeout(()=>document.getElementById('boot').classList.add('hide'), 850);
+    setTimeout(()=>{
+      document.getElementById('boot').classList.add('hide');
+      startBootAudio();
+    }, 850);
     return;
   }
   const line = bootLines[li];
