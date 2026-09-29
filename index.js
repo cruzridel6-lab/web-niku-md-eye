@@ -1368,15 +1368,37 @@ function generateMenuText(userName, session) {
     const ownerName = settings.ownerName || 'SYED';
     const width = 41;
     const border = '━'.repeat(width);
-    const fit = (value) => [...String(value)].slice(0, width).join('');
+    const charWidth = (char) => {
+        const code = char.codePointAt(0);
+        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
+        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
+        return 1;
+    };
+    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
+    const fit = (value) => {
+        let result = '';
+        let used = 0;
+        for (const char of [...String(value)]) {
+            const next = charWidth(char);
+            if (used + next > width) break;
+            result += char;
+            used += next;
+        }
+        return result;
+    };
+    const padRight = (value) => `${value}${' '.repeat(Math.max(0, width - visualWidth(value)))}`;
     const row = (value = '') => {
         const text = fit(value);
-        return `┃${text.padEnd(width)}┃`;
+        return `┃${padRight(text)}┃`;
     };
     const center = (value) => {
         const text = fit(value);
-        const left = Math.max(0, Math.floor((width - [...text].length) / 2));
+        const left = Math.max(0, Math.floor((width - visualWidth(text)) / 2));
         return row(`${' '.repeat(left)}${text}`);
+    };
+    const centerPlain = (value) => {
+        const text = fit(value);
+        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
     };
     const lines = [
         center('💀 NIKU MD MINI BOT 💀'),
@@ -1400,7 +1422,7 @@ function generateMenuText(userName, session) {
         center('📢 CANAL OFICIAL'),
         center('Pulsa el botón para unirte')
     ];
-    return [`┏${border}┓`, ...lines, `┗${border}┛`, '', center('☠️ POWERED BY NIKU MD ☠️')].join('\n');
+    return [`┏${border}┓`, ...lines, `┗${border}┛`, '', centerPlain('☠️ POWERED BY NIKU MD ☠️')].join('\n');
 }
 
 
