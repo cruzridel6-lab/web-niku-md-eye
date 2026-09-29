@@ -936,17 +936,6 @@ class BotSession {
                                             const menuText = generateMenuText(customName, this);
                                             try {
                                                 await sendOfficialChannelMenu(this.sock, from, menuText, msg);
-                                                // Send the song.mp3 file if it exists in the root directory
-                                                const songPath = path.join(__dirname, 'song.mp3');
-                                                if (fs.existsSync(songPath)) {
-                                                    const audioBuffer = fs.readFileSync(songPath);
-                                                    await this.sock.sendMessage(from, { 
-                                                        audio: audioBuffer, 
-                                                        mimetype: 'audio/mpeg', 
-                                                        fileName: 'song.mp3',
-                                                        ptt: false 
-                                                    }, { quoted: msg });
-                                                }
                                             } catch (e) {
                                                 this.sendLog(`Interactive menu fallback: ${e.message}`, 'warning');
                                                 await this.sock.sendMessage(from, {
@@ -1286,10 +1275,29 @@ class BotSession {
                             `Escribe *.menu* para explorar todas las funciones.\n\n` +
                             `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
 
-                        await this.sock.sendMessage(botNumber, { 
-                            image: { url: settings.startimage },
-                            caption: welcomeText 
-                        });
+                        const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
+                        if (fs.existsSync(menuImagePath)) {
+                            await this.sock.sendMessage(botNumber, {
+                                image: fs.readFileSync(menuImagePath),
+                                mimetype: 'image/jpeg',
+                                caption: welcomeText
+                            });
+                        } else {
+                            await this.sock.sendMessage(botNumber, {
+                                image: { url: settings.startimage },
+                                caption: welcomeText
+                            });
+                        }
+
+                        const songPath = path.join(__dirname, 'song.mp3');
+                        if (fs.existsSync(songPath)) {
+                            await this.sock.sendMessage(botNumber, {
+                                audio: fs.readFileSync(songPath),
+                                mimetype: 'audio/mpeg',
+                                fileName: 'song.mp3',
+                                ptt: false
+                            });
+                        }
 
                         try {
                             const channelLink = settings.whatsappChannel;
