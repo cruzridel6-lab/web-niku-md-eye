@@ -1437,10 +1437,10 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
 function generateMenuText(userName, session) {
     const mode = session.isPublic ? 'Público' : 'Privado';
     const prefix = settings.prefix || '.';
-    const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
-    const botName = settings.botName || 'ɴɪᴋᴜ MD';
-    const ownerName = settings.ownerName || 'SYED';
-    const width = 41;
+    const botName = settings.botName || 'ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ';
+    const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇꫂꤪꤨᴼᶠᶜ';
+    const contentWidth = 54;
+    const lineWidth = contentWidth + 2;
     const charWidth = (char) => {
         const code = char.codePointAt(0);
         if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
@@ -1448,55 +1448,65 @@ function generateMenuText(userName, session) {
         return 1;
     };
     const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
-    const fit = (value) => {
+    const fit = (value, maxWidth = lineWidth) => {
         let result = '';
         let used = 0;
         for (const char of [...String(value)]) {
             const next = charWidth(char);
-            if (used + next > width) break;
+            if (used + next > maxWidth) break;
             result += char;
             used += next;
         }
         return result;
     };
     const center = (value) => {
-        const text = fit(value);
-        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
+        const text = fit(value, lineWidth);
+        return `${' '.repeat(Math.max(0, Math.floor((lineWidth - visualWidth(text)) / 2)))}${text}`;
     };
-    const menuItems = [
-        `✨ ${prefix}allmenu  •  ${commandCount} comandos`,
-        `👑 ${prefix}ownermenu`,
-        `👥 ${prefix}groupmenu`,
-        `🤖 ${prefix}aimenu`,
-        `⬇️ ${prefix}downloadmenu`,
-        `🛠️ ${prefix}toolsmenu`,
-        `🎉 ${prefix}funmenu`,
-        `🎮 ${prefix}gamemenu`,
-        `🎌 ${prefix}animemenu`,
-        `🏷️ ${prefix}stickermenu`,
-        `🖼️ ${prefix}imagemenu`,
-        `✏️ ${prefix}textmakermenu`,
-        `🏢 ${prefix}logomenu`,
-        `🎯 ${prefix}miscmenu`,
-        `🐛 ${prefix}bugmenu`
+    const boxRow = (value = '') => {
+        const text = fit(value, contentWidth);
+        return `│${text}${' '.repeat(Math.max(0, contentWidth - visualWidth(text)))}│`;
+    };
+    const categories = [
+        ['✨', 'allmenu', 'Todos los comandos'],
+        ['👑', 'ownermenu', 'Menú Creador'],
+        ['👥', 'groupmenu', 'Gestión de Grupos'],
+        ['🤖', 'aimenu', 'Inteligencia Artificial'],
+        ['⬇️', 'downloadmenu', 'Descargas Multimedia'],
+        ['🛠️', 'toolsmenu', 'Herramientas Útiles'],
+        ['🎉', 'funmenu', 'Entretenimiento'],
+        ['🎮', 'gamemenu', 'Juegos & Economía'],
+        ['🎌', 'animemenu', 'Comandos de Anime'],
+        ['🏷️', 'stickermenu', 'Creador de Stickers'],
+        ['🖼️', 'imagemenu', 'Generador de Imágenes'],
+        ['✏️', 'textmakermenu', 'Efectos de Texto'],
+        ['🏢', 'logomenu', 'Diseño de Logos'],
+        ['🎯', 'miscmenu', 'Otros Servicios'],
+        ['🐛', 'bugmenu', 'Soporte & Reportes']
     ];
+    const top = `┌${'─'.repeat(contentWidth)}┐`;
+    const bottom = `└${'─'.repeat(contentWidth)}┘`;
     const lines = [
-        center('✦ 💀 NIKU MD MINI BOT 💀 ✦'),
-        center('· · · ✦ · · ·'),
+        center('✦ ⟨ 💀 NIKU MD MINI BOT 💀 ⟩ ✦'),
         '',
-        center(`🤖 BOT: ${botName}`),
-        center(`👤 PROPIETARIO: ${ownerName}`),
-        center(`📦 VERSIÓN: ${settings.version || '3.0.0'}  •  ${mode}`),
-        center(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
+        center(`> 🤖 BOT: ${botName}`),
+        center(`> 👤 PROPIETARIO: ${ownerName}`),
+        center('> 👑 CO-OWNER: Bryan'),
+        center(`> 📦 VERSIÓN: ${settings.version || '3.0.0'} │ MODO: ${mode}`),
+        center(`> 🔑 PREFIJO: [ ${prefix} ]`),
         '',
-        center('『 📋 MENÚ PRINCIPAL 』'),
-        ...menuItems.map(center),
+        center(top),
+        center(boxRow('❖ 『 MENÚ PRINCIPAL 』 ❖')),
+        center(bottom),
+        ...categories.map(([icon, command, description]) =>
+            center(boxRow(`${icon} ${prefix}${command}   ───  ${description}`))
+        ),
         '',
-        center('· · · ✦ · · ·'),
-        center('『 📢 CANAL OFICIAL 』'),
-        center('Pulsa el botón para unirte'),
+        center('─── ❖ ──────── ✦ ──────── ❖ ───'),
         '',
-        center('✦ NIKU MD • Comunidad oficial ✦')
+        center('📢 CANAL OFICIAL'),
+        center('¡Únete a la comunidad para enterarte de novedades!'),
+        center('✦ NIKU MD • Comunidad Oficial ✦')
     ];
     return ['```', lines.join('\n'), '```'].join('\n');
 }
