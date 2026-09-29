@@ -1438,7 +1438,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name));
     if (!available.length) {
-        await sock.sendMessage(from, { text: `${title}\n\nNo hay comandos activos en esta categoría.` }, { quoted: msg });
+        await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
         return;
     }
     const width = 41;
@@ -1473,7 +1473,56 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         center('· · · ✦ · · ·'),
         center(`✦ ${available.length} comando(s) disponibles ✦`)
     ];
-    await sock.sendMessage(from, { text: ['```', lines.join('\n'), '```'].join('\n') }, { quoted: msg });
+    await sendSubmenuWithChannel(sock, from, ['```', lines.join('\n'), '```'].join('\n'), msg);
+}
+
+async function sendSubmenuWithChannel(sock, jid, text, quoted) {
+    const channelButton = {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+            display_text: '📢 UNIRSE AL CANAL OFICIAL',
+            url: settings.whatsappChannel,
+            merchant_url: settings.whatsappChannel
+        })
+    };
+    const content = {
+        interactiveMessage: {
+            body: { text },
+            footer: { text: 'NIKU MD • Comunidad oficial' },
+            nativeFlowMessage: {
+                buttons: [channelButton],
+                messageVersion: 1
+            }
+        }
+    };
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, content, {
+        logger: sock.logger,
+        userJid,
+        messageId: generateMessageIDV2(userJid),
+        timestamp: new Date()
+    });
+    const additionalNodes = [{
+        tag: 'biz',
+        attrs: {},
+        content: [{
+            tag: 'interactive',
+            attrs: { type: 'native_flow', v: '1' },
+            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
+        }]
+    }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    try {
+        await sock.relayMessage(jid, fullMessage.message, {
+            messageId: fullMessage.key.id,
+            additionalNodes
+        });
+    } catch (error) {
+        console.error('Submenu interactive message failed:', error.message);
+        await sock.sendMessage(jid, {
+            text: `${text}\n\n📢 Canal oficial: ${settings.whatsappChannel}`
+        }, { quoted });
+    }
 }
 
 function generateMenuText(userName, session) {
