@@ -1397,54 +1397,36 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         await sock.sendMessage(from, { text: `${title}\n\nNo hay comandos activos en esta categoría.` }, { quoted: msg });
         return;
     }
-    const commandRows = available.map(name => ({
-        title: `.${name}`,
-        description: `Ejecutar el comando .${name}`,
-        id: `cmd_${name}`
-    }));
-    const sections = [];
-    for (let index = 0; index < commandRows.length; index += 25) {
-        sections.push({
-            title: `${title} · ${Math.floor(index / 25) + 1}`,
-            rows: commandRows.slice(index, index + 25)
-        });
-    }
-    sections[0].rows.unshift({ title: '↩️ Volver al menú', description: 'Regresar a las categorías', id: 'menu_menu' });
-    const button = {
-        name: 'single_select',
-        buttonParamsJson: JSON.stringify({
-            title: '📋 Elegir comando',
-            sections
-        })
+    const width = 41;
+    const border = '━'.repeat(width);
+    const charWidth = (char) => {
+        const code = char.codePointAt(0);
+        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
+        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
+        return 1;
     };
-    const content = {
-        interactiveMessage: {
-            body: { text: `${title}\n\nSelecciona un comando para ejecutarlo:` },
-            footer: { text: 'NIKU MD • Menú interactivo' },
-            nativeFlowMessage: { buttons: [button], messageVersion: 1 }
-        }
+    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
+    const fit = (value) => [...String(value)].reduce((result, char) => {
+        const next = result.width + charWidth(char);
+        return next > width ? result : { text: result.text + char, width: next };
+    }, { text: '', width: 0 }).text;
+    const row = (value = '') => {
+        const text = fit(value);
+        return `┃${text}${' '.repeat(Math.max(0, width - visualWidth(text)))}┃`;
     };
-    const userJid = sock.user?.id;
-    const fullMessage = generateWAMessageFromContent(from, content, {
-        logger: sock.logger,
-        userJid,
-        messageId: generateMessageIDV2(userJid),
-        timestamp: new Date()
-    });
-    const additionalNodes = [{
-        tag: 'biz',
-        attrs: {},
-        content: [{
-            tag: 'interactive',
-            attrs: { type: 'native_flow', v: '1' },
-            content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }]
-        }]
-    }];
-    if (!isJidGroup(from)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
-    await sock.relayMessage(from, fullMessage.message, {
-        messageId: fullMessage.key.id,
-        additionalNodes
-    });
+    const center = (value) => {
+        const text = fit(value);
+        return row(`${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`);
+    };
+    const lines = [
+        center(title),
+        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        ...available.map(name => center(`• .${name}`)),
+        row('· · · · · · · · · · · · · · · · · · · · ·'),
+        center(`Total: ${available.length} comando(s)`)
+    ];
+    const text = [`┏${border}┓`, ...lines, `┗${border}┛`].join('\n');
+    await sock.sendMessage(from, { text }, { quoted: msg });
 }
 
 function generateMenuText(userName, session) {
