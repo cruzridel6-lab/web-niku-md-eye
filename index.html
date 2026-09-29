@@ -63,12 +63,15 @@
   @keyframes drift{0%{transform:translateY(100vh);opacity:0;}10%{opacity:.7;}90%{opacity:.4;}100%{transform:translateY(-10vh);opacity:0;}}
 
   /* ---------- Boot sequence overlay ---------- */
-  #boot{
-    position:fixed;inset:0;z-index:999;background:#010301;
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Share Tech Mono',monospace;
-  }
-  #boot pre{color:var(--green);font-size:.85rem;white-space:pre-wrap;max-width:600px;padding:20px;text-shadow:0 0 8px rgba(57,255,20,.5);}
+  #boot{position:fixed;inset:0;z-index:999;background:radial-gradient(circle at 50% 45%,#0b1c17 0,#010301 58%);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;}
+  .boot-panel{width:min(680px,calc(100% - 34px));padding:26px 24px 22px;border:1px solid rgba(111,247,210,.25);border-radius:18px;background:rgba(2,9,7,.82);box-shadow:0 0 50px rgba(57,255,20,.08);}
+  .boot-brand{display:flex;justify-content:space-between;gap:12px;color:var(--text);font-size:.76rem;letter-spacing:.12em;margin-bottom:14px;}
+  .boot-brand strong{color:var(--green);}
+  #boot pre{min-height:160px;color:var(--green);font-size:.78rem;line-height:1.65;white-space:pre-wrap;margin:0;text-shadow:0 0 8px rgba(57,255,20,.5);}
+  .boot-progress{height:9px;border-radius:99px;overflow:hidden;background:rgba(111,247,210,.1);border:1px solid rgba(111,247,210,.24);}
+  .boot-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#35d5b3,#b4ffe8);box-shadow:0 0 16px rgba(111,247,210,.7);transition:width .25s ease;}
+  .boot-meta{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:11px;color:var(--muted);font-size:.72rem;}
+  #bootPercent{color:var(--green);font-weight:700;}
   #boot .cursor{display:inline-block;width:8px;height:16px;background:var(--green);animation:blink 1s step-end infinite;vertical-align:middle;}
   @keyframes blink{50%{opacity:0;}}
   #boot.hide{animation:bootOut .5s ease forwards;}
@@ -320,6 +323,10 @@
   .banner-nav a{display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid var(--border);border-radius:12px;background:rgba(255,255,255,.035);color:var(--text);font-size:.74rem;font-weight:700;text-decoration:none;transition:transform .2s,border-color .2s,background .2s;}
   .banner-nav a:hover{transform:translateY(-2px);border-color:var(--green);background:var(--green-glass);}
   .banner-nav a i{color:var(--green);}
+  .banner-nav a{animation:navButtonIn .65s cubic-bezier(.2,.8,.2,1) both,navButtonGlow 3.8s ease-in-out infinite;}
+  .banner-nav a:nth-child(2){animation-delay:.08s,.8s}.banner-nav a:nth-child(3){animation-delay:.16s,1.2s}.banner-nav a:nth-child(4){animation-delay:.24s,1.6s}.banner-nav a:nth-child(5){animation-delay:.32s,2s}
+  @keyframes navButtonIn{from{opacity:0;transform:translateY(10px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+  @keyframes navButtonGlow{0%,100%{box-shadow:0 0 0 rgba(111,247,210,0);}50%{box-shadow:0 0 18px rgba(111,247,210,.13);}}
   @keyframes bannerIn{from{opacity:0;transform:translateY(-12px) scale(.985);}to{opacity:1;transform:translateY(0) scale(1);}}
   @media(max-width:768px){.comment-form{grid-template-columns:1fr;}.comment-form .btn{width:100%;}.comment-meta{flex-direction:column;gap:2px;}}
   @media(max-width:768px){.quick-strip,.steps-grid{grid-template-columns:1fr;}}
@@ -342,7 +349,14 @@
 </head>
 <body>
 
-<div id="boot"><pre id="bootText"></pre></div>
+<div id="boot">
+  <div class="boot-panel">
+    <div class="boot-brand"><strong>NIKU MD // SISTEMA</strong><span>INICIO SEGURO</span></div>
+    <pre id="bootText"></pre>
+    <div class="boot-progress" aria-label="Progreso de carga"><div class="boot-progress-bar" id="bootProgress"></div></div>
+    <div class="boot-meta"><span id="bootStatus">Preparando el panel...</span><span id="bootPercent">0%</span></div>
+  </div>
+</div>
 <div class="scanlines"></div>
 <div class="grid-bg"></div>
 <div class="glow-orb"></div>
@@ -493,27 +507,39 @@
 /* ---------------- Boot sequence ---------------- */
 const bootLines = [
   "iniciando núcleo de ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ...",
-  "cargando puente de WhatsApp... OK",
-  "iniciando conexión en tiempo real... OK",
-  "verificando sesiones activas... OK",
-  "bienvenido al panel."
+  "cargando módulos de automatización... OK",
+  "verificando el puente seguro de WhatsApp... OK",
+  "preparando conexión en tiempo real... OK",
+  "sincronizando sesiones activas y estadísticas... OK",
+  "cargando canales oficiales y herramientas... OK",
+  "interfaz minimalista lista. bienvenido al panel."
 ];
 const bootEl = document.getElementById('bootText');
+const bootProgress = document.getElementById('bootProgress');
+const bootPercent = document.getElementById('bootPercent');
+const bootStatus = document.getElementById('bootStatus');
 let li = 0, ci = 0;
 function typeBoot(){
   if(li >= bootLines.length){
-    setTimeout(()=>document.getElementById('boot').classList.add('hide'), 400);
+    bootProgress.style.width = '100%';
+    bootPercent.textContent = '100%';
+    bootStatus.textContent = 'Carga completada · entrando...';
+    setTimeout(()=>document.getElementById('boot').classList.add('hide'), 850);
     return;
   }
   const line = bootLines[li];
   if(ci <= line.length){
     bootEl.innerText = bootLines.slice(0,li).join('\n') + (li>0?'\n':'') + line.slice(0,ci) + ' ';
     bootEl.innerHTML = bootEl.innerText.replace(/\n/g,'<br>') + '<span class="cursor"></span>';
+    const percent = Math.min(96, Math.round(((li + ci / Math.max(line.length, 1)) / bootLines.length) * 100));
+    bootProgress.style.width = percent + '%';
+    bootPercent.textContent = percent + '%';
+    bootStatus.textContent = li < 2 ? 'Inicializando módulos...' : li < 5 ? 'Sincronizando servicios...' : 'Finalizando configuración...';
     ci++;
-    setTimeout(typeBoot, 18);
+    setTimeout(typeBoot, 28);
   } else {
     li++; ci = 0;
-    setTimeout(typeBoot, 120);
+    setTimeout(typeBoot, 260);
   }
 }
 typeBoot();
