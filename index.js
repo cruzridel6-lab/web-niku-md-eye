@@ -1429,7 +1429,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         center('· · · ✦ · · ·'),
         center(`✦ ${available.length} comando(s) disponibles ✦`)
     ];
-    await sock.sendMessage(from, { text: lines.join('\n') }, { quoted: msg });
+    await sock.sendMessage(from, { text: ['```', lines.join('\n'), '```'].join('\n') }, { quoted: msg });
 }
 
 function generateMenuText(userName, session) {
@@ -1496,7 +1496,7 @@ function generateMenuText(userName, session) {
         '',
         center('✦ NIKU MD • Comunidad oficial ✦')
     ];
-    return lines.join('\n');
+    return ['```', lines.join('\n'), '```'].join('\n');
 }
 
 // =================== SOCKET.IO ===================
