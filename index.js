@@ -1322,6 +1322,14 @@ class BotSession {
 
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
+    const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
+    if (fs.existsSync(menuImagePath)) {
+        await sock.sendMessage(jid, {
+            image: fs.readFileSync(menuImagePath),
+            mimetype: 'image/jpeg',
+            caption
+        }, { quoted });
+    }
     const categoryButton = {
         name: 'single_select',
         buttonParamsJson: JSON.stringify({
@@ -1362,7 +1370,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     };
     const content = {
         interactiveMessage: {
-            body: { text: caption },
+            body: { text: '📋 Selecciona una categoría para ver sus comandos:' },
             footer: { text: 'NIKU MD • Comunidad oficial' },
             nativeFlowMessage: {
                 buttons: [categoryButton, channelButton],
