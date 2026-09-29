@@ -321,6 +321,10 @@
   .admin-login input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(111,247,210,.1);}
   .admin-status{min-height:20px;color:var(--amber);font-size:.75rem;}
   #adminConsole{display:none;}
+  #adminNavLink{display:none;}
+  body.admin-route #adminNavLink{display:inline-flex;}
+  #admin.panel{display:none;}
+  body.admin-route #admin.panel{display:block;}
   .console-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;color:var(--muted);font-size:.75rem;}
   .console-live{color:var(--green);font-weight:700;}
   .console-output{height:360px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
@@ -414,7 +418,7 @@
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
   <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
   <a href="#comments"><i class="fas fa-comment-dots"></i> Comentarios</a>
-  <a href="#admin"><i class="fas fa-shield-halved"></i> Admin</a>
+  <a id="adminNavLink" href="#admin"><i class="fas fa-shield-halved"></i> Admin</a>
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -660,6 +664,17 @@ const adminStatus = document.getElementById('adminStatus');
 const adminConsoleOutput = document.getElementById('adminConsoleOutput');
 const adminMessageCount = document.getElementById('adminMessageCount');
 const adminMessages = new Map();
+function updateAdminRoute(){
+  const isAdminRoute = window.location.hash.toLowerCase() === '#admin';
+  document.body.classList.toggle('admin-route', isAdminRoute);
+  if(!isAdminRoute){
+    adminLoginBox.style.display='block';
+    adminConsole.style.display='none';
+    adminStatus.textContent='';
+  }
+}
+updateAdminRoute();
+window.addEventListener('hashchange', updateAdminRoute);
 function renderAdminChatMessage(entry){
   if(!entry?.id || adminMessages.has(entry.id)) return;
   adminMessages.set(entry.id,entry);
