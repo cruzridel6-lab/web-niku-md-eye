@@ -1463,7 +1463,7 @@ function generateMenuText(userName, session) {
         '👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`',
         `📦 ᴠᴇʀsɪóɴ: \`${version}\``,
         `🌐 ᴍᴏᴅᴏ: \`${mode}\``,
-        `🔑 ᴘʀᴇғɪᴊᴏ: \`[ ${prefix} ]\``,
+        '🔑 ᴘʀᴇғɪᴊᴏ: `Niku666ofc`',
         '',
         '『 MENÚ PRINCIPAL 』',
         '',
