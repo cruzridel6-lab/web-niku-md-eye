@@ -615,7 +615,28 @@ class BotSession {
 
     async getAIResponse(userJid, userMessage, systemPrompt = "Helpful assistant.") {
         try {
-            // Using a more reliable AI API endpoint
+            if (openai) {
+                try {
+                    const completion = await openai.chat.completions.create({
+                        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `${systemPrompt} Responde en español de forma clara, breve y útil. Eres el asistente de NIKU MD.`
+                            },
+                            { role: 'user', content: userMessage }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 700
+                    });
+                    const answer = completion.choices?.[0]?.message?.content?.trim();
+                    if (answer) return answer;
+                } catch (openaiError) {
+                    console.error('OpenAI API error, using fallback:', openaiError.message);
+                }
+            }
+
+            // Fallbacks públicos si OpenAI no está configurado o no responde.
             const apiUrl = `https://api.siputzx.my.id/api/ai/chatgpt?prompt=${encodeURIComponent(systemPrompt)}&text=${encodeURIComponent(userMessage)}`;
             const response = await axios.get(apiUrl);
             
