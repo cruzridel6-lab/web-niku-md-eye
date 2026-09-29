@@ -1421,11 +1421,13 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
     };
     const lines = [
-        center(title),
+        center(`『 ${title} 』`),
+        center('· · · ✦ · · ·'),
         '',
         ...available.map(name => center(`• .${name}`)),
         '',
-        center(`Total: ${available.length} comando(s)`)
+        center('· · · ✦ · · ·'),
+        center(`✦ ${available.length} comando(s) disponibles ✦`)
     ];
     await sock.sendMessage(from, { text: lines.join('\n') }, { quoted: msg });
 }
@@ -1477,20 +1479,22 @@ function generateMenuText(userName, session) {
         `🐛 ${prefix}bugmenu`
     ];
     const lines = [
-        center('💀 NIKU MD MINI BOT 💀'),
+        center('✦ 💀 NIKU MD MINI BOT 💀 ✦'),
+        center('· · · ✦ · · ·'),
         '',
         center(`🤖 BOT: ${botName}`),
         center(`👤 PROPIETARIO: ${ownerName}`),
         center(`📦 VERSIÓN: ${settings.version || '3.0.0'}  •  ${mode}`),
         center(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
         '',
-        center('📋 MENÚ PRINCIPAL'),
+        center('『 📋 MENÚ PRINCIPAL 』'),
         ...menuItems.map(center),
         '',
-        center('📢 CANAL OFICIAL'),
+        center('· · · ✦ · · ·'),
+        center('『 📢 CANAL OFICIAL 』'),
         center('Pulsa el botón para unirte'),
         '',
-        center('☠️ POWERED BY NIKU MD ☠️')
+        center('✦ NIKU MD • Comunidad oficial ✦')
     ];
     return lines.join('\n');
 }
