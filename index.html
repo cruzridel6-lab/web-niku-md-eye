@@ -267,6 +267,8 @@
     font-size:.8rem;font-weight:700;transition:.4s cubic-bezier(.175,.885,.32,1.275);z-index:900;
   }
   #toast.show{transform:translateX(-50%) translateY(0);}
+  #audioHint{display:none;position:fixed;right:18px;bottom:18px;z-index:700;background:var(--bg-panel-2);color:var(--green);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font:600 .72rem Inter, sans-serif;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.28);}
+  #audioHint.show{display:block;animation:panelIn .35s ease both;}
 
   /* ---------- Minimal Spanish visual layer ---------- */
   :root{
@@ -368,7 +370,7 @@
 </style>
 </head>
 <body>
-<audio id="bootAudio" src="/song.mp3" preload="auto" aria-hidden="true"></audio>
+<audio id="bootAudio" src="/song.mp3" preload="auto" playsinline aria-hidden="true"></audio>
 <div id="boot">
   <div class="boot-panel">
     <div class="boot-brand"><strong>NIKU MD // SISTEMA</strong><span>INICIO SEGURO</span></div>
@@ -538,6 +540,7 @@
 <footer>&copy; <span id="year"></span> <span>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</span> — Todos los derechos reservados.</footer>
 
 <div id="toast">¡CÓDIGO COPIADO!</div>
+<button id="audioHint" type="button"><i class="fas fa-volume-high"></i> Activar sonido</button>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -556,23 +559,33 @@ const bootProgress = document.getElementById('bootProgress');
 const bootPercent = document.getElementById('bootPercent');
 const bootStatus = document.getElementById('bootStatus');
 const bootAudio = document.getElementById('bootAudio');
+const audioHint = document.getElementById('audioHint');
 let li = 0, ci = 0;
 let bootAudioTimer;
-function startBootAudio(){
-  if(!bootAudio) return;
+let bootFinished = false;
+let audioStarted = false;
+function attemptBootAudio(){
+  if(!bootAudio || !bootFinished || audioStarted) return;
   bootAudio.volume = 0.35;
-  const play = ()=>{
-    const attempt = bootAudio.play();
-    if(attempt && typeof attempt.catch === 'function') attempt.catch(()=>{});
+  bootAudio.currentTime = 0;
+  const attempt = bootAudio.play();
+  if(!attempt || typeof attempt.then !== 'function') return;
+  attempt.then(()=>{
+    audioStarted = true;
+    audioHint?.classList.remove('show');
     clearTimeout(bootAudioTimer);
     bootAudioTimer = setTimeout(()=>{
       bootAudio.pause();
       bootAudio.currentTime = 0;
     }, 55000);
-  };
-  play();
-  window.addEventListener('pointerdown', play, { once:true, passive:true });
+  }).catch(()=>{
+    audioHint?.classList.add('show');
+  });
 }
+['pointerdown','touchstart','keydown'].forEach(eventName=>{
+  window.addEventListener(eventName, attemptBootAudio, { passive:true });
+});
+audioHint?.addEventListener('click', attemptBootAudio);
 function typeBoot(){
   if(li >= bootLines.length){
     bootProgress.style.width = '100%';
@@ -580,7 +593,8 @@ function typeBoot(){
     bootStatus.textContent = 'Carga completada · entrando...';
     setTimeout(()=>{
       document.getElementById('boot').classList.add('hide');
-      startBootAudio();
+      bootFinished = true;
+      attemptBootAudio();
     }, 850);
     return;
   }
