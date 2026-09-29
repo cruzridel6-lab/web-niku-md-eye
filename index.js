@@ -1398,43 +1398,6 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         return;
     }
     const width = 41;
-    const border = '━'.repeat(width);
-    const charWidth = (char) => {
-        const code = char.codePointAt(0);
-        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
-        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
-        return 1;
-    };
-    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
-    const fit = (value) => [...String(value)].reduce((result, char) => {
-        const next = result.width + charWidth(char);
-        return next > width ? result : { text: result.text + char, width: next };
-    }, { text: '', width: 0 }).text;
-    const row = (value = '') => {
-        const text = fit(value);
-        return `┃${text}${' '.repeat(Math.max(0, width - visualWidth(text)))}┃`;
-    };
-    const center = (value) => {
-        const text = fit(value);
-        return row(`${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`);
-    };
-    const lines = [
-        center(title),
-        ...available.map(name => center(`• .${name}`)),
-        center(`Total: ${available.length} comando(s)`)
-    ];
-    const text = [`┏${border}┓`, ...lines, `┗${border}┛`].join('\n');
-    await sock.sendMessage(from, { text }, { quoted: msg });
-}
-
-function generateMenuText(userName, session) {
-    const mode = session.isPublic ? 'Público' : 'Privado';
-    const prefix = settings.prefix || '.';
-    const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
-    const botName = settings.botName || 'ɴɪᴋᴜ MD';
-    const ownerName = settings.ownerName || 'SYED';
-    const width = 41;
-    const border = '━'.repeat(width);
     const charWidth = (char) => {
         const code = char.codePointAt(0);
         if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
@@ -1453,17 +1416,46 @@ function generateMenuText(userName, session) {
         }
         return result;
     };
-    const padRight = (value) => `${value}${' '.repeat(Math.max(0, width - visualWidth(value)))}`;
-    const row = (value = '') => {
-        const text = fit(value);
-        return `┃${padRight(text)}┃`;
-    };
     const center = (value) => {
         const text = fit(value);
-        const left = Math.max(0, Math.floor((width - visualWidth(text)) / 2));
-        return row(`${' '.repeat(left)}${text}`);
+        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
     };
-    const centerPlain = (value) => {
+    const lines = [
+        center(title),
+        '',
+        ...available.map(name => center(`• .${name}`)),
+        '',
+        center(`Total: ${available.length} comando(s)`)
+    ];
+    await sock.sendMessage(from, { text: lines.join('\n') }, { quoted: msg });
+}
+
+function generateMenuText(userName, session) {
+    const mode = session.isPublic ? 'Público' : 'Privado';
+    const prefix = settings.prefix || '.';
+    const commandCount = Object.keys(commands).filter(k => k !== 'utils').length;
+    const botName = settings.botName || 'ɴɪᴋᴜ MD';
+    const ownerName = settings.ownerName || 'SYED';
+    const width = 41;
+    const charWidth = (char) => {
+        const code = char.codePointAt(0);
+        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
+        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
+        return 1;
+    };
+    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
+    const fit = (value) => {
+        let result = '';
+        let used = 0;
+        for (const char of [...String(value)]) {
+            const next = charWidth(char);
+            if (used + next > width) break;
+            result += char;
+            used += next;
+        }
+        return result;
+    };
+    const center = (value) => {
         const text = fit(value);
         return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
     };
@@ -1486,18 +1478,22 @@ function generateMenuText(userName, session) {
     ];
     const lines = [
         center('💀 NIKU MD MINI BOT 💀'),
-        row(`🤖 BOT: ${botName}`),
-        row(`👤 PROPIETARIO: ${ownerName}`),
-        row(`📦 VERSIÓN: ${settings.version || '3.0.0'}  •  ${mode}`),
-        row(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
+        '',
+        center(`🤖 BOT: ${botName}`),
+        center(`👤 PROPIETARIO: ${ownerName}`),
+        center(`📦 VERSIÓN: ${settings.version || '3.0.0'}  •  ${mode}`),
+        center(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
+        '',
         center('📋 MENÚ PRINCIPAL'),
         ...menuItems.map(center),
+        '',
         center('📢 CANAL OFICIAL'),
-        center('Pulsa el botón para unirte')
+        center('Pulsa el botón para unirte'),
+        '',
+        center('☠️ POWERED BY NIKU MD ☠️')
     ];
-    return [`┏${border}┓`, ...lines, `┗${border}┛`, '', centerPlain('☠️ POWERED BY NIKU MD ☠️')].join('\n');
+    return lines.join('\n');
 }
-
 
 // =================== SOCKET.IO ===================
 io.on('connection', (socket) => {
