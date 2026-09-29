@@ -1400,6 +1400,23 @@ function generateMenuText(userName, session) {
         const text = fit(value);
         return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
     };
+    const menuItems = [
+        `✨ ${prefix}allmenu  •  ${commandCount} comandos`,
+        `👑 ${prefix}ownermenu`,
+        `👥 ${prefix}groupmenu`,
+        `🤖 ${prefix}aimenu`,
+        `⬇️ ${prefix}downloadmenu`,
+        `🛠️ ${prefix}toolsmenu`,
+        `🎉 ${prefix}funmenu`,
+        `🎮 ${prefix}gamemenu`,
+        `🎌 ${prefix}animemenu`,
+        `🏷️ ${prefix}stickermenu`,
+        `🖼️ ${prefix}imagemenu`,
+        `✏️ ${prefix}textmakermenu`,
+        `🏢 ${prefix}logomenu`,
+        `🎯 ${prefix}miscmenu`,
+        `🐛 ${prefix}bugmenu`
+    ];
     const lines = [
         center('💀 NIKU MD MINI BOT 💀'),
         row('· · · · · · · · · · · · · · · · · · · · ·'),
@@ -1409,15 +1426,7 @@ function generateMenuText(userName, session) {
         row(`🔑 PREFIJO: ${prefix}  •  ${userName || 'Usuario'}`),
         row('· · · · · · · · · · · · · · · · · · · · ·'),
         center('📋 MENÚ PRINCIPAL'),
-        row(`✨ ${prefix}allmenu  •  ${commandCount} comandos`),
-        row(`👑 ${prefix}ownermenu      👥 ${prefix}groupmenu`),
-        row(`🤖 ${prefix}aimenu          ⬇️ ${prefix}downloadmenu`),
-        row(`🛠️ ${prefix}toolsmenu       🎉 ${prefix}funmenu`),
-        row(`🎮 ${prefix}gamemenu        🎌 ${prefix}animemenu`),
-        row(`🏷️ ${prefix}stickermenu     🖼️ ${prefix}imagemenu`),
-        row(`✏️ ${prefix}textmakermenu   🏢 ${prefix}logomenu`),
-        row(`🎯 ${prefix}miscmenu`),
-        row(`🐛 ${prefix}bugmenu`),
+        ...menuItems.map(center),
         row('· · · · · · · · · · · · · · · · · · · · ·'),
         center('📢 CANAL OFICIAL'),
         center('Pulsa el botón para unirte')
