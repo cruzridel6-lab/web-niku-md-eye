@@ -960,6 +960,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
+                                        case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
                                         case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
@@ -1439,74 +1440,58 @@ function generateMenuText(userName, session) {
     const prefix = settings.prefix || '.';
     const botName = settings.botName || 'ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ';
     const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇꫂꤪꤨᴼᶠᶜ';
-    const contentWidth = 54;
-    const lineWidth = contentWidth + 2;
-    const charWidth = (char) => {
+    const version = settings.version || '3.0.0';
+    const width = 43;
+    const visualWidth = (value) => [...String(value)].reduce((total, char) => {
         const code = char.codePointAt(0);
-        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
-        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
-        return 1;
-    };
-    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
-    const fit = (value, maxWidth = lineWidth) => {
-        let result = '';
-        let used = 0;
-        for (const char of [...String(value)]) {
-            const next = charWidth(char);
-            if (used + next > maxWidth) break;
-            result += char;
-            used += next;
-        }
-        return result;
-    };
+        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return total;
+        return total + (((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) ? 2 : 1);
+    }, 0);
+    const fit = (value) => [...String(value)].reduce((result, char) => {
+        const next = result.width + visualWidth(char);
+        return next > width ? result : { text: result.text + char, width: next };
+    }, { text: '', width: 0 }).text;
     const center = (value) => {
-        const text = fit(value, lineWidth);
-        return `${' '.repeat(Math.max(0, Math.floor((lineWidth - visualWidth(text)) / 2)))}${text}`;
+        const text = fit(value);
+        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
     };
-    const boxRow = (value = '') => {
-        const text = fit(value, contentWidth);
-        return `│${text}${' '.repeat(Math.max(0, contentWidth - visualWidth(text)))}│`;
+    const infoRow = (value = '') => {
+        const text = fit(value);
+        return `│ ${text}${' '.repeat(Math.max(0, width - visualWidth(text) - 1))}│`;
     };
-    const categories = [
-        ['✨', 'allmenu', 'Todos los comandos'],
-        ['👑', 'ownermenu', 'Menú Creador'],
-        ['👥', 'groupmenu', 'Gestión de Grupos'],
-        ['🤖', 'aimenu', 'Inteligencia Artificial'],
-        ['⬇️', 'downloadmenu', 'Descargas Multimedia'],
-        ['🛠️', 'toolsmenu', 'Herramientas Útiles'],
-        ['🎉', 'funmenu', 'Entretenimiento'],
-        ['🎮', 'gamemenu', 'Juegos & Economía'],
-        ['🎌', 'animemenu', 'Comandos de Anime'],
-        ['🏷️', 'stickermenu', 'Creador de Stickers'],
-        ['🖼️', 'imagemenu', 'Generador de Imágenes'],
-        ['✏️', 'textmakermenu', 'Efectos de Texto'],
-        ['🏢', 'logomenu', 'Diseño de Logos'],
-        ['🎯', 'miscmenu', 'Otros Servicios'],
-        ['🐛', 'bugmenu', 'Soporte & Reportes']
+    const menuRows = [
+        ['✨', 'allmenu', 'Comandos'],
+        ['👑', 'ownermenu', 'Creador'],
+        ['👥', 'groupmenu', 'Grupos'],
+        ['🤖', 'aimenu', 'IA'],
+        ['⬇️', 'download', 'Descargas'],
+        ['🛠️', 'toolsmenu', 'Herramientas'],
+        ['🎉', 'funmenu', 'Juegos']
     ];
-    const top = `┌${'─'.repeat(contentWidth)}┐`;
-    const bottom = `└${'─'.repeat(contentWidth)}┘`;
+    const infoTop = `┌───⚙️ ɪɴғᴏʀᴍᴀᴄɪóɴ ᴅᴇʟ ʙᴏᴛ ${'─'.repeat(10)}┐`;
+    const infoBottom = `└${'─'.repeat(width)}┘`;
+    const menuTop = `╭───『 MENÚ PRINCIPAL 』${'─'.repeat(17)}╮`;
+    const menuBottom = `╰${'─'.repeat(width)}╯`;
     const lines = [
-        center('✦ ⟨ 💀 NIKU MD MINI BOT 💀 ⟩ ✦'),
+        center('───〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕───'),
         '',
-        center(`> 🤖 BOT: ${botName}`),
-        center(`> 👤 PROPIETARIO: ${ownerName}`),
-        center('> 👑 CO-OWNER: Bryan'),
-        center(`> 📦 VERSIÓN: ${settings.version || '3.0.0'} │ MODO: ${mode}`),
-        center(`> 🔑 PREFIJO: [ ${prefix} ]`),
+        center(infoTop),
+        infoRow(''),
+        infoRow(`🤖 ʙᴏᴛ: \`${botName}\``),
+        infoRow(`👤 ᴘʀᴏᴘɪᴇᴛᴀʀɪᴏ: \`${ownerName}\``),
+        infoRow('👑 ᴄᴏ-ᴏᴡɴᴇʀ: `Bryan`'),
+        infoRow(`📦 ᴠᴇʀsɪóɴ: \`${version}\``),
+        infoRow(`🌐 ᴍᴏᴅᴏ: \`${mode}\``),
+        infoRow(`🔑 ᴘʀᴇғɪᴊᴏ: \`[ ${prefix} ]\``),
+        infoRow(''),
+        infoBottom,
         '',
-        center(top),
-        center(boxRow('❖ 『 MENÚ PRINCIPAL 』 ❖')),
-        center(bottom),
-        ...categories.map(([icon, command, description]) =>
-            center(`${icon} ${prefix}${command}   ───  ${description}`)
-        ),
+        center(menuTop),
+        infoRow(''),
+        ...menuRows.map(([icon, command, description]) => center(`│ ${icon} \`${prefix}${command}\` ─── ${description}`)),
         '',
-        center('─── ❖ ──────── ✦ ──────── ❖ ───'),
-        '',
-        center('📢 CANAL OFICIAL'),
-        center('¡Únete a la comunidad para enterarte de novedades!'),
-        center('✦ NIKU MD • Comunidad Oficial ✦')
+        center(menuBottom),
+        '> NIKU MD • Comunidad oficial'
     ];
     return ['```', lines.join('\n'), '```'].join('\n');
 }
