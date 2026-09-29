@@ -6,7 +6,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageFromContent, normalizeMessageContent, isJidGroup, generateMessageIDV2 } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore, downloadContentFromMessage, jidNormalizedUser, Browsers, delay, generateWAMessageContent, generateWAMessageFromContent, normalizeMessageContent, isJidGroup, generateMessageIDV2 } = require('@whiskeysockets/baileys');
 const P = require('pino');
 const { OpenAI } = require('openai');
 const os = require('os');
@@ -1323,43 +1323,6 @@ class BotSession {
 // =================== MENU GENERATOR ===================
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
-    if (fs.existsSync(menuImagePath)) {
-        await sock.sendMessage(jid, {
-            image: fs.readFileSync(menuImagePath),
-            mimetype: 'image/jpeg',
-            caption
-        }, { quoted });
-    }
-    const categoryButton = {
-        name: 'single_select',
-        buttonParamsJson: JSON.stringify({
-            title: '📋 ELEGIR UNA CATEGORÍA',
-            sections: [{
-                title: 'Categorías disponibles',
-                rows: [
-                    ['allmenu', '✨ Todos los comandos'],
-                    ['ownermenu', '👑 Propietario'],
-                    ['groupmenu', '👥 Grupos'],
-                    ['aimenu', '🤖 Inteligencia artificial'],
-                    ['downloadmenu', '⬇️ Descargas'],
-                    ['toolsmenu', '🛠️ Herramientas'],
-                    ['funmenu', '🎉 Diversión'],
-                    ['gamemenu', '🎮 Juegos'],
-                    ['animemenu', '🎌 Anime'],
-                    ['stickermenu', '🏷️ Stickers'],
-                    ['imagemenu', '🖼️ Imágenes'],
-                    ['textmakermenu', '✏️ Text Maker'],
-                    ['logomenu', '🏢 Logos'],
-                    ['miscmenu', '🎯 Misceláneos'],
-                    ['bugmenu', '🐛 Bugs']
-                ].map(([id, title]) => ({
-                    title,
-                    description: `Abrir ${title.replace(/^[^ ]+ /, '')}`,
-                    id: `menu_${id}`
-                }))
-            }]
-        })
-    };
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
@@ -1370,14 +1333,25 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     };
     const content = {
         interactiveMessage: {
-            body: { text: '📋 Selecciona una categoría para ver sus comandos:' },
+            body: { text: caption },
             footer: { text: 'NIKU MD • Comunidad oficial' },
             nativeFlowMessage: {
-                buttons: [categoryButton, channelButton],
+                buttons: [channelButton],
                 messageVersion: 1
             }
         }
     };
+    if (fs.existsSync(menuImagePath)) {
+        const imageContent = await generateWAMessageContent({
+            image: fs.readFileSync(menuImagePath),
+            mimetype: 'image/jpeg'
+        }, { upload: sock.waUploadToServer });
+        content.interactiveMessage.header = {
+            title: 'NIKU MD MINI BOT',
+            hasMediaAttachment: true,
+            imageMessage: imageContent.imageMessage
+        };
+    }
     const userJid = sock.user?.id;
     const fullMessage = generateWAMessageFromContent(jid, content, {
         logger: sock.logger,
