@@ -1087,7 +1087,7 @@ class BotSession {
                                         case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
                                         case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'angry', 'bath', 'bite', 'bleh', 'blush', 'bored', 'coffee', 'cry', 'cuddle', 'dance', 'drunk', 'eat', 'handhold', 'happy', 'highfive', 'hug', 'jump', 'kill', 'kiss', 'kisscheek', 'laugh', 'lick', 'love', 'nope', 'pat', 'pout', 'punch', 'push', 'run', 'sad', 'scared', 'seduce', 'shy', 'slap', 'sleep', 'smile', 'smoke', 'spit', 'step', 'think', 'walk', 'wave', 'wink', 'manga']); break;
-                                        case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'emojimix', 'toimg']); break;
+                                        case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'textsticker', 'emojimix', 'toimg']); break;
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
                                         case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
                                         case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGOS', ['logo']); break;
@@ -1234,7 +1234,7 @@ class BotSession {
                                         case 'wiki': case 'wikipedia': await commands.utils.wiki(this.sock, from, msg, q); break;
                                         case 'yts': case 'ytsearch': await commands.yts(this.sock, from, msg, q); break;
                                         case 'npm': await commands.npm(this.sock, from, msg, q); break;
-                                        case 'sticker': case 's': await commands.sticker(this.sock, from, msg); break;
+                                        case 'sticker': case 's': case 'textsticker': await commands.sticker(this.sock, from, msg, q); break;
                                         case 'toimg': case 'img': await commands.toimg(this.sock, from, msg); break;
                                         case 'tomp3': case 'mp3': await commands.tomp3(this.sock, from, msg); break;
                                         case 'tts': await commands.tts(this.sock, from, msg, q); break;

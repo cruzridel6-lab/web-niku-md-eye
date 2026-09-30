@@ -27,6 +27,36 @@ function getMedia(msg) {
     return null;
 }
 
+function escapeXml(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+}
+
+function wrapText(value, maxChars = 18) {
+    const lines = [];
+    let line = '';
+    for (const word of String(value).trim().split(/\s+/)) {
+        if (word.length > maxChars) {
+            if (line) lines.push(line);
+            for (let i = 0; i < word.length; i += maxChars) lines.push(word.slice(i, i + maxChars));
+            line = '';
+        } else if (!line) line = word;
+        else if (`${line} ${word}`.length <= maxChars) line += ` ${word}`;
+        else { lines.push(line); line = word; }
+    }
+    if (line) lines.push(line);
+    return lines.slice(0, 8);
+}
+
+async function createTextSticker(text) {
+    const lines = wrapText(text);
+    const fontSize = lines.length > 5 ? 32 : lines.length > 3 ? 38 : 46;
+    const lineHeight = fontSize + 10;
+    const startY = 256 - ((lines.length - 1) * lineHeight) / 2 + fontSize * 0.35;
+    const textNodes = lines.map((line, index) => `<text x="256" y="${startY + index * lineHeight}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}px" font-weight="700" fill="#ffffff" stroke="#151522" stroke-width="3" paint-order="stroke">${escapeXml(line)}</text>`).join('');
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#ec4899"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-opacity=".35"/></filter></defs><rect x="34" y="54" width="444" height="404" rx="58" fill="url(#bg)" filter="url(#shadow)"/><circle cx="88" cy="112" r="22" fill="#ffffff" opacity=".18"/><circle cx="430" cy="400" r="32" fill="#ffffff" opacity=".14"/>${textNodes}</svg>`;
+    return sharp(Buffer.from(svg)).webp({ quality: 90, effort: 4 }).toBuffer();
+}
+
 function runFfmpeg(args) {
     return new Promise((resolve, reject) => {
         const child = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
@@ -40,13 +70,18 @@ function runFfmpeg(args) {
     });
 }
 
-module.exports = async function stickerCommand(sock, chatId, msg) {
+module.exports = async function stickerCommand(sock, chatId, msg, textArg = '') {
     let tmpFile;
     try {
         const selected = getMedia(msg);
+        if (!selected && String(textArg).trim()) {
+            await sock.sendMessage(chatId, { text: '✨ Creando sticker con texto...' }, { quoted: msg });
+            const stickerBuffer = await createTextSticker(String(textArg).trim());
+            return await sock.sendMessage(chatId, { sticker: stickerBuffer, isAnimated: false }, { quoted: msg });
+        }
         if (!selected) {
             return await sock.sendMessage(chatId, {
-                text: '⚠️ Envía una imagen/video o responde a uno con *.sticker*.'
+                text: '⚠️ Usa *.sticker <texto>* para crear un sticker con texto, o envía/responde a una imagen o video.'
             }, { quoted: msg });
         }
 
