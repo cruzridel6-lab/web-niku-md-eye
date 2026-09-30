@@ -13,7 +13,7 @@ const os = require('os');
 const crypto = require('crypto');
 
 const PREMIUM_COMMANDS = new Set([
-    'book', 'owner', 'ownermenu', 'toolsmenu',
+    'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
     'ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc',
     'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup',
     'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google',
@@ -1150,7 +1150,7 @@ class BotSession {
                                             break;
                                         }
                                         case 'book':
-                                            await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n🐛 .bugmenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
                                         case 'allmenu':
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
@@ -1194,7 +1194,7 @@ class BotSession {
                                         case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
                                         case 'logomenu': await sendCategoryMenu(this.sock, from, msg, '🏢 LOGOS', ['logo']); break;
                                         case 'miscmenu': await sendCategoryMenu(this.sock, from, msg, '🎯 MISC MENU', ['runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'news', 'movie']); break;
-                                        case 'bugmenu': {
+                                        case 'bugmenu': case 'bugs': {
                                             await sendCategoryMenu(this.sock, from, msg, '🐛 BUG MENU', ['crash', 'freeze', 'bug']);
                                             break;
                                         }
