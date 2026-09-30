@@ -95,6 +95,7 @@ const commands = {
     fact: require('./commands/fact'),
     trivia: require('./commands/trivia'),
     coinflip: require('./commands/coinflip'),
+    economy: require('./commands/economy'),
     roll: require('./commands/roll'),
     riddle: require('./commands/riddle'),
     wouldyourather: require('./commands/wouldyourather'),
@@ -503,11 +504,12 @@ const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync('./data');
 
-let botData = { antilinkGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [] };
+let botData = { antilinkGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {} };
 if (fs.existsSync(DATA_FILE)) {
     try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
 }
 if (!Array.isArray(botData.comments)) botData.comments = [];
+if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
 
 function saveBotData() {
     fs.writeJsonSync(DATA_FILE, botData);
@@ -1018,9 +1020,18 @@ class BotSession {
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
+                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 GAME MENU', ['game', 'coinflip', 'roll', 'trivia', 'riddle', 'wouldyourather', 'character']); break;
+                                        case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'balance': case 'bal': case 'coins':
+                                        case 'baltop': case 'eboard': case 'economytop':
+                                        case 'cf': case 'coinflip': case 'flip': case 'crime': case 'daily':
+                                        case 'deposit': case 'dep': case 'd': case 'einfo': case 'economyinfo': case 'cooldowns':
+                                        case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
+                                        case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
+                                        case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'manga']); break;
                                         case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'emojimix', 'toimg']); break;
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
@@ -1409,6 +1420,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['groupmenu', '👥 Grupos'],
                     ['aimenu', '🤖 Inteligencia artificial'],
                     ['downloadmenu', '⬇️ Descargas'],
+                    ['economymenu', '🪙 Economía'],
                     ['toolsmenu', '🛠️ Herramientas'],
                     ['funmenu', '🎉 Diversión'],
                     ['gamemenu', '🎮 Juegos'],
@@ -1481,7 +1493,8 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 }
 
 async function sendCategoryMenu(sock, from, msg, title, names) {
-    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name));
+    const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
+    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
         return;
@@ -1595,6 +1608,7 @@ function generateMenuText(userName, session) {
         `👥 \`${prefix}groupmenu\` • \`Grupos\``,
         `🤖 \`${prefix}aimenu\` • \`IA\``,
         `⬇️ \`${prefix}download\` • \`Descargas\``,
+        `🪙 \`${prefix}economymenu\` • \`Economía\``,
         `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
         `🎉 \`${prefix}funmenu\` • \`Juegos\``,
         '',
