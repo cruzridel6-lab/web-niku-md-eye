@@ -1062,7 +1062,7 @@ class BotSession {
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
-                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 GAME MENU', ['game', 'coinflip', 'roll', 'trivia', 'riddle', 'wouldyourather', 'character']); break;
+                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
@@ -1485,10 +1485,9 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['profilemenu', '👤 Perfil'],
                     ['aimenu', '🤖 Inteligencia artificial'],
                     ['downloadmenu', '⬇️ Descargas'],
-                    ['economymenu', '🪙 Economía'],
+                    ['gamemenu', '🪙 Economía'],
                     ['toolsmenu', '🛠️ Herramientas'],
                     ['funmenu', '🎉 Diversión'],
-                    ['gamemenu', '🎮 Juegos'],
                     ['animemenu', '🎌 Anime'],
                     ['stickermenu', '🏷️ Stickers'],
                     ['imagemenu', '🖼️ Imágenes'],
@@ -1677,9 +1676,9 @@ function generateMenuText(userName, session) {
         `👤 \`${prefix}profilemenu\` • \`Perfil\``,
         `🤖 \`${prefix}aimenu\` • \`IA\``,
         `⬇️ \`${prefix}download\` • \`Descargas\``,
-        `🪙 \`${prefix}economymenu\` • \`Economía\``,
+        `🪙 \`${prefix}gamemenu\` • \`Economía\``,
         `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
-        `🎉 \`${prefix}funmenu\` • \`Juegos\``,
+        `🎉 \`${prefix}funmenu\` • \`Diversión\``,
         '',
         '> NIKU MD • Comunidad oficial'
     ];
