@@ -1017,7 +1017,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ ADMIN MENU', ['open', 'close', 'grouplink', 'revoke', 'kick', 'promote', 'demote', 'tagall', 'mute', 'unmute', 'antilink', 'onlyadmin']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'antilink', 'onlyadmin', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1075,7 +1075,7 @@ class BotSession {
                                         case 'demote': await commands.demote(this.sock, from, msg, isAdmin); break;
                                         case 'revoke': await commands.revoke(this.sock, from, msg, isAdmin); break;
                                         case 'invite': await commands.invite(this.sock, from, msg, isAdmin); break;
-                                        case 'grouplink': case 'gclink': await commands.grouplink(this.sock, from, msg, isAdmin); break;
+                                        case 'grouplink': case 'gclink': case 'link': case 'enlace': await commands.grouplink(this.sock, from, msg, isAdmin); break;
                                         case 'mute': await commands.mute(this.sock, from, msg, isAdmin); break;
                                         case 'unmute': await commands.unmute(this.sock, from, msg, isAdmin); break;
                                         case 'join': await commands.join(this.sock, from, msg, q); break;
@@ -1086,7 +1086,7 @@ class BotSession {
                                         case 'getdp': await commands.getdp(this.sock, from, msg, q); break;
                                         case 'tagadmin': await commands.tagadmin(this.sock, from, msg, isAdmin); break;
                                         case 'kickoffline': await commands.kickoffline(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
-                                        case 'hidetag': await commands.hidetag(this.sock, from, msg, isAdmin, q); break;
+                                        case 'hidetag': case 'notify': case 'tag': case 'n': case 'avisar': await commands.hidetag(this.sock, from, msg, isAdmin, q); break;
                                         case 'tagall': await commands.tagall(this.sock, from, msg, isAdmin, q); break;
                                         case 'groupinfo': case 'ginfo': await commands.groupinfo(this.sock, from, msg); break;
                                         case 'accept': await commands.accept(this.sock, from, msg, isAdmin); break;
