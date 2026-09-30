@@ -3,6 +3,10 @@
 Bot de automatización para WhatsApp basado en **Baileys**, con herramientas de grupos, descargas, economía, perfiles, stickers, IA y panel web.
 
 <p align="center">
+  <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="NIKU MD Bot" width="720">
+</p>
+
+<p align="center">
   <a href="https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l"><img src="https://img.shields.io/badge/Canal%20WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Canal de WhatsApp"></a>
   <a href="https://t.me/Dark_Zone_666"><img src="https://img.shields.io/badge/Canal%20Telegram-229ED9?style=for-the-badge&logo=telegram&logoColor=white" alt="Canal de Telegram"></a>
   <a href="https://github.com/cruzridel6-lab/web-niku-md-eye"><img src="https://img.shields.io/badge/Repositorio-GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="Repositorio GitHub"></a>
