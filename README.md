@@ -2,6 +2,9 @@
 
 Bot de automatización para WhatsApp basado en **Baileys**, con herramientas de grupos, descargas, economía, perfiles, stickers, IA y panel web.
 
+**Desarrollado por:** ɴɪᴋᴜ_ʙʟᴀᴅᴇꫂꤪꤨᴼᶠᶜ『𝙻𝚃𝙼』<br>
+**Telegram:** [@Niku_Blade](https://t.me/Niku_Blade)
+
 <p align="center">
   <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="NIKU MD Bot" width="720">
 </p>
