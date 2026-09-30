@@ -78,6 +78,20 @@ function timeLeft(ms) {
     return `${Math.floor(min / 60)} horas ${min % 60} minutos`;
 }
 function random(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+const JOB_MESSAGES = {
+    work: {
+        gain: ['Trabajaste para el gran sistema capitalista y fuiste recompensado con', 'Cargaste cajas en el mercado toda la tarde y ganaste', 'Repartiste pizzas bajo la lluvia y recibiste', 'Programaste toda la noche y tu jefe te pagó', 'Limpiaste oficinas a escondidas y conseguiste', 'Vendiste limonada en el parque y juntaste', 'Ayudaste a una anciana a cruzar y te dio', 'Ganaste un mini torneo de barrio y te llevaste', 'Hiciste un mandado urgente y te pagaron', 'Tradujiste un texto aburrido y cobraste'],
+        loss: ['Intentaste trabajar, pero tu jefe te estafó y perdiste', 'Te robaron la cartera camino al trabajo y perdiste', 'Invertiste en un negocio trucho y perdiste', 'Te multaron por estacionar mal y perdiste', 'Un cliente no te pagó y perdiste', 'Tropezaste y se te cayeron las monedas, perdiste', 'El banco te cobró comisiones y perdiste', 'Te salió mal el trabajo y perdiste']
+    },
+    crime: {
+        gain: ['Robaste una tienda de conveniencia y escapaste con', 'Estafaste a un millonario distraído y conseguiste', 'Hackeaste una cuenta bancaria ficticia y te llevaste', 'Vendiste mercancía robada en el mercado negro y ganaste', 'Asaltaste un banco sin disparos y huiste con', 'Participaste en una pelea clandestina y ganaste', 'Falsificaste documentos y los vendiste por', 'Traficaste con boletos falsos y juntaste'],
+        loss: ['Te atraparon robando en una tienda y pagaste la fianza de', 'La policía te detuvo y tuviste que sobornar con', 'Un socio te traicionó y te robó', 'Intentaste estafar al equivocado y te hizo pagar', 'Te cayó la policía en plena operación y perdiste', 'Compraste mercancía falsa y perdiste', 'Te hackearon de vuelta y perdiste', 'Tu plan falló y terminaste pagando']
+    },
+    slut: {
+        gain: ['Atendiste a un cliente vistiendo su cosplay favorito y te dieron', 'Un cliente generoso te pagó una noche completa y recibiste', 'Grabaste contenido exclusivo y lo vendiste por', 'Un extranjero te pagó por una noche en su hotel y ganaste', 'Atendiste a un político famoso y te dejó', 'Hiciste un show privado por webcam y juntaste', 'Un cliente te pagó por acompañarlo a una cena y ganaste', 'Te contrataron para una despedida de soltero y conseguiste', 'Un cliente rico te dio una propina generosa:', 'Triunfaste con tu último cliente y ganaste'],
+        loss: ['Un cliente se escapó sin pagarte y perdiste', 'Te cayó la policía en plena noche y tuviste que sobornar con', 'Un cliente abusivo te estafó y perdiste', 'La cuenta se te bloqueó y perdiste', 'Un cliente te grabó sin permiso y pagaste para que borrara', 'Te robaron en la habitación del hotel y perdiste', 'Te cancelaron el show y perdiste', 'La plataforma te cobró comisiones y perdiste']
+    }
+};
 function amount(value) {
     const input = String(value || '').toLowerCase().trim();
     if (!input) return null;
@@ -133,7 +147,8 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const real = lost ? Math.min(user.coins, value) : value;
         user.coins += lost ? -real : real;
         user[config.key] = Date.now(); save();
-        return reply(sock, chatId, msg, lost ? `💥 Tu ${config.label} salió mal y perdiste *${fmt(real)} ${COIN}*.\n💵 Efectivo: *${fmt(user.coins)}*` : `✅ Completaste tu ${config.label} y ganaste *${fmt(real)} ${COIN}*!`);
+        const activity = random(JOB_MESSAGES[canonical][lost ? 'loss' : 'gain']);
+        return reply(sock, chatId, msg, lost ? `💥 ${activity} *${fmt(real)} ${COIN}*.\n💵 Efectivo: *${fmt(user.coins)}*` : `✅ ${activity} *${fmt(real)} ${COIN}*.\n💵 Efectivo: *${fmt(user.coins)}*`);
     }
     if (canonical === 'deposit' || canonical === 'withdraw') {
         const input = amount(args[0]);
