@@ -640,45 +640,35 @@ class BotSession {
     }
 
     async getAIResponse(userJid, userMessage, systemPrompt = "Helpful assistant.") {
+        const prompt = String(userMessage || '').trim();
+        if (!prompt) return '❌ Escribe una pregunta después de *.ai*.';
+        if (!openai) {
+            console.error('[AI] OPENAI_API_KEY no está configurada.');
+            return '❌ La IA no está configurada todavía. Añade OPENAI_API_KEY en las variables de Railway y reinicia el servicio.';
+        }
         try {
-            if (openai) {
-                try {
-                    const completion = await openai.chat.completions.create({
-                        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-                        messages: [
-                            {
-                                role: 'system',
-                                content: `${systemPrompt} Responde en español de forma clara, breve y útil. Eres el asistente de NIKU MD.`
-                            },
-                            { role: 'user', content: userMessage }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 700
-                    });
-                    const answer = completion.choices?.[0]?.message?.content?.trim();
-                    if (answer) return answer;
-                } catch (openaiError) {
-                    console.error('OpenAI API error, using fallback:', openaiError.message);
-                }
-            }
-
-            // Fallbacks públicos si OpenAI no está configurado o no responde.
-            const apiUrl = `https://api.siputzx.my.id/api/ai/chatgpt?prompt=${encodeURIComponent(systemPrompt)}&text=${encodeURIComponent(userMessage)}`;
-            const response = await axios.get(apiUrl);
-            
-            if (response.data && response.data.status) {
-                return response.data.data;
-            } else {
-                // Fallback to another API if the first one fails
-                const fallbackUrl = `https://widipe.com/openai?text=${encodeURIComponent(userMessage)}`;
-                const fallbackRes = await axios.get(fallbackUrl);
-                if (fallbackRes.data && fallbackRes.data.result) {
-                    return fallbackRes.data.result;
-                }
-                throw new Error("Invalid API response from all sources");
-            }
+            const completion = await openai.chat.completions.create({
+                model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+                messages: [
+                    { role: 'system', content: `${systemPrompt} Responde siempre en español, de forma clara, breve y útil. Eres el asistente de NIKU MD.` },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 700
+            }, { timeout: 30000 });
+            const content = completion.choices?.[0]?.message?.content;
+            const answer = Array.isArray(content)
+                ? content.map(part => typeof part === 'string' ? part : part?.text || '').join('').trim()
+                : String(content || '').trim();
+            if (answer) return answer;
+            throw new Error('La API no devolvió texto.');
         } catch (error) {
-            return "\u{274C} AI Error: " + error.message;
+            const status = error.status || error.response?.status;
+            console.error('[AI] OpenAI error:', status || error.code || error.message);
+            if (status === 401) return '❌ La clave de OpenAI en Railway no es válida. Revisa OPENAI_API_KEY.';
+            if (status === 429) return '⏳ La IA alcanzó el límite temporal de solicitudes del proveedor.';
+            if (error.code === 'ETIMEDOUT' || error.name === 'TimeoutError') return '⏳ La IA tardó demasiado en responder. Inténtalo otra vez.';
+            return `❌ La IA no pudo responder ahora${status ? ` (HTTP ${status})` : ''}.`;
         }
     }
 
