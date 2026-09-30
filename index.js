@@ -1146,7 +1146,8 @@ class BotSession {
                                             token.claimedBy = claimJid;
                                             token.claimedAt = new Date().toISOString();
                                             saveBotData();
-                                            await this.sock.sendMessage(from, { text: `🎉 ¡Premium activado correctamente!\n\n🪪 Usuario: ${claimJid.split('@')[0]}\n⏳ Vence: ${new Date(token.expiresAt).toLocaleDateString('es-ES')}\n✨ Ya puedes usar los comandos Premium.` }, { quoted: msg });
+                                            const grantedUntil = new Date(token.expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+                                            await this.sock.sendMessage(from, { text: `✅ Usted ha reclamado su Premium.\n\n🎉 Ahora es usuario Premium.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Acceso concedido hasta el: *${grantedUntil}*\n\n✨ Ya puede usar los comandos Premium.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'book':
