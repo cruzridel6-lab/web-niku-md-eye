@@ -360,7 +360,8 @@ function premiumSnapshot() {
         expiresAt: entry?.expiresAt || null,
         active: premiumEntryActive(entry)
     }));
-    const tokens = Object.values(botData.premiumTokens || {}).map(token => ({
+    const tokens = Object.entries(botData.premiumTokens || {}).map(([id, token]) => ({
+        id,
         preview: token.preview,
         createdAt: token.createdAt,
         expiresAt: token.expiresAt,
@@ -571,6 +572,10 @@ app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/comentarios', (req, res) => {
+    res.sendFile(path.join(__dirname, 'comentarios.html'));
 });
 
 app.get('/health', (req, res) => {
@@ -1871,6 +1876,31 @@ io.on('connection', (socket) => {
 
     socket.on('admin-premium-data', () => {
         if (!socket.authenticated) return;
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-remove-user', ({ jid } = {}) => {
+        if (!socket.authenticated) return;
+        const normalized = normalizePremiumJid(jid);
+        if (!normalized || !botData.premiumUsers[normalized]) {
+            socket.emit('admin-premium-status', { ok: false, message: 'No se encontró ese usuario Premium.' });
+            return;
+        }
+        delete botData.premiumUsers[normalized];
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: `Premium retirado: ${normalized.split('@')[0]}` });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-remove-token', ({ id } = {}) => {
+        if (!socket.authenticated) return;
+        if (!id || !botData.premiumTokens[id]) {
+            socket.emit('admin-premium-status', { ok: false, message: 'No se encontró ese token.' });
+            return;
+        }
+        delete botData.premiumTokens[id];
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: 'Token eliminado correctamente.' });
         socket.emit('admin-premium-data', premiumSnapshot());
     });
 

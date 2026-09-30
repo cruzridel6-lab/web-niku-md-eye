@@ -351,6 +351,10 @@
   .premium-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px;}
   .premium-list{max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--muted);font-size:.7rem;}
   .premium-list strong{display:block;color:var(--text);margin-bottom:7px;}
+  .premium-list-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(154,177,225,.1);}
+  .premium-list-row:last-child{border-bottom:0;}
+  .premium-remove{border:1px solid rgba(255,113,149,.45);background:transparent;color:var(--danger);border-radius:6px;padding:4px 7px;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap;}
+  .premium-remove:hover{background:rgba(255,113,149,.12);}
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
   .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
@@ -432,7 +436,7 @@
   <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
   <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
-  <a href="#comments"><i class="fas fa-comment-dots"></i> Comentarios</a>
+  <a href="/comentarios"><i class="fas fa-comment-dots"></i> Comentarios</a>
   <a id="adminNavLink" href="#admin"><i class="fas fa-shield-halved"></i> Admin</a>
 </div>
 <header>
@@ -522,16 +526,6 @@
     </div>
   </section>
 
-  <section id="comments" class="panel" data-label="./comentarios">
-    <h2><i class="fas fa-comment-dots"></i> Deja tu comentario</h2>
-    <p class="sample-note">Escribe tu nombre y comparte tu experiencia con la comunidad.</p>
-    <form id="commentForm" class="comment-form">
-      <div class="comment-field"><label for="commentName">Nombre</label><input id="commentName" name="name" maxlength="40" autocomplete="name" placeholder="Tu nombre" required></div>
-      <div class="comment-field"><label for="commentText">Comentario</label><textarea id="commentText" name="text" maxlength="500" placeholder="Escribe un comentario..." required></textarea></div>
-      <button class="btn" type="submit"><i class="fas fa-paper-plane"></i> Publicar</button>
-    </form>
-    <div id="commentsList" class="comments-list"><div class="comments-empty">Todavía no hay comentarios. Sé el primero en participar.</div></div>
-  </section>
   <section id="admin" class="panel" data-label="./admin">
     <h2><i class="fas fa-shield-halved"></i> Panel administrativo</h2>
     <div id="adminLoginBox">
@@ -704,10 +698,6 @@ const phoneInput = document.getElementById('phone');
 const requestBtn = document.getElementById('requestPairing');
 const codeWrap = document.getElementById('codeWrap');
 const pairingCode = document.getElementById('pairingCode');
-const commentForm = document.getElementById('commentForm');
-const commentName = document.getElementById('commentName');
-const commentText = document.getElementById('commentText');
-const commentsList = document.getElementById('commentsList');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const adminLoginBox = document.getElementById('adminLoginBox');
 const adminConsole = document.getElementById('adminConsole');
@@ -791,11 +781,11 @@ function renderPremiumData(data={}){
   const tokens = data.tokens || [];
   premiumUsersList.innerHTML='<strong>Usuarios Premium</strong>' + (users.length ? users.map(user=>{
     const expiry = user.expiresAt ? ` · vence ${new Date(user.expiresAt).toLocaleDateString('es-ES')}` : ' · permanente';
-    return `<div>${user.active ? '🟢' : '⚪'} ${user.jid.replace('@s.whatsapp.net','')}${expiry}</div>`;
+    return `<div class="premium-list-row"><span>${user.active ? '🟢' : '⚪'} ${user.jid.replace('@s.whatsapp.net','')}${expiry}</span><button class="premium-remove" data-premium-user="${user.jid}" type="button">Quitar</button></div>`;
   }).join('') : 'Sin usuarios agregados.');
   premiumTokensList.innerHTML='<strong>Tokens generados</strong>' + (tokens.length ? tokens.map(token=>{
     const state = token.claimed ? '✅ reclamado' : '🟡 disponible';
-    return `<div>${token.preview} · ${state}</div>`;
+    return `<div class="premium-list-row"><span>${token.preview} · ${state}</span><button class="premium-remove" data-premium-token="${token.id}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');
 }
 premiumUserForm?.addEventListener('submit',(event)=>{
@@ -822,59 +812,14 @@ socket.on('admin-premium-status',(result={})=>{
   if(result.ok) premiumUserNumber.value='';
 });
 socket.on('admin-premium-data',renderPremiumData);
-function renderComments(comments = []){
-  commentsList.innerHTML = '';
-  if(!comments.length){
-    commentsList.innerHTML = '<div class="comments-empty">Todavía no hay comentarios. Sé el primero en participar.</div>';
-    return;
-  }
-  comments.forEach(comment=>{
-    const card = document.createElement('article');
-    card.className = 'comment-card';
-    const avatar = document.createElement('div');
-    avatar.className = 'comment-avatar';
-    avatar.textContent = (comment.name || '?').trim().charAt(0).toUpperCase();
-    const content = document.createElement('div');
-    content.className = 'comment-content';
-    const meta = document.createElement('div');
-    meta.className = 'comment-meta';
-    const name = document.createElement('strong');
-    name.textContent = comment.name || 'Usuario';
-    const time = document.createElement('time');
-    time.textContent = comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '';
-    meta.append(name,time);
-    const text = document.createElement('p');
-    text.textContent = comment.text || '';
-    content.append(meta,text);
-    card.append(avatar,content);
-    commentsList.appendChild(card);
-  });
-}
-
-if(commentForm){
-  commentForm.addEventListener('submit',(event)=>{
-    event.preventDefault();
-    const name = commentName.value.trim();
-    const text = commentText.value.trim();
-    if(name.length < 2 || text.length < 2){
-      showToast('Escribe tu nombre y un comentario.');
-      return;
-    }
-    const submit = commentForm.querySelector('button[type="submit"]');
-    submit.disabled = true;
-    submit.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Publicando...';
-    socket.emit('add-comment',{name,text});
-  });
-}
-
-socket.on('comments', renderComments);
-socket.on('comment-status',(result)=>{
-  const submit = commentForm?.querySelector('button[type="submit"]');
-  if(submit){submit.disabled=false;submit.innerHTML='<i class="fas fa-paper-plane"></i> Publicar';}
-  if(result?.ok){commentForm.reset();showToast('¡Comentario publicado!');}
-  else if(result?.message){showToast(result.message);}
+premiumUsersList?.addEventListener('click',(event)=>{
+  const button=event.target.closest('[data-premium-user]');
+  if(button && confirm(`¿Quitar Premium a ${button.dataset.premiumUser}?`)) socket.emit('admin-premium-remove-user',{jid:button.dataset.premiumUser});
 });
-
+premiumTokensList?.addEventListener('click',(event)=>{
+  const button=event.target.closest('[data-premium-token]');
+  if(button && confirm('¿Eliminar este token?')) socket.emit('admin-premium-remove-token',{id:button.dataset.premiumToken});
+});
 function copyCode(){
   const code = pairingCode.innerText;
   if(code === '0000 0000') return;
