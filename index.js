@@ -96,6 +96,7 @@ const commands = {
     trivia: require('./commands/trivia'),
     coinflip: require('./commands/coinflip'),
     economy: require('./commands/economy'),
+    profile: require('./commands/profile'),
     roll: require('./commands/roll'),
     riddle: require('./commands/riddle'),
     wouldyourather: require('./commands/wouldyourather'),
@@ -504,12 +505,13 @@ const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync('./data');
 
-let botData = { antilinkGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {} };
+let botData = { antilinkGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {} };
 if (fs.existsSync(DATA_FILE)) {
     try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
 }
 if (!Array.isArray(botData.comments)) botData.comments = [];
 if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
+if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
 
 function saveBotData() {
     fs.writeJsonSync(DATA_FILE, botData);
@@ -1025,6 +1027,11 @@ class BotSession {
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 GAME MENU', ['game', 'coinflip', 'roll', 'trivia', 'riddle', 'wouldyourather', 'character']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'profilemenu': await sendCategoryMenu(this.sock, from, msg, '👤 PROFILE MENU', ['profile', 'marry', 'divorce', 'history', 'pfp', 'setbio', 'setbirthday', 'setgenre']); break;
+                                        case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
+                                        case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
+                                        case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
+                                            await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'balance': case 'bal': case 'coins':
                                         case 'baltop': case 'eboard': case 'economytop':
                                         case 'cf': case 'coinflip': case 'flip': case 'crime': case 'daily':
@@ -1426,6 +1433,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['allmenu', '✨ Todos los comandos'],
                     ['ownermenu', '👑 Propietario'],
                     ['groupmenu', '👥 Grupos'],
+                    ['profilemenu', '👤 Perfil'],
                     ['aimenu', '🤖 Inteligencia artificial'],
                     ['downloadmenu', '⬇️ Descargas'],
                     ['economymenu', '🪙 Economía'],
@@ -1503,7 +1511,8 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
-    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name));
+    const profileAliases = commands.profile?.aliases || [];
+    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
         return;
@@ -1615,6 +1624,7 @@ function generateMenuText(userName, session) {
         `✨ \`${prefix}allmenu\` • \`Comandos\``,
         `👑 \`${prefix}ownermenu\` • \`Creador\``,
         `👥 \`${prefix}groupmenu\` • \`Grupos\``,
+        `👤 \`${prefix}profilemenu\` • \`Perfil\``,
         `🤖 \`${prefix}aimenu\` • \`IA\``,
         `⬇️ \`${prefix}download\` • \`Descargas\``,
         `🪙 \`${prefix}economymenu\` • \`Economía\``,
