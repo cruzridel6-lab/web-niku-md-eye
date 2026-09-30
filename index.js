@@ -10,6 +10,15 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const P = require('pino');
 const { OpenAI } = require('openai');
 const os = require('os');
+const crypto = require('crypto');
+
+const PREMIUM_COMMANDS = new Set([
+    'book', 'owner', 'ownermenu', 'toolsmenu',
+    'ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc',
+    'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup',
+    'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google',
+    'wiki', 'yts', 'playstore', 'npm'
+]);
 
 // Import all commands
 const commands = {
@@ -303,6 +312,63 @@ function isPremiumUser(chatId) {
     return false;
 }
 
+function normalizePremiumJid(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    if (raw.includes('@')) return jidNormalizedUser(raw);
+    const number = raw.replace(/\D/g, '');
+    return number ? `${number}@s.whatsapp.net` : null;
+}
+
+function premiumEntryActive(entry) {
+    if (entry === true) return true;
+    if (!entry || typeof entry !== 'object') return false;
+    return !entry.expiresAt || new Date(entry.expiresAt).getTime() > Date.now();
+}
+
+function isPremiumWhatsApp(chatId) {
+    const normalized = normalizePremiumJid(chatId);
+    if (!normalized) return false;
+    const number = normalized.split('@')[0];
+    const owners = String(settings.ownerNumber || '').split(',').map(value => value.replace(/\D/g, '')).filter(Boolean);
+    if (owners.includes(number)) return true;
+    return premiumEntryActive(botData.premiumUsers?.[normalized]);
+}
+
+function hashPremiumToken(token) {
+    return crypto.createHash('sha256').update(String(token || '').trim()).digest('hex');
+}
+
+function createPremiumToken(days = 30) {
+    const safeDays = Math.min(3650, Math.max(1, Number(days) || 30));
+    const token = `NIKU-${crypto.randomBytes(15).toString('hex').toUpperCase()}`;
+    const now = Date.now();
+    botData.premiumTokens[hashPremiumToken(token)] = {
+        preview: `${token.slice(0, 9)}…`,
+        createdAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + safeDays * 86400000).toISOString(),
+        claimedBy: null,
+        claimedAt: null
+    };
+    saveBotData();
+    return { token, expiresAt: botData.premiumTokens[hashPremiumToken(token)].expiresAt };
+}
+
+function premiumSnapshot() {
+    const users = Object.entries(botData.premiumUsers || {}).map(([jid, entry]) => ({
+        jid,
+        expiresAt: entry?.expiresAt || null,
+        active: premiumEntryActive(entry)
+    }));
+    const tokens = Object.values(botData.premiumTokens || {}).map(token => ({
+        preview: token.preview,
+        createdAt: token.createdAt,
+        expiresAt: token.expiresAt,
+        claimed: Boolean(token.claimedBy)
+    })).slice(-100).reverse();
+    return { users, tokens };
+}
+
 // Owner check for Telegram
 function isTgOwner(chatId) {
     const ownerChatId = process.env.OWNER_TELEGRAM_ID || settings.tgOwnerId;
@@ -516,13 +582,15 @@ const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync('./data');
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {} };
 if (fs.existsSync(DATA_FILE)) {
     try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
 }
 if (!Array.isArray(botData.comments)) botData.comments = [];
 if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
 if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
+if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
+if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
 if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
 for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
     if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
@@ -1027,6 +1095,10 @@ class BotSession {
                             const args = text.split(' ').slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
+                            if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
+                                await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
+                                return;
+                            }
                             if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
                                 await this.sock.sendMessage(from, { text: '🔐 Este grupo está en modo Solo Admin.' }, { quoted: msg });
                                 return;
@@ -1050,6 +1122,36 @@ class BotSession {
                                             }
                                             break;
                                         }
+                                        case 'reclamar': {
+                                            const tokenText = String(args[0] || '').trim();
+                                            const token = botData.premiumTokens[hashPremiumToken(tokenText)];
+                                            const claimJid = normalizePremiumJid(sender);
+                                            if (!tokenText) {
+                                                await this.sock.sendMessage(from, { text: '🎟️ Usa *.reclamar <token>* para activar tu acceso Premium.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (!token || token.claimedBy) {
+                                                await this.sock.sendMessage(from, { text: '❌ El token no existe o ya fue utilizado.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (new Date(token.expiresAt).getTime() <= Date.now()) {
+                                                await this.sock.sendMessage(from, { text: '⏳ Este token Premium ya expiró.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (isPremiumWhatsApp(claimJid)) {
+                                                await this.sock.sendMessage(from, { text: '✅ Este número ya tiene acceso Premium.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            botData.premiumUsers[claimJid] = { grantedAt: new Date().toISOString(), expiresAt: token.expiresAt, source: 'token' };
+                                            token.claimedBy = claimJid;
+                                            token.claimedAt = new Date().toISOString();
+                                            saveBotData();
+                                            await this.sock.sendMessage(from, { text: `🎉 ¡Premium activado correctamente!\n\n🪪 Usuario: ${claimJid.split('@')[0]}\n⏳ Vence: ${new Date(token.expiresAt).toLocaleDateString('es-ES')}\n✨ Ya puedes usar los comandos Premium.` }, { quoted: msg });
+                                            break;
+                                        }
+                                        case 'book':
+                                            await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
+                                            break;
                                         case 'allmenu':
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
                                             break;
@@ -1060,7 +1162,7 @@ class BotSession {
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
-                                        case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
+                                        case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
@@ -1734,6 +1836,7 @@ io.on('connection', (socket) => {
             adminSockets.add(socket);
             socket.emit('admin-auth-success');
             socket.emit('admin-chat-history', adminChatLogs.slice(-200));
+            socket.emit('admin-premium-data', premiumSnapshot());
         } else {
             socket.adminAttempts = (socket.adminAttempts || 0) + 1;
             if (socket.adminAttempts >= 5) {
@@ -1742,6 +1845,32 @@ io.on('connection', (socket) => {
             }
             socket.emit('admin-auth-fail');
         }
+    });
+
+    socket.on('admin-premium-add', ({ jid } = {}) => {
+        if (!socket.authenticated) return;
+        const normalized = normalizePremiumJid(jid);
+        if (!normalized) {
+            socket.emit('admin-premium-status', { ok: false, message: 'Escribe un número válido con prefijo internacional.' });
+            return;
+        }
+        botData.premiumUsers[normalized] = { grantedAt: new Date().toISOString(), expiresAt: null, source: 'admin' };
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: `Usuario Premium agregado: ${normalized.split('@')[0]}` });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-generate', ({ days } = {}) => {
+        if (!socket.authenticated) return;
+        const result = createPremiumToken(days);
+        socket.emit('admin-premium-token', result);
+        socket.emit('admin-premium-status', { ok: true, message: 'Token Premium generado. Cópialo y entrégaselo al usuario.' });
+        socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-premium-data', () => {
+        if (!socket.authenticated) return;
+        socket.emit('admin-premium-data', premiumSnapshot());
     });
 
     socket.on('set-user', (userId) => {

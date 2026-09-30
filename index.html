@@ -338,6 +338,19 @@
   .console-chat{color:var(--amber);}
   .console-sender{color:var(--green);font-weight:700;}
   .console-empty{color:var(--muted);padding:30px;text-align:center;}
+  .premium-admin{margin-top:22px;padding-top:22px;border-top:1px solid var(--border);}
+  .premium-admin h3{color:var(--green);font-size:.95rem;margin-bottom:14px;}
+  .premium-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
+  .premium-card{padding:16px;border:1px solid var(--border);border-radius:14px;background:rgba(99,245,209,.035);}
+  .premium-card label{display:block;color:var(--muted);font-size:.72rem;margin-bottom:7px;}
+  .premium-card input,.premium-card select{width:100%;border:1px solid var(--border);border-radius:9px;background:rgba(0,0,0,.24);color:var(--text);font:inherit;font-size:.78rem;padding:11px 12px;margin-bottom:9px;}
+  .premium-card .btn{width:100%;padding:10px 12px;font-size:.72rem;}
+  .premium-token{display:none;margin-top:12px;padding:12px;border:1px dashed var(--green);border-radius:10px;color:var(--green);font-family:'Share Tech Mono',monospace;word-break:break-all;cursor:pointer;}
+  .premium-token.show{display:block;}
+  .premium-status{min-height:20px;margin-top:10px;color:var(--amber);font-size:.72rem;}
+  .premium-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px;}
+  .premium-list{max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--muted);font-size:.7rem;}
+  .premium-list strong{display:block;color:var(--text);margin-bottom:7px;}
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
   .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
@@ -533,6 +546,32 @@
     <div id="adminConsole">
       <div class="console-toolbar"><span class="console-live">● CONSOLA EN TIEMPO REAL</span><span id="adminMessageCount">0 mensajes</span></div>
       <div id="adminConsoleOutput" class="console-output"><div class="console-empty">Esperando mensajes del bot...</div></div>
+      <div class="premium-admin">
+        <h3><i class="fas fa-crown"></i> Gestión de acceso Premium</h3>
+        <div class="premium-grid">
+          <form id="premiumUserForm" class="premium-card">
+            <label for="premiumUserNumber">Agregar usuario por número</label>
+            <input id="premiumUserNumber" type="text" inputmode="tel" placeholder="Ej.: 18090000000" required>
+            <button class="btn" type="submit"><i class="fas fa-user-plus"></i> Agregar Premium</button>
+          </form>
+          <form id="premiumTokenForm" class="premium-card">
+            <label for="premiumTokenDays">Generar token de reclamación</label>
+            <select id="premiumTokenDays">
+              <option value="7">7 días</option>
+              <option value="30" selected>30 días</option>
+              <option value="90">90 días</option>
+              <option value="365">365 días</option>
+            </select>
+            <button class="btn" type="submit"><i class="fas fa-key"></i> Generar token</button>
+            <div id="premiumTokenResult" class="premium-token" title="Pulsa para copiar"></div>
+          </form>
+        </div>
+        <div id="premiumStatus" class="premium-status" aria-live="polite"></div>
+        <div class="premium-lists">
+          <div id="premiumUsersList" class="premium-list"><strong>Usuarios Premium</strong>Sin datos todavía.</div>
+          <div id="premiumTokensList" class="premium-list"><strong>Tokens generados</strong>Sin datos todavía.</div>
+        </div>
+      </div>
     </div>
   </section>
 </main>
@@ -677,6 +716,14 @@ const adminPassword = document.getElementById('adminPassword');
 const adminStatus = document.getElementById('adminStatus');
 const adminConsoleOutput = document.getElementById('adminConsoleOutput');
 const adminMessageCount = document.getElementById('adminMessageCount');
+const premiumUserForm = document.getElementById('premiumUserForm');
+const premiumUserNumber = document.getElementById('premiumUserNumber');
+const premiumTokenForm = document.getElementById('premiumTokenForm');
+const premiumTokenDays = document.getElementById('premiumTokenDays');
+const premiumTokenResult = document.getElementById('premiumTokenResult');
+const premiumStatus = document.getElementById('premiumStatus');
+const premiumUsersList = document.getElementById('premiumUsersList');
+const premiumTokensList = document.getElementById('premiumTokensList');
 const adminMessages = new Map();
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin';
@@ -739,6 +786,42 @@ socket.on('admin-auth-fail',()=>{
 });
 socket.on('admin-chat-history',renderAdminChatHistory);
 socket.on('admin-chat-message',renderAdminChatMessage);
+function renderPremiumData(data={}){
+  const users = data.users || [];
+  const tokens = data.tokens || [];
+  premiumUsersList.innerHTML='<strong>Usuarios Premium</strong>' + (users.length ? users.map(user=>{
+    const expiry = user.expiresAt ? ` · vence ${new Date(user.expiresAt).toLocaleDateString('es-ES')}` : ' · permanente';
+    return `<div>${user.active ? '🟢' : '⚪'} ${user.jid.replace('@s.whatsapp.net','')}${expiry}</div>`;
+  }).join('') : 'Sin usuarios agregados.');
+  premiumTokensList.innerHTML='<strong>Tokens generados</strong>' + (tokens.length ? tokens.map(token=>{
+    const state = token.claimed ? '✅ reclamado' : '🟡 disponible';
+    return `<div>${token.preview} · ${state}</div>`;
+  }).join('') : 'Sin tokens generados.');
+}
+premiumUserForm?.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  socket.emit('admin-premium-add',{jid:premiumUserNumber.value.trim()});
+});
+premiumTokenForm?.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  premiumTokenResult.classList.remove('show');
+  socket.emit('admin-premium-generate',{days:Number(premiumTokenDays.value)});
+});
+premiumTokenResult?.addEventListener('click',()=>{
+  if(!premiumTokenResult.textContent) return;
+  const copy = navigator.clipboard?.writeText(premiumTokenResult.textContent);
+  copy?.then(()=>showToast('Token copiado'));
+});
+socket.on('admin-premium-token',(result={})=>{
+  premiumTokenResult.textContent=result.token || '';
+  premiumTokenResult.classList.toggle('show',Boolean(result.token));
+});
+socket.on('admin-premium-status',(result={})=>{
+  premiumStatus.textContent=result.message || '';
+  premiumStatus.style.color=result.ok ? 'var(--green)' : 'var(--danger)';
+  if(result.ok) premiumUserNumber.value='';
+});
+socket.on('admin-premium-data',renderPremiumData);
 function renderComments(comments = []){
   commentsList.innerHTML = '';
   if(!comments.length){
