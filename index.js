@@ -1032,7 +1032,7 @@ class BotSession {
                                         case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
                                         case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
                                         case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
-                                        case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'manga']); break;
+                                        case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'angry', 'bath', 'bite', 'bleh', 'blush', 'bored', 'coffee', 'cry', 'cuddle', 'dance', 'drunk', 'eat', 'handhold', 'happy', 'highfive', 'hug', 'jump', 'kill', 'kiss', 'kisscheek', 'laugh', 'lick', 'love', 'nope', 'pat', 'pout', 'punch', 'push', 'run', 'sad', 'scared', 'seduce', 'shy', 'slap', 'sleep', 'smile', 'smoke', 'spit', 'step', 'think', 'walk', 'wave', 'wink', 'manga']); break;
                                         case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'emojimix', 'toimg']); break;
                                         case 'imagemenu': await sendCategoryMenu(this.sock, from, msg, '🖼️ IMAGE MENU', ['blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'upscale']); break;
                                         case 'textmakermenu': await sendCategoryMenu(this.sock, from, msg, '✏️ TEXT MAKER MENU', ['ascii', 'base64', 'binary', 'morse', 'qr']); break;
@@ -1146,6 +1146,14 @@ class BotSession {
                                         case 'roll': await commands.roll(this.sock, from, msg, q); break;
                                         case 'riddle': await commands.riddle(this.sock, from, msg); break;
                                         case 'wyr': case 'wouldyourather': await commands.wouldyourather(this.sock, from, msg); break;
+                                        case 'angry': case 'enojar': case 'bath': case 'bite': case 'morder': case 'bleh': case 'blush': case 'bored': case 'aburrido':
+                                        case 'coffee': case 'cafe': case 'cry': case 'llorar': case 'cuddle': case 'dance': case 'bailar': case 'drunk': case 'eat': case 'comer':
+                                        case 'handhold': case 'happy': case 'feliz': case 'highfive': case 'hug': case 'abrazo': case 'jump': case 'kill': case 'matar':
+                                        case 'kiss': case 'muak': case 'kisscheek': case 'beso': case 'laugh': case 'lick': case 'love': case 'amor': case 'nope': case 'pat':
+                                        case 'pout': case 'punch': case 'pegar': case 'push': case 'run': case 'correr': case 'sad': case 'triste': case 'scared': case 'seduce':
+                                        case 'seducir': case 'shy': case 'timido': case 'slap': case 'sleep': case 'smile': case 'sonreir': case 'smoke': case 'fumar':
+                                        case 'spit': case 'escupir': case 'step': case 'pisar': case 'think': case 'walk': case 'wave': case 'hola': case 'wink':
+                                            await commands.anime(this.sock, from, msg, commandName, q); break;
 
                                         // ===== TOOLS =====
                                         case 'ping': await commands.ping(this.sock, from, msg); break;
@@ -1220,7 +1228,7 @@ class BotSession {
                                         case 'news': await commands.news(this.sock, from, msg, q); break;
                                         case 'crypto': case 'coin': await commands.crypto(this.sock, from, msg, q); break;
                                         case 'movie': case 'imdb': await commands.movie(this.sock, from, msg, q); break;
-                                        case 'anime': await commands.anime(this.sock, from, msg, q); break;
+                                        case 'anime': await commands.anime(this.sock, from, msg, 'anime', q); break;
                                         case 'manga': await commands.manga(this.sock, from, msg, q); break;
                                         case 'logo': await commands.logo(this.sock, from, msg, q); break;
                                         case 'lyrics': await commands.lyrics(this.sock, from, msg, q); break;
@@ -1494,7 +1502,8 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
 
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
-    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name));
+    const animeAliases = commands.anime?.aliases || [];
+    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name));
     if (!available.length) {
         await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
         return;
