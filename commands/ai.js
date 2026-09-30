@@ -1,6 +1,4 @@
 async function aiCommand(sock, from, msg, isAdmin, session, args) {
-    if (!isAdmin) return await sock.sendMessage(from, { text: "❌ Only owner can use this command." }, { quoted: msg });
-    
     const action = args[0]?.toLowerCase();
     if (action === 'on') {
         session.aiEnabled = true;
@@ -16,7 +14,11 @@ async function aiCommand(sock, from, msg, isAdmin, session, args) {
             const response = await session.getAIResponse(from, query);
             await sock.sendMessage(from, { text: response }, { quoted: msg });
         } catch (e) {
-            await sock.sendMessage(from, { text: "❌ AI Error: " + e.message }, { quoted: msg });
+            const status = e?.status || e?.response?.status;
+            const text = status === 429
+                ? '⏳ La IA alcanzó el límite temporal de solicitudes del proveedor.'
+                : '❌ La IA no pudo responder ahora. Inténtalo de nuevo más tarde.';
+            await sock.sendMessage(from, { text }, { quoted: msg });
         }
     } else {
         await sock.sendMessage(from, { text: "❌ Usage:\n.ai [on/off] - Toggle Auto-Reply\n.ai [query] - Ask AI something" }, { quoted: msg });
