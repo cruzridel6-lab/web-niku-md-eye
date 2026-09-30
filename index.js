@@ -47,6 +47,9 @@ const commands = {
     join: require('./commands/join'),
     leave: require('./commands/leave'),
     setdesc: require('./commands/setdesc'),
+    open: require('./commands/open'),
+    close: require('./commands/close'),
+    onlyadmin: require('./commands/onlyadmin'),
     setppgc: require('./commands/setppgc'),
     getbio: require('./commands/getbio'),
     getdp: require('./commands/getdp'),
@@ -505,13 +508,14 @@ const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync('./data');
 
-let botData = { antilinkGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {} };
 if (fs.existsSync(DATA_FILE)) {
     try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
 }
 if (!Array.isArray(botData.comments)) botData.comments = [];
 if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
 if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
+if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
 
 function saveBotData() {
     fs.writeJsonSync(DATA_FILE, botData);
@@ -985,6 +989,10 @@ class BotSession {
                             const args = text.split(' ').slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
+                            if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
+                                await this.sock.sendMessage(from, { text: '🔐 Este grupo está en modo Solo Admin.' }, { quoted: msg });
+                                return;
+                            }
 
                             (async () => {
                                 try {
@@ -1009,6 +1017,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ ADMIN MENU', ['open', 'close', 'grouplink', 'revoke', 'kick', 'promote', 'demote', 'tagall', 'mute', 'unmute', 'antilink', 'onlyadmin']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1017,6 +1026,9 @@ class BotSession {
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🎮 GAME MENU', ['game', 'coinflip', 'roll', 'trivia', 'riddle', 'wouldyourather', 'character']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
+                                        case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
+                                        case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'profilemenu': await sendCategoryMenu(this.sock, from, msg, '👤 PROFILE MENU', ['profile', 'marry', 'divorce', 'history', 'pfp', 'setbio', 'setbirthday', 'setgenre']); break;
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
@@ -1423,6 +1435,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['allmenu', '✨ Todos los comandos'],
                     ['ownermenu', '👑 Propietario'],
                     ['groupmenu', '👥 Grupos'],
+                    ['adminmenu', '🛡️ Administración'],
                     ['profilemenu', '👤 Perfil'],
                     ['aimenu', '🤖 Inteligencia artificial'],
                     ['downloadmenu', '⬇️ Descargas'],
@@ -1614,6 +1627,7 @@ function generateMenuText(userName, session) {
         `✨ \`${prefix}allmenu\` • \`Comandos\``,
         `👑 \`${prefix}ownermenu\` • \`Creador\``,
         `👥 \`${prefix}groupmenu\` • \`Grupos\``,
+        `🛡️ \`${prefix}adminmenu\` • \`Administración\``,
         `👤 \`${prefix}profilemenu\` • \`Perfil\``,
         `🤖 \`${prefix}aimenu\` • \`IA\``,
         `⬇️ \`${prefix}download\` • \`Descargas\``,
