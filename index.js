@@ -1458,7 +1458,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
-            display_text: '📢 UNIRSE AL CANAL OFICIAL',
+            display_text: 'Ver canal',
             url: settings.whatsappChannel,
             merchant_url: settings.whatsappChannel
         })
@@ -1556,7 +1556,7 @@ async function sendSubmenuWithChannel(sock, jid, text, quoted) {
     const channelButton = {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({
-            display_text: '📢 UNIRSE AL CANAL OFICIAL',
+            display_text: 'Ver canal',
             url: settings.whatsappChannel,
             merchant_url: settings.whatsappChannel
         })
