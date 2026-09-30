@@ -327,6 +327,10 @@
   body.admin-route #adminNavLink{display:inline-flex;}
   #admin.panel{display:none;}
   body.admin-route #admin.panel{display:block;}
+  body.admin-route .hero-banner,body.admin-route .banner-nav,body.admin-route header,body.admin-route main>section:not(#admin),body.admin-route footer,body.admin-route #audioHint,body.admin-route #channelModal{display:none!important;}
+  body.admin-route nav{position:relative;}
+  body.admin-route main{max-width:1100px;min-height:calc(100vh - 74px);padding-top:38px;}
+  body.admin-route #admin.panel{margin-top:0;min-height:calc(100vh - 130px);}
   .console-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;color:var(--muted);font-size:.75rem;}
   .console-live{color:var(--green);font-weight:700;}
   .console-output{height:360px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
@@ -436,8 +440,7 @@
   <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
   <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
-  <a href="/comentarios"><i class="fas fa-comment-dots"></i> Comentarios</a>
-  <a id="adminNavLink" href="#admin"><i class="fas fa-shield-halved"></i> Admin</a>
+  <a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a>
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -716,7 +719,7 @@ const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
 const adminMessages = new Map();
 function updateAdminRoute(){
-  const isAdminRoute = window.location.hash.toLowerCase() === '#admin';
+  const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
   document.body.classList.toggle('admin-route', isAdminRoute);
   if(!isAdminRoute){
     adminLoginBox.style.display='block';

@@ -574,8 +574,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/comentarios', (req, res) => {
-    res.sendFile(path.join(__dirname, 'comentarios.html'));
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/health', (req, res) => {
@@ -1796,36 +1796,6 @@ function generateMenuText(userName, session) {
 // =================== SOCKET.IO ===================
 io.on('connection', (socket) => {
     socket.emit('stats', getDashboardStats());
-    socket.emit('comments', botData.comments.slice(0, 50));
-
-    socket.on('add-comment', ({ name, text } = {}) => {
-        const cleanName = String(name || '').trim().replace(/\s+/g, ' ');
-        const cleanText = String(text || '').trim().replace(/\s+/g, ' ');
-        if (cleanName.length < 2 || cleanName.length > 40) {
-            socket.emit('comment-status', { ok: false, message: 'Escribe un nombre de 2 a 40 caracteres.' });
-            return;
-        }
-        if (cleanText.length < 2 || cleanText.length > 500) {
-            socket.emit('comment-status', { ok: false, message: 'El comentario debe tener entre 2 y 500 caracteres.' });
-            return;
-        }
-        const now = Date.now();
-        if (socket.lastCommentAt && now - socket.lastCommentAt < 15000) {
-            socket.emit('comment-status', { ok: false, message: 'Espera unos segundos antes de publicar otro comentario.' });
-            return;
-        }
-        socket.lastCommentAt = now;
-        botData.comments.unshift({
-            id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
-            name: cleanName,
-            text: cleanText,
-            createdAt: new Date(now).toISOString()
-        });
-        botData.comments = botData.comments.slice(0, 50);
-        saveBotData();
-        io.emit('comments', botData.comments);
-        socket.emit('comment-status', { ok: true, message: 'Comentario publicado correctamente.' });
-    });
 
     // Admin auth
     socket.on('admin-auth', ({ username, password } = {}) => {
