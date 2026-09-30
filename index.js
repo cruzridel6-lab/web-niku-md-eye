@@ -50,6 +50,14 @@ const commands = {
     open: require('./commands/open'),
     close: require('./commands/close'),
     onlyadmin: require('./commands/onlyadmin'),
+    alertas: require('./commands/alertas'),
+    welcome: require('./commands/welcome'),
+    bye: require('./commands/bye'),
+    setwelcome: require('./commands/setwelcome'),
+    setbye: require('./commands/setbye'),
+    mutelist: require('./commands/mutelist'),
+    testwelcome: require('./commands/testwelcome'),
+    testbye: require('./commands/testbye'),
     setppgc: require('./commands/setppgc'),
     getbio: require('./commands/getbio'),
     getdp: require('./commands/getdp'),
@@ -508,7 +516,7 @@ const DATA_FILE = './data/bot_data.json';
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync('./data');
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {} };
 if (fs.existsSync(DATA_FILE)) {
     try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
 }
@@ -516,6 +524,9 @@ if (!Array.isArray(botData.comments)) botData.comments = [];
 if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
 if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
 if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
+for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
+    if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
+}
 
 function saveBotData() {
     fs.writeJsonSync(DATA_FILE, botData);
@@ -797,6 +808,28 @@ class BotSession {
                 }
             });
 
+            this.sock.ev.on('group-participants.update', async ({ id, participants, action }) => {
+                if (!id || !Array.isArray(participants)) return;
+                try {
+                    const meta = await this.sock.groupMetadata(id).catch(() => ({ subject: id, desc: '' }));
+                    const groupName = meta.subject || id;
+                    const mentions = participants;
+                    const names = participants.map(jid => `@${String(jid).split('@')[0]}`).join(', ');
+                    if ((action === 'add' || action === 'remove') && (action === 'add' ? botData.groupWelcome[id] : botData.groupBye[id])) {
+                        const template = action === 'add'
+                            ? (botData.groupWelcomeText[id] || '👋 ¡Bienvenido/a @user a @grupo!')
+                            : (botData.groupByeText[id] || '👋 @user ha salido de @grupo.');
+                        const text = template.replace(/@user/g, names).replace(/@grupo/g, groupName).replace(/@desc/g, meta.desc || '');
+                        await this.sock.sendMessage(id, { text, mentions });
+                    }
+                    if (botData.groupAlerts[id] && (action === 'promote' || action === 'demote')) {
+                        await this.sock.sendMessage(id, { text: `${action === 'promote' ? '⬆️' : '⬇️'} ${names} ${action === 'promote' ? 'ahora es administrador' : 'ya no es administrador'}.`, mentions });
+                    }
+                } catch (error) {
+                    this.sendLog(`Group admin event error: ${error.message}`, 'warning');
+                }
+            });
+
             this.sock.ev.on('messages.upsert', async (m) => {
                 if (m.type !== 'notify') return;
 
@@ -940,6 +973,11 @@ class BotSession {
                             }
                         }
 
+                        if (isGroup && !isAdmin && botData.mutedUsers?.[from]?.includes(sender)) {
+                            try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (e) {}
+                            return;
+                        }
+
                         // Anti-status in groups
                         if (isGroup && botData.antiStatusGroups && botData.antiStatusGroups[from] && !isAdmin) {
                             const isStatusMsg = msg.message?.protocolMessage?.type === 0 || 
@@ -1017,7 +1055,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'antilink', 'onlyadmin', 'setdesc', 'setppgc']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1029,6 +1067,13 @@ class BotSession {
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'alertas': case 'alerts': case 'avisos': await commands.alertas(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'welcome': case 'bienvenida': await commands.welcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'bye': case 'despedida': await commands.bye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'setwelcome': await commands.setwelcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'setbye': case 'setdespedida': await commands.setbye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'testwelcome': await commands.testwelcome(this.sock, from, msg, isAdmin, botData); break;
+                                        case 'testbye': await commands.testbye(this.sock, from, msg, isAdmin, botData); break;
                                         case 'profilemenu': await sendCategoryMenu(this.sock, from, msg, '👤 PROFILE MENU', ['profile', 'marry', 'divorce', 'history', 'pfp', 'setbio', 'setbirthday', 'setgenre']); break;
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
@@ -1076,8 +1121,9 @@ class BotSession {
                                         case 'revoke': await commands.revoke(this.sock, from, msg, isAdmin); break;
                                         case 'invite': await commands.invite(this.sock, from, msg, isAdmin); break;
                                         case 'grouplink': case 'gclink': case 'link': case 'enlace': await commands.grouplink(this.sock, from, msg, isAdmin); break;
-                                        case 'mute': await commands.mute(this.sock, from, msg, isAdmin); break;
-                                        case 'unmute': await commands.unmute(this.sock, from, msg, isAdmin); break;
+                                        case 'mute': await commands.mute(this.sock, from, msg, isAdmin, q, botData, saveBotData); break;
+                                        case 'unmute': await commands.unmute(this.sock, from, msg, isAdmin, q, botData, saveBotData); break;
+                                        case 'mutelist': case 'listmute': case 'silenciados': case 'muteds': await commands.mutelist(this.sock, from, msg, isAdmin, botData); break;
                                         case 'join': await commands.join(this.sock, from, msg, q); break;
                                         case 'leave': await commands.leave(this.sock, from, msg, isAdmin); break;
                                         case 'setdesc': await commands.setdesc(this.sock, from, msg, isAdmin, q); break;
