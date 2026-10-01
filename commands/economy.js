@@ -1,11 +1,11 @@
 const COIN = '🪙 Niku Coin';
 const MIN_BET = 200;
 const PREMIUM_SHOP = {
-    1: { price: 10000, label: '1 día' },
-    2: { price: 18000, label: '2 días' },
-    3: { price: 25000, label: '3 días' },
-    4: { price: 32000, label: '4 días' },
-    5: { price: 38000, label: '5 días' }
+    1: { price: 10000, label: '1 día Premium' },
+    2: { price: 18000, label: '2 días Premium' },
+    3: { price: 25000, label: '3 días Premium' },
+    4: { price: 32000, label: '4 días Premium' },
+    5: { price: 38000, label: '5 días Premium' }
 };
 
 const ALIASES = {
@@ -119,7 +119,6 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    const shop = Object.entries(PREMIUM_SHOP).map(([days, item]) => `│ ⭐ ${days} día(s) · ${fmt(item.price)} ${COIN}`).join('\n');
     return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
@@ -136,7 +135,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (canonical === 'shop') {
         const selected = Number(args[0]);
         if (!Number.isInteger(selected) || !PREMIUM_SHOP[selected]) {
-            const options = Object.entries(PREMIUM_SHOP).map(([days, item]) => `⭐ *${days} día(s)* — ${fmt(item.price)} ${COIN}`).join('\n');
+            const options = Object.entries(PREMIUM_SHOP).map(([, item]) => `⭐ *${item.label}* — ${fmt(item.price)} ${COIN}`).join('\n');
             return reply(sock, chatId, msg, `🛒 *TIENDA PREMIUM*\n\n${options}\n\nCanjea con: *${prefix}tienda <días>*\nEjemplo: *${prefix}tienda 3*`);
         }
         const item = PREMIUM_SHOP[selected];
