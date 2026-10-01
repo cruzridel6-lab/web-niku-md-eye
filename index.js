@@ -387,7 +387,8 @@ function premiumSnapshot() {
         preview: token.preview,
         createdAt: token.createdAt,
         expiresAt: token.expiresAt,
-        claimed: Boolean(token.claimedBy)
+        claimed: Boolean(token.claimedBy),
+        claimedBy: token.claimedBy || null
     })).slice(-100).reverse();
     return { users, tokens };
 }
@@ -1384,12 +1385,12 @@ class BotSession {
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
-                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'einfo']); break;
+                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
-                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'einfo']); break;
-                                        case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
+                                        case 'economy': case 'tienda': case 'shop': case 'store': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;

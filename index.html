@@ -960,7 +960,7 @@ function renderPremiumData(data={}){
     return `<div class="premium-list-row"><span>${user.active ? '🟢' : '⚪'} ${user.jid.replace('@s.whatsapp.net','')}${expiry}</span><button class="premium-remove" data-premium-user="${user.jid}" type="button">Quitar</button></div>`;
   }).join('') : 'Sin usuarios agregados.');
   premiumTokensList.innerHTML='<strong>Tokens generados</strong>' + (tokens.length ? tokens.map(token=>{
-    const state = token.claimed ? '✅ reclamado' : '🟡 disponible';
+    const state = token.claimed ? `✅ reclamado por ${token.claimedBy || 'número no disponible'}` : '🟡 disponible';
     return `<div class="premium-list-row"><span>${token.preview} · ${state}</span><button class="premium-remove" data-premium-token="${token.id}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');
 }

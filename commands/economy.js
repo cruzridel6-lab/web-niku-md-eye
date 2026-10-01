@@ -1,5 +1,12 @@
 const COIN = '🪙 Niku Coin';
 const MIN_BET = 200;
+const PREMIUM_SHOP = {
+    1: { price: 10000, label: '1 día' },
+    2: { price: 18000, label: '2 días' },
+    3: { price: 25000, label: '3 días' },
+    4: { price: 32000, label: '4 días' },
+    5: { price: 38000, label: '5 días' }
+};
 
 const ALIASES = {
     balance: ['balance', 'bal', 'coins'],
@@ -12,6 +19,7 @@ const ALIASES = {
     pay: ['pay', 'transfer', 'give'],
     roulette: ['roulette', 'rt', 'ruleta', 'rtl'],
     reward: ['reward', 'regalo', 'premio'],
+    shop: ['shop', 'tienda', 'store'],
     slut: ['slut'],
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
@@ -21,7 +29,7 @@ const ALIASES = {
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
     daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all>', work: 'work'
 };
 
@@ -111,7 +119,8 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    const shop = Object.entries(PREMIUM_SHOP).map(([days, item]) => `│ ⭐ ${days} día(s) · ${fmt(item.price)} ${COIN}`).join('\n');
+    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -123,6 +132,27 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
     const mention = [jid];
+
+    if (canonical === 'shop') {
+        const selected = Number(args[0]);
+        if (!Number.isInteger(selected) || !PREMIUM_SHOP[selected]) {
+            const options = Object.entries(PREMIUM_SHOP).map(([days, item]) => `⭐ *${days} día(s)* — ${fmt(item.price)} ${COIN}`).join('\n');
+            return reply(sock, chatId, msg, `🛒 *TIENDA PREMIUM*\n\n${options}\n\nCanjea con: *${prefix}tienda <días>*\nEjemplo: *${prefix}tienda 3*`);
+        }
+        const item = PREMIUM_SHOP[selected];
+        if (user.coins < item.price) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}.\nNecesitas: *${fmt(item.price)}*\nTienes: *${fmt(user.coins)}*`);
+        botData.premiumUsers ||= {};
+        const current = botData.premiumUsers[jid];
+        if (current && (!current.expiresAt || new Date(current.expiresAt).getTime() > Date.now())) {
+            if (!current.expiresAt) return reply(sock, chatId, msg, '✅ Ya tienes Premium permanente; no necesitas comprar días.');
+        }
+        const start = current?.expiresAt && new Date(current.expiresAt).getTime() > Date.now() ? new Date(current.expiresAt).getTime() : Date.now();
+        const expiresAt = new Date(start + selected * 86400000).toISOString();
+        user.coins -= item.price;
+        botData.premiumUsers[jid] = { grantedAt: current?.grantedAt || new Date().toISOString(), expiresAt, source: 'tienda' };
+        save();
+        return reply(sock, chatId, msg, `✅ *Canje realizado*\n\n⭐ Premium por: *${item.label}*\n🪙 Pagaste: *${fmt(item.price)} ${COIN}*\n💰 Saldo restante: *${fmt(user.coins)} ${COIN}*\n📅 Disponible hasta: *${new Date(expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}*`);
+    }
 
     if (canonical === 'balance') {
         const target = getTarget(msg, q, state) || { key: jid, user };
