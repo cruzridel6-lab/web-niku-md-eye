@@ -405,6 +405,9 @@
   .console-chat{color:var(--amber);}
   .console-sender{color:var(--green);font-weight:700;}
   .console-empty{color:var(--muted);padding:30px;text-align:center;}
+  .public-chat-card{margin-top:16px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);box-shadow:0 12px 30px rgba(0,0,0,.18);}
+  .public-chat-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}.public-chat-head h3{font-size:.9rem;color:var(--text);}.public-chat-head p{color:var(--muted);font-size:.68rem;margin-top:4px;}.public-chat-live{color:var(--green);font-size:.64rem;font-weight:800;white-space:nowrap;}
+  .public-chat-output{height:300px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
   .premium-admin{margin-top:22px;padding-top:22px;border-top:1px solid var(--border);}
   .premium-admin h3{color:var(--green);font-size:.95rem;margin-bottom:14px;}
   .premium-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
@@ -412,6 +415,7 @@
   .premium-card label{display:block;color:var(--muted);font-size:.72rem;margin-bottom:7px;}
   .premium-card input,.premium-card select{width:100%;border:1px solid var(--border);border-radius:9px;background:rgba(0,0,0,.24);color:var(--text);font:inherit;font-size:.78rem;padding:11px 12px;margin-bottom:9px;}
   .premium-card .btn{width:100%;padding:10px 12px;font-size:.72rem;}
+  .reward-tools{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 9px;}.reward-tools label{display:inline-flex;align-items:center;gap:4px;padding:6px 7px;border:1px solid rgba(154,177,225,.16);border-radius:7px;color:var(--text);font-size:.66rem;cursor:pointer;}.reward-tools input{accent-color:var(--green);}
   .premium-token{display:none;margin-top:12px;padding:12px;border:1px dashed var(--green);border-radius:10px;color:var(--green);font-family:'Share Tech Mono',monospace;word-break:break-all;cursor:pointer;}
   .premium-token.show{display:block;}
   .premium-status{min-height:20px;margin-top:10px;color:var(--amber);font-size:.72rem;}
@@ -529,6 +533,10 @@
     <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
     <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
   </div>
+  <div class="public-chat-card" aria-live="polite">
+    <div class="public-chat-head"><div><h3><i class="fas fa-comments"></i> Actividad de grupos</h3><p>Mensajes grupales recibidos por los bots en tiempo real.</p></div><span class="public-chat-live">● SOLO GRUPOS · <span id="publicGroupChatCount">0</span></span></div>
+    <div id="publicGroupChatOutput" class="public-chat-output"><div class="console-empty">Esperando actividad de grupos...</div></div>
+  </div>
 </header>
 
 <main>
@@ -622,15 +630,10 @@
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-link"></i> Sesiones activas</span><strong id="adminActiveSessions" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-users"></i> Usuarios conectados</span><strong id="adminConnectedUsers" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-hourglass-half"></i> Pendientes</span><strong id="adminPendingUsers" class="admin-kpi-value">0</strong></div>
-        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-comments"></i> Mensajes vistos</span><strong id="adminMessageCountKpi" class="admin-kpi-value">0</strong></div>
+        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-comments"></i> Mensajes grupales</span><strong id="adminMessageCountKpi" class="admin-kpi-value">0</strong></div>
       </div>
       <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
       <div class="admin-console-grid">
-        <div class="admin-card">
-          <div class="admin-card-head"><div><h3>Actividad del bot</h3><p>Mensajes recibidos en tiempo real</p></div><span class="admin-section-tag">EN VIVO</span></div>
-          <div class="console-toolbar"><span class="console-live">● CONEXIÓN ACTIVA</span><span id="adminMessageCount">0 mensajes</span></div>
-          <div id="adminConsoleOutput" class="console-output"><div class="console-empty">Esperando mensajes del bot...</div></div>
-        </div>
         <div class="admin-card">
           <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
           <div class="premium-admin">
@@ -652,9 +655,10 @@
             <div id="premiumTokenResult" class="premium-token" title="Pulsa para copiar"></div>
           </form>
           <form id="rewardTokenForm" class="premium-card">
-            <label for="rewardTokenCoins">Generar token de regalo · Neko Coins</label>
+            <label for="rewardTokenCoins">Generar paquete de regalo</label>
             <input id="rewardTokenCoins" type="number" min="1" max="1000000000" step="1" value="10000" placeholder="Ej.: 10000" required>
-            <button class="btn" type="submit"><i class="fas fa-gift"></i> Generar regalo</button>
+            <div class="reward-tools"><label><input class="reward-tool" type="checkbox" value="pico" checked> ⛏️ Pico</label><label><input class="reward-tool" type="checkbox" value="espada" checked> ⚔️ Espada</label><label><input class="reward-tool" type="checkbox" value="cana" checked> 🎣 Caña</label></div>
+            <button class="btn" type="submit"><i class="fas fa-gift"></i> Generar paquete</button>
             <div id="rewardTokenResult" class="premium-token" title="Pulsa para copiar"></div>
           </form>
         </div>
@@ -809,8 +813,8 @@ const adminConsole = document.getElementById('adminConsole');
 const adminUsername = document.getElementById('adminUsername');
 const adminPassword = document.getElementById('adminPassword');
 const adminStatus = document.getElementById('adminStatus');
-const adminConsoleOutput = document.getElementById('adminConsoleOutput');
-const adminMessageCount = document.getElementById('adminMessageCount');
+const publicGroupChatOutput = document.getElementById('publicGroupChatOutput');
+const publicGroupChatCount = document.getElementById('publicGroupChatCount');
 const premiumUserForm = document.getElementById('premiumUserForm');
 const premiumUserNumber = document.getElementById('premiumUserNumber');
 const premiumTokenForm = document.getElementById('premiumTokenForm');
@@ -833,7 +837,7 @@ const adminLiveState = document.getElementById('adminLiveState');
 const adminLogout = document.getElementById('adminLogout');
 const adminBotsList = document.getElementById('adminBotsList');
 const adminPromoButton = document.getElementById('adminPromoButton');
-const adminMessages = new Map();
+const groupMessages = new Map();
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
   document.body.classList.toggle('admin-route', isAdminRoute);
@@ -845,10 +849,10 @@ function updateAdminRoute(){
 }
 updateAdminRoute();
 window.addEventListener('hashchange', updateAdminRoute);
-function renderAdminChatMessage(entry){
-  if(!entry?.id || adminMessages.has(entry.id)) return;
-  adminMessages.set(entry.id,entry);
-  const empty = adminConsoleOutput.querySelector('.console-empty');
+function renderGroupChatMessage(entry){
+  if(!entry?.id || !entry.isGroup || groupMessages.has(entry.id)) return;
+  groupMessages.set(entry.id,entry);
+  const empty = publicGroupChatOutput.querySelector('.console-empty');
   if(empty) empty.remove();
   const line = document.createElement('div');
   line.className = `console-line ${entry.isGroup ? 'group' : 'private'}`;
@@ -865,18 +869,18 @@ function renderAdminChatMessage(entry){
   const message = document.createElement('span');
   message.textContent=entry.text || `[${entry.type || 'mensaje'}]`;
   line.append(time,chat,sender,message);
-  adminConsoleOutput.appendChild(line);
-  adminConsoleOutput.scrollTop=adminConsoleOutput.scrollHeight;
-  adminMessageCount.textContent=`${adminMessages.size} mensajes`;
-  if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
+  publicGroupChatOutput.appendChild(line);
+  publicGroupChatOutput.scrollTop=publicGroupChatOutput.scrollHeight;
+  if(publicGroupChatCount) publicGroupChatCount.textContent=groupMessages.size;
+  if(adminMessageCountKpi) adminMessageCountKpi.textContent=groupMessages.size;
 }
-function renderAdminChatHistory(entries=[]){
-  adminMessages.clear();
-  adminConsoleOutput.innerHTML='';
-  entries.forEach(renderAdminChatMessage);
-  if(!entries.length) adminConsoleOutput.innerHTML='<div class="console-empty">Esperando mensajes del bot...</div>';
-  adminMessageCount.textContent=`${adminMessages.size} mensajes`;
-  if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
+function renderGroupChatHistory(entries=[]){
+  groupMessages.clear();
+  publicGroupChatOutput.innerHTML='';
+  entries.filter(entry=>entry?.isGroup).forEach(renderGroupChatMessage);
+  if(!groupMessages.size) publicGroupChatOutput.innerHTML='<div class="console-empty">Esperando actividad de grupos...</div>';
+  if(publicGroupChatCount) publicGroupChatCount.textContent=groupMessages.size;
+  if(adminMessageCountKpi) adminMessageCountKpi.textContent=groupMessages.size;
 }
 function escapeAdminHtml(value){
   return String(value ?? '').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -936,8 +940,8 @@ adminLogout?.addEventListener('click',()=>{
   socket.disconnect();
   window.location.href='/admin';
 });
-socket.on('admin-chat-history',renderAdminChatHistory);
-socket.on('admin-chat-message',renderAdminChatMessage);
+socket.on('group-chat-history',renderGroupChatHistory);
+socket.on('group-chat-message',renderGroupChatMessage);
 socket.on('admin-bots-data',renderAdminBots);
 socket.on('admin-promo-status',(data={})=>{
   if(adminPromoButton){ adminPromoButton.disabled=Boolean(data.running); adminPromoButton.innerHTML=data.running ? '<i class="fas fa-spinner fa-spin"></i> Enviando...' : '<i class="fas fa-paper-plane"></i> Enviar promoción'; }
@@ -994,13 +998,15 @@ function renderRewardData(data={}){
   const tokens = data.tokens || [];
   rewardTokensList.innerHTML='<strong>Tokens de regalo</strong>' + (tokens.length ? tokens.map(token=>{
     const state = token.claimed ? `✅ reclamado por ${token.claimedBy || 'usuario'}` : '🟡 disponible';
-    return `<div class="premium-list-row"><span>${token.preview} · 🪙 ${Number(token.coins||0).toLocaleString('es-ES')} · ${state}</span><button class="premium-remove" data-reward-token="${token.id}" type="button">Eliminar</button></div>`;
+    const tools = Object.keys(token.tools||{}).map(tool=>tool==='pico'?'⛏️':tool==='espada'?'⚔️':'🎣').join('');
+    return `<div class="premium-list-row"><span>${token.preview} · 🪙 ${Number(token.coins||0).toLocaleString('es-ES')} ${tools} · ${state}</span><button class="premium-remove" data-reward-token="${token.id}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens de regalo.');
 }
 rewardTokenForm?.addEventListener('submit',(event)=>{
   event.preventDefault();
   rewardTokenResult.classList.remove('show');
-  socket.emit('admin-reward-generate',{coins:Number(rewardTokenCoins.value)});
+  const tools=Object.fromEntries([...document.querySelectorAll('.reward-tool:checked')].map(input=>[input.value,true]));
+  socket.emit('admin-reward-generate',{coins:Number(rewardTokenCoins.value),tools});
 });
 rewardTokenResult?.addEventListener('click',()=>{
   if(!rewardTokenResult.textContent) return;
@@ -1009,7 +1015,7 @@ rewardTokenResult?.addEventListener('click',()=>{
 socket.on('admin-reward-token',(result={})=>{
   rewardTokenResult.textContent=result.token || '';
   rewardTokenResult.classList.toggle('show',Boolean(result.token));
-  if(result.token) showToast(`Regalo generado: ${Number(result.coins||0).toLocaleString('es-ES')} Neko Coins`);
+  if(result.token){ const tools=Object.keys(result.tools||{}).join(', '); showToast(`Paquete generado: ${Number(result.coins||0).toLocaleString('es-ES')} Neko Coins${tools ? ` + ${tools}` : ''}`); }
 });
 socket.on('admin-reward-data',renderRewardData);
 rewardTokensList?.addEventListener('click',(event)=>{

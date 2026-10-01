@@ -346,19 +346,25 @@ function hashRewardToken(token) {
     return crypto.createHash('sha256').update(String(token || '').trim().toUpperCase()).digest('hex');
 }
 
-function createRewardToken(coins = 1000) {
+function normalizeRewardTools(tools = {}) {
+    const durability = { pico: 15, espada: 12, cana: 15 };
+    return Object.fromEntries(Object.keys(durability).filter(key => tools?.[key]).map(key => [key, durability[key]]));
+}
+function createRewardToken(coins = 1000, tools = {}) {
     const safeCoins = Math.min(1000000000, Math.max(1, Math.floor(Number(coins) || 0)));
+    const safeTools = normalizeRewardTools(tools);
     const token = `NIKU-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
     const id = hashRewardToken(token);
     botData.rewardTokens[id] = {
         preview: `${token.slice(0, 10)}…`,
         coins: safeCoins,
+        tools: safeTools,
         createdAt: new Date().toISOString(),
         claimedBy: null,
         claimedAt: null
     };
     saveBotData();
-    return { token, coins: safeCoins };
+    return { token, coins: safeCoins, tools: safeTools };
 }
 
 function createPremiumToken(days = 30) {
@@ -374,6 +380,23 @@ function createPremiumToken(days = 30) {
     };
     saveBotData();
     return { token, expiresAt: botData.premiumTokens[hashPremiumToken(token)].expiresAt };
+}
+function grantStarterPack(botNumber) {
+    const jid = jidNormalizedUser(botNumber);
+    botData.economy[jid] ||= { users: {} };
+    botData.economy[jid].users ||= {};
+    botData.economy[jid].users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
+    const wallet = botData.economy[jid].users[jid];
+    if (wallet.starterPackClaimed) return false;
+    wallet.coins = Math.max(0, Number(wallet.coins) || 0) + 1000;
+    wallet.tools ||= {};
+    wallet.tools.pico = { durability: 15, maxDurability: 15 };
+    wallet.tools.espada = { durability: 12, maxDurability: 12 };
+    wallet.tools.cana = { durability: 15, maxDurability: 15 };
+    wallet.starterPackClaimed = true;
+    wallet.starterPackGrantedAt = new Date().toISOString();
+    saveBotData();
+    return true;
 }
 
 function premiumSnapshot() {
@@ -398,6 +421,7 @@ function rewardSnapshot() {
         id,
         preview: token.preview,
         coins: Number(token.coins) || 0,
+        tools: token.tools || {},
         createdAt: token.createdAt,
         claimed: Boolean(token.claimedBy),
         claimedBy: token.claimedBy || null
@@ -702,6 +726,7 @@ const adminSockets = new Set();
 const adminChatLogs = [];
 
 function publishAdminChatMessage(entry) {
+    if (!entry?.isGroup) return;
     const cleanEntry = {
         id: entry.id,
         sessionId: entry.sessionId,
@@ -716,9 +741,7 @@ function publishAdminChatMessage(entry) {
     };
     adminChatLogs.push(cleanEntry);
     if (adminChatLogs.length > 200) adminChatLogs.shift();
-    for (const adminSocket of adminSockets) {
-        if (adminSocket.connected) adminSocket.emit('admin-chat-message', cleanEntry);
-    }
+    io.emit('group-chat-message', cleanEntry);
 }
 
 function getDashboardStats() {
@@ -1374,15 +1397,17 @@ class BotSession {
                                             wallet.bank = Math.max(0, Number(wallet.bank) || 0);
                                             const coins = Math.max(1, Math.floor(Number(reward.coins) || 0));
                                             wallet.coins += coins;
+                                            const toolDurability = { pico: 15, espada: 12, cana: 15 };
+                                            const rewardTools = normalizeRewardTools(reward.tools || reward.package?.tools || {});
+                                            wallet.tools ||= {};
+                                            for (const [tool, durability] of Object.entries(rewardTools)) {
+                                                wallet.tools[tool] = { durability, maxDurability: toolDurability[tool] };
+                                            }
                                             reward.claimedBy = claimJid;
                                             reward.claimedAt = new Date().toISOString();
                                             saveBotData();
-                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*
-
-🪙 Recibiste: *${coins.toLocaleString('es-ES')} Neko Coins*
-💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Neko Coins*
-
-✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
+                                            const toolsText = Object.keys(rewardTools).length ? `\n🧰 Herramientas: *${Object.keys(rewardTools).map(tool => tool === 'pico' ? '⛏️ Pico' : tool === 'espada' ? '⚔️ Espada' : '🎣 Caña').join(', ')}*` : '';
+                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*\n\n🪙 Recibiste: *${coins.toLocaleString('es-ES')} Neko Coins*${toolsText}\n💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Neko Coins*\n\n✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'book':
@@ -1744,6 +1769,7 @@ class BotSession {
                     }
 
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
+                    const starterPackGranted = grantStarterPack(botNumber);
 
                     if (this.tgChatId && tgBot) {
                         const successMsg =
@@ -1781,6 +1807,10 @@ class BotSession {
                             `• *Comandos:* ${commandCount} herramientas disponibles\n\n` +
                             `*🎵 CANCIÓN ACTUAL:*\n` +
                             `> Sin canción seleccionada\n\n` +
+                            `🎁 *PACK INICIAL PARA PRINCIPIANTES:*\n` +
+                            `🪙 1.000 Neko Coins\n` +
+                            `⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n` +
+                            `${starterPackGranted ? '✅ Pack entregado en tu economía.' : 'ℹ️ Tu pack inicial ya había sido entregado.'}\n\n` +
                             `Escribe *.menu* para explorar todas las funciones.\n\n` +
                             `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
 
@@ -2066,6 +2096,7 @@ function generateMenuText(userName, session) {
 // =================== SOCKET.IO ===================
 io.on('connection', (socket) => {
     socket.emit('stats', getDashboardStats());
+    socket.emit('group-chat-history', adminChatLogs.slice(-200));
 
     // Admin auth
     socket.on('admin-auth', ({ username, password } = {}) => {
@@ -2081,7 +2112,6 @@ io.on('connection', (socket) => {
             socket.adminAttempts = 0;
             adminSockets.add(socket);
             socket.emit('admin-auth-success');
-            socket.emit('admin-chat-history', adminChatLogs.slice(-200));
             socket.emit('admin-premium-data', premiumSnapshot());
             socket.emit('admin-reward-data', rewardSnapshot());
             socket.emit('admin-bots-data', botsSnapshot());
@@ -2121,16 +2151,16 @@ io.on('connection', (socket) => {
         socket.emit('admin-premium-data', premiumSnapshot());
     });
 
-    socket.on('admin-reward-generate', ({ coins } = {}) => {
+    socket.on('admin-reward-generate', ({ coins, tools } = {}) => {
         if (!socket.authenticated) return;
         const safeCoins = Math.floor(Number(coins) || 0);
         if (!Number.isSafeInteger(safeCoins) || safeCoins < 1 || safeCoins > 1000000000) {
             socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Neko Coins.' });
             return;
         }
-        const result = createRewardToken(safeCoins);
+        const result = createRewardToken(safeCoins, tools);
         socket.emit('admin-reward-token', result);
-        socket.emit('admin-premium-status', { ok: true, message: 'Token de regalo generado. Cópialo y entrégaselo al usuario.' });
+        socket.emit('admin-premium-status', { ok: true, message: 'Paquete de regalo generado. Cópialo y entrégaselo al usuario.' });
         socket.emit('admin-reward-data', rewardSnapshot());
     });
 
