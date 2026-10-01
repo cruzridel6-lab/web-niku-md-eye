@@ -19,7 +19,7 @@ const ALIASES = {
     pay: ['pay', 'transfer', 'give'],
     roulette: ['roulette', 'rt', 'ruleta', 'rtl'],
     reward: ['reward', 'regalo', 'premio'],
-    shop: ['shop', 'tienda', 'store'],
+    shop: ['tienda'],
     slut: ['slut'],
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
