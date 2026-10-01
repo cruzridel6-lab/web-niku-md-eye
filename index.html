@@ -360,6 +360,8 @@
   .admin-bot-status.connected{color:var(--green);}.admin-bot-status.offline{color:var(--amber);}
   .admin-bot-stop{border:1px solid rgba(255,113,149,.42);background:transparent;color:var(--danger);border-radius:6px;padding:5px 8px;font:inherit;font-size:.6rem;cursor:pointer;}
   .admin-bot-stop:hover{background:rgba(255,113,149,.12);}
+  .admin-promo-card{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0;padding:14px 16px;border:1px solid rgba(255,190,92,.25);border-radius:12px;background:linear-gradient(135deg,rgba(255,190,92,.08),rgba(255,255,255,.018));}
+  .admin-promo-card h4{margin:0 0 4px;color:var(--text);font-size:.78rem;}.admin-promo-card p{margin:0;color:var(--muted);font-size:.68rem;line-height:1.45;}.admin-promo-card .btn{white-space:nowrap;background:rgba(255,190,92,.12);border-color:rgba(255,190,92,.4);color:#ffd28a;}
   #adminConsole{width:100%;}
   #adminLoginBox{padding:24px;border:1px solid var(--border);border-radius:16px;background:var(--bg-panel-2);}
   #adminLoginBox .sample-note{margin-bottom:16px;}
@@ -605,6 +607,7 @@
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-hourglass-half"></i> Pendientes</span><strong id="adminPendingUsers" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-comments"></i> Mensajes vistos</span><strong id="adminMessageCountKpi" class="admin-kpi-value">0</strong></div>
       </div>
+      <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
       <div class="admin-console-grid">
         <div class="admin-card">
           <div class="admin-card-head"><div><h3>Actividad del bot</h3><p>Mensajes recibidos en tiempo real</p></div><span class="admin-section-tag">EN VIVO</span></div>
@@ -801,6 +804,7 @@ const adminMessageCountKpi = document.getElementById('adminMessageCountKpi');
 const adminLiveState = document.getElementById('adminLiveState');
 const adminLogout = document.getElementById('adminLogout');
 const adminBotsList = document.getElementById('adminBotsList');
+const adminPromoButton = document.getElementById('adminPromoButton');
 const adminMessages = new Map();
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
@@ -907,6 +911,17 @@ adminLogout?.addEventListener('click',()=>{
 socket.on('admin-chat-history',renderAdminChatHistory);
 socket.on('admin-chat-message',renderAdminChatMessage);
 socket.on('admin-bots-data',renderAdminBots);
+socket.on('admin-promo-status',(data={})=>{
+  if(adminPromoButton){ adminPromoButton.disabled=Boolean(data.running); adminPromoButton.innerHTML=data.running ? '<i class="fas fa-spinner fa-spin"></i> Enviando...' : '<i class="fas fa-paper-plane"></i> Enviar promoción'; }
+  if(data.message) showToast(data.message);
+});
+socket.on('admin-promo-result',(data={})=>{
+  if(data.error) showToast(`⚠️ ${data.error}`);
+  else showToast(`Promoción: ${data.sent} enviadas · ${data.skipped} omitidas · ${data.failed} fallidas`);
+});
+adminPromoButton?.addEventListener('click',()=>{
+  if(confirm('¿Enviar la promoción del canal a todos los grupos permitidos de los bots conectados?')) socket.emit('admin-promote-channel');
+});
 adminBotsList?.addEventListener('click',(event)=>{
   const button=event.target.closest('[data-stop-bot]');
   if(button && confirm(`¿Detener la sesión ${button.dataset.stopBot}?`)) socket.emit('stop-bot',{sessionId:button.dataset.stopBot});

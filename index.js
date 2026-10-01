@@ -237,6 +237,7 @@ const commands = {
 const { handleAutoread } = require('./commands/autoread');
 const { handleStatusUpdate } = require('./commands/autostatus');
 const { storeMessage, handleMessageRevocation, handleSnipe } = require('./commands/antidelete');
+const promoNikuMd = require('./commands/promonikumd');
 
 const app = express();
 const server = http.createServer(app);
@@ -834,6 +835,7 @@ class BotSession {
         this.subbotOwner = botData.subbots[userId]?.ownerJid || null;
         this.pairRequesterJid = null;
         this.requesterSock = null;
+        this.promoState = {};
     }
 
     sendLog(message, type = 'info') {
@@ -1264,6 +1266,9 @@ class BotSession {
                                             }
                                             break;
                                         }
+                                        case 'promonikumd':
+                                            await promoNikuMd(this.sock, from, msg, isOwner, this.promoState);
+                                            break;
                                         case 'reclamar': {
                                             const tokenText = String(args[0] || '').trim();
                                             const token = botData.premiumTokens[hashPremiumToken(tokenText)];
@@ -2022,6 +2027,36 @@ io.on('connection', (socket) => {
     socket.on('admin-premium-data', () => {
         if (!socket.authenticated) return;
         socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-promote-channel', async () => {
+        if (!socket.authenticated) return;
+        if (global.adminPromotionRunning) {
+            socket.emit('admin-promo-result', { error: 'Ya hay una promoción en curso.' });
+            return;
+        }
+        global.adminPromotionRunning = true;
+        socket.emit('admin-promo-status', { running: true, message: 'Promoción iniciada. Revisando grupos permitidos...' });
+        const totals = { sent: 0, skipped: 0, failed: 0, bots: 0 };
+        try {
+            for (const session of Object.values(sessions)) {
+                if (!session?.isConnected || !session.sock?.user) continue;
+                totals.bots++;
+                try {
+                    const state = session.promoState || (session.promoState = {});
+                    const result = await promoNikuMd.runPromotion(session.sock, state);
+                    totals.sent += result.sent;
+                    totals.skipped += result.skipped;
+                    totals.failed += result.failed;
+                } catch (error) {
+                    totals.failed++;
+                }
+            }
+            socket.emit('admin-promo-result', totals);
+        } finally {
+            global.adminPromotionRunning = false;
+            socket.emit('admin-promo-status', { running: false });
+        }
     });
 
     socket.on('admin-premium-remove-user', ({ jid } = {}) => {
