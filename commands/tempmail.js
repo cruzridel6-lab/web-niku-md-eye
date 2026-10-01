@@ -35,7 +35,7 @@ async function createAccount() {
             token: tokenRes.data.token
         };
     } catch (err) {
-        throw new Error('Failed to create tempmail: ' + err.message);
+        throw new Error('No se pudo crear el correo temporal: ' + err.message);
     }
 }
 
@@ -83,13 +83,13 @@ module.exports = async function(sock, chatId, msg) {
                         const otpMatch = fullMsg.text?.match(/\b\d{4,8}\b/) || fullMsg.intro?.match(/\b\d{4,8}\b/);
                         const otp = otpMatch ? otpMatch[0] : null;
 
-                        const forwardText = `📧 *NEW EMAIL RECEIVED* 📧\n\n` +
-                                          `📨 *From:* ${fullMsg.from?.address || 'Unknown'}\n` +
-                                          `📌 *Subject:* ${fullMsg.subject || 'No Subject'}\n` +
-                                          `🕐 *Date:* ${new Date(fullMsg.createdAt).toLocaleString()}\n\n` +
-                                          (otp ? `🔐 *OTP DETECTED:* \`${otp}\`\n\n` : '') +
-                                          `📝 *Preview:*\n${fullMsg.intro || fullMsg.text?.substring(0, 500) || 'No content'}\n\n` +
-                                          `_Powered by Shadow MD Bot_`;
+                        const forwardText = `📧 *NUEVO CORREO RECIBIDO* 📧\n\n` +
+                                          `📨 *De:* ${fullMsg.from?.address || 'Desconocido'}\n` +
+                                          `📌 *Asunto:* ${fullMsg.subject || 'No Subject'}\n` +
+                                          `🕐 *Fecha:* ${new Date(fullMsg.createdAt).toLocaleString()}\n\n` +
+                                          (otp ? `🔐 *CÓDIGO OTP DETECTADO:* \`${otp}\`\n\n` : '') +
+                                          `📝 *Vista previa:*\n${fullMsg.intro || fullMsg.text?.substring(0, 500) || 'Sin contenido'}\n\n` +
+                                          `_Desarrollado por NIKU MD_`;
 
                         await sock.sendMessage(chatId, { text: forwardText });
                         session.seenMessages.push(message.id);
@@ -98,21 +98,21 @@ module.exports = async function(sock, chatId, msg) {
             }
 
             // Show current email info
-            const text = `📧 *SHADOW TEMP MAIL* 📧\n\n` +
-                         `✅ Active Email:\n` +
+            const text = `📧 *CORREO TEMPORAL DE NIKU MD* 📧\n\n` +
+                         `✅ Correo activo:\n` +
                          `\`${session.email}\`\n\n` +
-                         `📨 Total Emails: ${messages.length}\n` +
-                         `🔔 New Emails: ${newMessages.length}\n\n` +
-                         `⏳ Checking for OTPs every 30 seconds...\n` +
-                         `🔄 Type .tempmail again to check for new emails\n\n` +
-                         `_Powered by Shadow MD Bot_`;
+                         `📨 Correos totales: ${messages.length}\n` +
+                         `🔔 Correos nuevos: ${newMessages.length}\n\n` +
+                         `⏳ Buscando códigos OTP cada 30 segundos...\n` +
+                         `🔄 Escribe .tempmail otra vez para revisar nuevos correos\n\n` +
+                         `_Desarrollado por NIKU MD_`;
 
             await sock.sendMessage(chatId, { text }, { quoted: msg });
             return;
         }
 
         // Create new tempmail
-        await sock.sendMessage(chatId, { text: '⏳ Creating temporary email... Please wait.' }, { quoted: msg });
+        await sock.sendMessage(chatId, { text: '⏳ Creando correo temporal... espera un momento.' }, { quoted: msg });
 
         const account = await createAccount();
 
@@ -124,14 +124,14 @@ module.exports = async function(sock, chatId, msg) {
             seenMessages: []
         };
 
-        const text = `📧 *SHADOW TEMP MAIL CREATED* 📧\n\n` +
-                     `✅ *Email:*\n` +
+        const text = `📧 *CORREO TEMPORAL DE NIKU MD CREATED* 📧\n\n` +
+                     `✅ *Correo:*\n` +
                      `\`${account.email}\`\n\n` +
-                     `⏳ Valid for 10 minutes\n` +
-                     `🔔 I will forward any OTPs/emails to this chat\n\n` +
-                     `📝 Use this email to receive OTPs\n` +
-                     `🔄 Type .tempmail again to check for new emails\n\n` +
-                     `_Powered by Shadow MD Bot_`;
+                     `⏳ Válido durante 10 minutos\n` +
+                     `🔔 Los códigos y correos nuevos se mostrarán en este chat\n\n` +
+                     `📝 Usa este correo para recibir códigos OTP\n` +
+                     `🔄 Escribe .tempmail otra vez para revisar nuevos correos\n\n` +
+                     `_Desarrollado por NIKU MD_`;
 
         await sock.sendMessage(chatId, { text }, { quoted: msg });
 
@@ -139,7 +139,7 @@ module.exports = async function(sock, chatId, msg) {
         startEmailChecker(sock, chatId, userId);
 
     } catch (err) {
-        await sock.sendMessage(chatId, { text: '❌ Error: ' + err.message + '\n\nTry again later.' }, { quoted: msg });
+        await sock.sendMessage(chatId, { text: '❌ Error: ' + err.message + '\n\nInténtalo más tarde.' }, { quoted: msg });
     }
 };
 
@@ -156,7 +156,7 @@ function startEmailChecker(sock, chatId, userId) {
             delete tempmailSessions[userId];
             clearInterval(interval);
             try {
-                await sock.sendMessage(chatId, { text: '⏰ Tempmail session expired. Use .tempmail to create a new one.' });
+                await sock.sendMessage(chatId, { text: '⏰ La sesión de correo temporal expiró. Usa .tempmail para crear otra.' });
             } catch(e) {}
             return;
         }
@@ -171,13 +171,13 @@ function startEmailChecker(sock, chatId, userId) {
                     const otpMatch = fullMsg.text?.match(/\b\d{4,8}\b/) || fullMsg.intro?.match(/\b\d{4,8}\b/);
                     const otp = otpMatch ? otpMatch[0] : null;
 
-                    const forwardText = `📧 *NEW EMAIL RECEIVED* 📧\n\n` +
-                                      `📨 *From:* ${fullMsg.from?.address || 'Unknown'}\n` +
-                                      `📌 *Subject:* ${fullMsg.subject || 'No Subject'}\n` +
-                                      `🕐 *Date:* ${new Date(fullMsg.createdAt).toLocaleString()}\n\n` +
-                                      (otp ? `🔐 *OTP DETECTED:* \`${otp}\`\n\n` : '') +
-                                      `📝 *Preview:*\n${fullMsg.intro || fullMsg.text?.substring(0, 500) || 'No content'}\n\n` +
-                                      `_Powered by Shadow MD Bot_`;
+                    const forwardText = `📧 *NUEVO CORREO RECIBIDO* 📧\n\n` +
+                                      `📨 *De:* ${fullMsg.from?.address || 'Desconocido'}\n` +
+                                      `📌 *Asunto:* ${fullMsg.subject || 'No Subject'}\n` +
+                                      `🕐 *Fecha:* ${new Date(fullMsg.createdAt).toLocaleString()}\n\n` +
+                                      (otp ? `🔐 *CÓDIGO OTP DETECTADO:* \`${otp}\`\n\n` : '') +
+                                      `📝 *Vista previa:*\n${fullMsg.intro || fullMsg.text?.substring(0, 500) || 'Sin contenido'}\n\n` +
+                                      `_Desarrollado por NIKU MD_`;
 
                     await sock.sendMessage(chatId, { text: forwardText });
                     session.seenMessages.push(message.id);

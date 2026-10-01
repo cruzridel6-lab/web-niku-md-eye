@@ -38,7 +38,7 @@ const commands = {
     apk: require('./commands/apk'),
     gdrive: require('./commands/gdrive'),
     mf: require('./commands/mf'),
-   
+
     // Group Management
     kick: require('./commands/kick'),
     add: require('./commands/add'),
@@ -246,7 +246,7 @@ if (!tgToken) {
     console.error('TELEGRAM_BOT_TOKEN not set in environment variables!');
 }
 
-const tgBot = tgToken ? new TelegramBot(tgToken, { 
+const tgBot = tgToken ? new TelegramBot(tgToken, {
     polling: {
         interval: 3000,
         autoStart: true,
@@ -382,8 +382,8 @@ if (tgBot) {
     tgBot.onText(/\/start/, async (msg) => {
         const chatId = msg.chat.id;
         const isOwner = isTgOwner(chatId);
-        
-        const welcomeMessage = 
+
+        const welcomeMessage =
             `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI BOT* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
             `*\u{1F311} LUXURY WHATSAPP AUTOMATION* \u{1F311}\n\n` +
             `Welcome to the most premium WhatsApp bot experience.\n\n` +
@@ -399,9 +399,9 @@ if (tgBot) {
             `> © POWERED BY SYED MINI BOT v3.0`;
 
         try {
-            await tgBot.sendPhoto(chatId, settings.startimage, { 
-                caption: welcomeMessage, 
-                parse_mode: 'Markdown' 
+            await tgBot.sendPhoto(chatId, settings.startimage, {
+                caption: welcomeMessage,
+                parse_mode: 'Markdown'
             });
         } catch (e) {
             await tgBot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
@@ -412,7 +412,7 @@ if (tgBot) {
     tgBot.onText(/\/clearsession/, async (msg) => {
         const chatId = msg.chat.id;
         const userId = `tg_${chatId}`;
-        
+
         if (sessions[userId]) {
             if (sessions[userId].sock) {
                 try { await sessions[userId].sock.logout(); } catch(e) {}
@@ -432,12 +432,12 @@ if (tgBot) {
     tgBot.onText(/\/follow (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
         if (!isTgOwner(chatId)) return;
-        
+
         const channelLink = match[1].trim();
         const activeSocks = getAllActiveSockets();
-        
+
         await tgBot.sendMessage(chatId, `\u{1F504} *Initiating Mass Follow...*\nTarget: ${channelLink}\nBots: ${activeSocks.length}`, { parse_mode: 'Markdown' });
-        
+
         let success = 0;
         for (const { sock } of activeSocks) {
             try {
@@ -449,23 +449,23 @@ if (tgBot) {
                 }
             } catch (e) {}
         }
-        
+
         await tgBot.sendMessage(chatId, `\u{2705} *Mass Follow Complete!*\nSuccessfully followed: ${success}/${activeSocks.length}`, { parse_mode: 'Markdown' });
     });
 
     // Status command - OWNER ONLY
     tgBot.onText(/\/status/, async (msg) => {
         const chatId = msg.chat.id;
-        
+
         if (!isTgOwner(chatId)) {
             return tgBot.sendMessage(chatId, "\u{274C} *Owner only command!*", { parse_mode: 'Markdown' });
         }
-        
+
         const connectedCount = Object.values(sessions).filter(s => s.isConnected).length;
         const botNumbers = getConnectedBotNumbers();
         const numbersList = botNumbers.length > 0 ? botNumbers.join('\n') : 'None';
 
-        const statusMsg = 
+        const statusMsg =
             `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI STATUS* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
             `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
             `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
@@ -527,7 +527,7 @@ if (tgBot) {
             }
 
             if (!botData.statusSettings[userId]) {
-                botData.statusSettings[userId] = { 
+                botData.statusSettings[userId] = {
                     autoStatus: false,
                     autoSeen: false,
                     autoLike: false,
@@ -537,7 +537,7 @@ if (tgBot) {
                 saveBotData();
             }
 
-            const initMsg = 
+            const initMsg =
                 `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI PAIRING* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                 `*\u{1F504} REQUESTING CODE...*\n` +
                 `Target Number: \`${text}\`\n\n` +
@@ -639,9 +639,9 @@ function saveBotData() {
     githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
 }
 
-const sessions = {}; 
-const userSockets = {}; 
-const messageLogs = {}; 
+const sessions = {};
+const userSockets = {};
+const messageLogs = {};
 const adminSockets = new Set();
 const adminChatLogs = [];
 
@@ -728,14 +728,14 @@ class BotSession {
         this.userId = userId;
         this.sock = null;
         this.isConnected = false;
-        this.aiEnabled = false; 
+        this.aiEnabled = false;
         this.autoReact = botData.statusSettings[userId]?.autoReact || false;
-        this.isPublic = botData.statusSettings[userId]?.isPublic !== undefined ? botData.statusSettings[userId].isPublic : true; 
+        this.isPublic = botData.statusSettings[userId]?.isPublic !== undefined ? botData.statusSettings[userId].isPublic : true;
         this.authPath = path.join(AUTH_DIR, userId);
         this.processedMessages = new Set();
         this.activeInterval = null;
         this.isInitializing = false;
-        this.userChats = {}; 
+        this.userChats = {};
         this.lastConnectMessageTime = null;
         this.phoneNumber = null;
         this.ghostMode = false;
@@ -800,8 +800,8 @@ class BotSession {
             if (this.isConnected && this.sock?.user) {
                 try {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
-                    await this.sock.sendMessage(botNumber, { 
-                        text: "SYED \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_24/7 Active System Working..._" 
+                    await this.sock.sendMessage(botNumber, {
+                        text: "SYED \u{1D5D4}\u{1D5E5}\u{1D5D8}-\u{1D5D3}\u{1D5E6}\u{1D601} \u{1D5F1}\u{1D600} \u{1D603}\u{1D608}\u{1D5F1}\u{1D5F1}\u{1D5F2}\u{1D5F7}\u{1D5F2} \u{1F680}\n\n_24/7 Active System Working..._"
                     });
                     this.sendLog("24/7 Keep-alive message sent to own DM. \u{2705}", "success");
                 } catch (e) {
@@ -873,7 +873,7 @@ class BotSession {
                         this.sendLog(`\u{1F511} Pairing Code: ${code}`, 'success');
 
                         if (this.tgChatId && tgBot) {
-                            const codeMsg = 
+                            const codeMsg =
                                 `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                                 `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
                                 `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
@@ -904,9 +904,9 @@ class BotSession {
                             try {
                                 // Properly reject call
                                 await this.sock.rejectCall(call.id, call.from);
-                                
+
                                 // Send professional rejection message
-                                await this.sock.sendMessage(call.from, { 
+                                await this.sock.sendMessage(call.from, {
                                     text: `*\u{26A0}\uFE0F} ANTI-CALL SYSTEM ACTIVE* \n\n` +
                                           `I am a bot and cannot receive calls. \n` +
                                           `Please send a text message instead. \n\n` +
@@ -1056,7 +1056,7 @@ class BotSession {
 
                         // =================== AUTHORIZATION FIX ===================
                         // THE FIX: Bot now works in ALL chats - personal, group, self
-                        
+
                         const botNumber = jidNormalizedUser(this.sock.user.id);
                         const botNumberClean = botNumber.split('@')[0];
 
@@ -1090,8 +1090,8 @@ class BotSession {
 
                         // Anti-status in groups
                         if (isGroup && botData.antiStatusGroups && botData.antiStatusGroups[from] && !isAdmin) {
-                            const isStatusMsg = msg.message?.protocolMessage?.type === 0 || 
-                                           msg.message?.viewOnceMessage || 
+                            const isStatusMsg = msg.message?.protocolMessage?.type === 0 ||
+                                           msg.message?.viewOnceMessage ||
                                            msg.message?.viewOnceMessageV2 ||
                                            msg.message?.viewOnceMessageV2Extension ||
                                            (text && (text.includes('whatsapp.com/channel/') || text.includes('status@broadcast')));
@@ -1205,7 +1205,7 @@ class BotSession {
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
-                                        case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ TOOLS MENU', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
+                                        case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
@@ -1256,7 +1256,7 @@ class BotSession {
                                         case 'mediafire': case 'mf': await commands.mf(this.sock, from, msg, q); break;
                                         case 'gdrive': await commands.gdrive(this.sock, from, msg, q); break;
                                         case 'apk': case 'game': case 'juego': await commands.apk(this.sock, from, msg); break;
-                                        case 'playstore': case 'ps': await commands.playstore(this.sock, from, msg, q); break;
+                                        case 'playstore': case 'ps': case 'tienda': await commands.playstore(this.sock, from, msg, q); break;
 
                                         // ===== GROUP MANAGEMENT =====
                                         case 'kick': await commands.kick(this.sock, from, msg, isAdmin); break;
@@ -1286,14 +1286,14 @@ class BotSession {
                                         case 'listonline': await commands.listonline(this.sock, from, msg); break;
 
                                         // ===== ADMIN / OWNER =====
-                                        case 'private': 
-                                            await commands.private(this.sock, from, msg, isAdmin, this); 
+                                        case 'private':
+                                            await commands.private(this.sock, from, msg, isAdmin, this);
                                             if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
                                             botData.statusSettings[this.userId].isPublic = false;
                                             saveBotData();
                                             break;
-                                        case 'public': 
-                                            await commands.public(this.sock, from, msg, isAdmin, this); 
+                                        case 'public':
+                                            await commands.public(this.sock, from, msg, isAdmin, this);
                                             if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
                                             botData.statusSettings[this.userId].isPublic = true;
                                             saveBotData();
@@ -1318,7 +1318,7 @@ class BotSession {
                                         case 'antibug': await commands.antibug(this.sock, from, msg, isOwner, botData, saveBotData, args); break;
 
                                         // ===== STATUS / AUTO =====
-                                        case 'status': 
+                                        case 'status':
                                         case 'autostatus': await commands.autostatus(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
                                         case 'autoreacts': await commands.autoreacts(this.sock, from, msg, isAdmin, this, args); break;
                                         case 'autoread': await commands.autoread(this.sock, from, msg); break;
@@ -1356,29 +1356,29 @@ class BotSession {
                                             await commands.anime(this.sock, from, msg, commandName, q); break;
 
                                         // ===== TOOLS =====
-                                        case 'ping': await commands.ping(this.sock, from, msg); break;
-                                        case 'dp': await commands.dp(this.sock, from, msg); break;
-                                        case 'vv': await commands.vv(this.sock, from, msg); break;
-                                        case 'translate': case 'trt': await commands.translate(this.sock, from, msg, q); break;
+                                        case 'ping': case 'velocidad': await commands.ping(this.sock, from, msg); break;
+                                        case 'dp': case 'foto': case 'fotoperfil': await commands.dp(this.sock, from, msg); break;
+                                        case 'vv': case 'veruna': await commands.vv(this.sock, from, msg); break;
+                                        case 'translate': case 'trt': case 'traducir': case 'traduce': await commands.translate(this.sock, from, msg, q); break;
                                         case 'base64': await commands.base64(this.sock, from, msg, q); break;
-                                        case 'qr': await commands.qr(this.sock, from, msg, q); break;
-                                        case 'shorturl': case 'tinyurl': await commands.utils.short(this.sock, from, msg, q); break;
-                                        case 'calc': case 'math': await commands.utils.calc(this.sock, from, msg, q); break;
-                                        case 'weather': await commands.utils.weather(this.sock, from, msg, q); break;
+                                        case 'qr': case 'codigoqr': await commands.qr(this.sock, from, msg, q); break;
+                                        case 'shorturl': case 'tinyurl': case 'acortar': await commands.utils.short(this.sock, from, msg, q); break;
+                                        case 'calc': case 'math': case 'calcular': await commands.utils.calc(this.sock, from, msg, q); break;
+                                        case 'weather': case 'clima': await commands.utils.weather(this.sock, from, msg, q); break;
                                         case 'github': case 'gh': await commands.utils.github(this.sock, from, msg, q); break;
-                                        case 'ipinfo': await commands.utils.ip(this.sock, from, msg, q); break;
-                                        case 'tempmail': await commands.tempmail(this.sock, from, msg); break;
-                                        case 'fakeinfo': await commands.fakeinfo(this.sock, from, msg); break;
-                                        case 'binlookup': await commands.binlookup(this.sock, from, msg, q); break;
+                                        case 'ipinfo': case 'infoip': await commands.utils.ip(this.sock, from, msg, q); break;
+                                        case 'tempmail': case 'correotemporal': await commands.tempmail(this.sock, from, msg); break;
+                                        case 'fakeinfo': case 'datosfalsos': await commands.fakeinfo(this.sock, from, msg); break;
+                                        case 'binlookup': case 'bin': await commands.binlookup(this.sock, from, msg, q); break;
                                         case 'whois': await commands.whois(this.sock, from, msg, q); break;
                                         case 'dnslookup': case 'dns': await commands.dnslookup(this.sock, from, msg, q); break;
-                                        case 'portscan': case 'scan': await commands.portscan(this.sock, from, msg, q); break;
-                                        case 'screenshot': case 'ss': await commands.screenshot(this.sock, from, msg, q); break;
-                                        case 'define': case 'dictionary': await commands.utils.dict(this.sock, from, msg, q); break;
-                                        case 'google': case 'gsearch': await commands.google(this.sock, from, msg, q); break;
+                                        case 'portscan': case 'scan': case 'escaneo': await commands.portscan(this.sock, from, msg, q); break;
+                                        case 'screenshot': case 'ss': case 'captura': await commands.screenshot(this.sock, from, msg, q); break;
+                                        case 'define': case 'dictionary': case 'definir': await commands.utils.dict(this.sock, from, msg, q); break;
+                                        case 'google': case 'gsearch': case 'buscar': await commands.google(this.sock, from, msg, q); break;
                                         case 'wiki': case 'wikipedia': await commands.utils.wiki(this.sock, from, msg, q); break;
-                                        case 'yts': case 'ytsearch': await commands.yts(this.sock, from, msg, q); break;
-                                        case 'npm': await commands.npm(this.sock, from, msg, q); break;
+                                        case 'yts': case 'ytsearch': case 'buscarvideo': await commands.yts(this.sock, from, msg, q); break;
+                                        case 'npm': case 'paquete': await commands.npm(this.sock, from, msg, q); break;
                                         case 'sticker': case 's': case 'textsticker': await commands.sticker(this.sock, from, msg, q); break;
                                         case 'toimg': case 'img': await commands.toimg(this.sock, from, msg); break;
                                         case 'tomp3': case 'mp3': await commands.tomp3(this.sock, from, msg); break;
@@ -1522,7 +1522,7 @@ class BotSession {
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
 
                     if (this.tgChatId && tgBot) {
-                        const successMsg = 
+                        const successMsg =
                             `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
@@ -1701,6 +1701,13 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     });
 }
 
+const TOOL_DISPLAY_NAMES = {
+    ping: 'velocidad', dp: 'fotoperfil', vv: 'veruna', translate: 'traducir', base64: 'base64', qr: 'codigoqr',
+    shorturl: 'acortar', calc: 'calcular', weather: 'clima', github: 'github', ipinfo: 'infoip', tempmail: 'correotemporal',
+    fakeinfo: 'datosfalsos', binlookup: 'bin', whois: 'whois', dnslookup: 'dns', portscan: 'escaneo', screenshot: 'captura',
+    define: 'definir', google: 'buscar', wiki: 'wiki', yts: 'buscarvideo', playstore: 'tienda', npm: 'paquete'
+};
+
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
@@ -1737,7 +1744,7 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
         center(`『 ${title} 』`),
         center('· · · ✦ · · ·'),
         '',
-        ...available.map(name => center(`• .${name}`)),
+        ...available.map(name => center(`• .${TOOL_DISPLAY_NAMES[name] || name}`)),
         '',
         center('· · · ✦ · · ·'),
         center(`✦ ${available.length} comando(s) disponibles ✦`)
@@ -1922,7 +1929,7 @@ io.on('connection', (socket) => {
     socket.on('pair-request', async ({ userId, number }) => {
         if (sessions[userId]) {
             if (!botData.statusSettings[userId]) {
-                botData.statusSettings[userId] = { 
+                botData.statusSettings[userId] = {
                     autoStatus: false,
                     autoSeen: false,
                     autoLike: false,
@@ -1936,7 +1943,7 @@ io.on('connection', (socket) => {
         } else {
             sessions[userId] = new BotSession(userId);
             if (!botData.statusSettings[userId]) {
-                botData.statusSettings[userId] = { 
+                botData.statusSettings[userId] = {
                     autoStatus: false,
                     autoSeen: false,
                     autoLike: false,
@@ -1953,7 +1960,7 @@ io.on('connection', (socket) => {
     // BROADCAST MESSAGE - Send to all connected users
     socket.on('broadcast', async ({ message }) => {
         if (!socket.authenticated) return;
-        
+
         const activeBots = getAllActiveSockets();
         let totalSent = 0;
         let totalChats = 0;
@@ -1963,11 +1970,11 @@ io.on('connection', (socket) => {
                 // Get all chats for this bot
                 const allChats = Object.keys(bot.sock.chats || {});
                 const personalChats = allChats.filter(jid => jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
-                
+
                 for (const jid of personalChats) {
                     try {
-                        await bot.sock.sendMessage(jid, { 
-                            text: `\u{1F4E2} *BROADCAST MESSAGE* \u{1F4E2}\n\n${message}\n\n_From: SYED MINI Bot Admin_` 
+                        await bot.sock.sendMessage(jid, {
+                            text: `\u{1F4E2} *BROADCAST MESSAGE* \u{1F4E2}\n\n${message}\n\n_From: SYED MINI Bot Admin_`
                         });
                         totalSent++;
                     } catch (e) {}
@@ -1994,7 +2001,7 @@ io.on('connection', (socket) => {
     // STOP BOT - Disconnect a specific bot
     socket.on('stop-bot', async ({ sessionId }) => {
         if (!socket.authenticated) return;
-        
+
         if (sessions[sessionId] && sessions[sessionId].sock) {
             try {
                 await sessions[sessionId].sock.logout();
@@ -2010,7 +2017,7 @@ io.on('connection', (socket) => {
     // STOP ALL BOTS
     socket.on('stop-all-bots', async () => {
         if (!socket.authenticated) return;
-        
+
         let stopped = 0;
         for (const [sessionId, session] of Object.entries(sessions)) {
             try {
@@ -2027,7 +2034,7 @@ io.on('connection', (socket) => {
     // GET CONNECTED BOTS LIST
     socket.on('get-bots-list', () => {
         if (!socket.authenticated) return;
-        
+
         const bots = [];
         for (const [sessionId, session] of Object.entries(sessions)) {
             if (session.sock && session.sock.user) {

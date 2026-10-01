@@ -92,7 +92,7 @@ module.exports = async function portscanCommand(sock, chatId, msg, q) {
 
         const results = await scanPorts(publicAddress.address);
         const openPorts = results.filter(result => result.open);
-        let text = `🔎 *Port Scan: ${hostname}*\n`;
+        let text = `🔎 *Escaneo de puertos: ${hostname}*\n`;
         text += `📍 IP: ${publicAddress.address}\n\n`;
 
         if (!openPorts.length) {

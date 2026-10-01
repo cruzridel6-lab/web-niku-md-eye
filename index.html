@@ -319,6 +319,29 @@
   .comment-content{min-width:0;flex:1;}.comment-meta{display:flex;justify-content:space-between;gap:10px;margin-bottom:4px;}.comment-meta strong{font-size:.82rem;}.comment-meta time{font-size:.68rem;color:var(--muted);white-space:nowrap;}.comment-content p{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere;}
   .comments-empty{color:var(--muted);font-size:.8rem;padding:18px;text-align:center;border:1px dashed var(--border);border-radius:14px;}
   .admin-login{max-width:420px;display:grid;gap:12px;}
+  .admin-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;margin:6px 0 24px;padding:22px;border:1px solid var(--border);border-radius:16px;background:linear-gradient(135deg,rgba(99,245,209,.09),rgba(155,140,255,.08));box-shadow:0 18px 45px rgba(0,0,0,.22);}
+  .admin-head h3{font-size:1.25rem;color:var(--text);letter-spacing:.02em;margin:4px 0 3px;}
+  .admin-head p{color:var(--muted);font-size:.76rem;}
+  .admin-kicker{color:var(--green);font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;font-weight:800;}
+  .admin-live-pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(99,245,209,.35);border-radius:99px;padding:8px 12px;color:var(--green);font-size:.66rem;font-weight:800;white-space:nowrap;background:rgba(99,245,209,.08);}
+  .admin-live-pill i{font-size:.45rem;animation:blink 1.5s infinite;}
+  .admin-head-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end;}
+  .admin-logout{display:none;border:1px solid rgba(255,113,149,.42);background:transparent;color:var(--danger);border-radius:8px;padding:8px 11px;font:inherit;font-size:.65rem;cursor:pointer;text-transform:uppercase;}
+  .admin-logout:hover{background:rgba(255,113,149,.12);}
+  .admin-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px;}
+  .admin-kpi{padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--bg-panel-2);}
+  .admin-kpi-label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;}
+  .admin-kpi-label i{color:var(--green);}
+  .admin-kpi-value{display:block;margin-top:9px;color:var(--text);font-size:1.35rem;font-weight:800;}
+  .admin-card{padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);box-shadow:0 12px 30px rgba(0,0,0,.18);}
+  .admin-card-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;}
+  .admin-card-head h3{font-size:.9rem;color:var(--text);}
+  .admin-card-head p{color:var(--muted);font-size:.68rem;}
+  .admin-section-tag{color:var(--green);font-size:.64rem;border:1px solid rgba(99,245,209,.28);padding:5px 8px;border-radius:6px;white-space:nowrap;}
+  .admin-console-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:16px;}
+  #adminConsole{width:100%;}
+  #adminLoginBox{padding:24px;border:1px solid var(--border);border-radius:16px;background:var(--bg-panel-2);}
+  #adminLoginBox .sample-note{margin-bottom:16px;}
   .admin-login input{width:100%;border:1px solid var(--border);border-radius:12px;background:rgba(0,0,0,.22);color:var(--text);font:inherit;font-size:.82rem;padding:12px 14px;outline:none;}
   .admin-login input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(111,247,210,.1);}
   .admin-status{min-height:20px;color:var(--amber);font-size:.75rem;}
@@ -327,7 +350,7 @@
   body.admin-route #adminNavLink{display:inline-flex;}
   #admin.panel{display:none;}
   body.admin-route #admin.panel{display:block;}
-  body.admin-route .hero-banner,body.admin-route .banner-nav,body.admin-route header,body.admin-route main>section:not(#admin),body.admin-route footer,body.admin-route #audioHint,body.admin-route #channelModal{display:none!important;}
+  body.admin-route #boot,body.admin-route .hero-banner,body.admin-route .banner-nav,body.admin-route header,body.admin-route main>section:not(#admin),body.admin-route footer,body.admin-route #audioHint,body.admin-route #channelModal{display:none!important;}
   body.admin-route nav{position:relative;}
   body.admin-route main{max-width:1100px;min-height:calc(100vh - 74px);padding-top:38px;}
   body.admin-route #admin.panel{margin-top:0;min-height:calc(100vh - 130px);}
@@ -359,6 +382,7 @@
   .premium-list-row:last-child{border-bottom:0;}
   .premium-remove{border:1px solid rgba(255,113,149,.45);background:transparent;color:var(--danger);border-radius:6px;padding:4px 7px;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap;}
   .premium-remove:hover{background:rgba(255,113,149,.12);}
+  @media(max-width:820px){.admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.admin-console-grid{grid-template-columns:1fr;}.admin-head{align-items:flex-start;flex-direction:column;}}
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
   .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
@@ -531,8 +555,16 @@
 
   <section id="admin" class="panel" data-label="./admin">
     <h2><i class="fas fa-shield-halved"></i> Panel administrativo</h2>
+    <div class="admin-head">
+      <div>
+        <span class="admin-kicker">NIKU MD · CENTRO DE CONTROL</span>
+        <h3>Administración del sistema</h3>
+        <p>Supervisa sesiones, actividad y accesos Premium desde una consola privada.</p>
+      </div>
+      <div class="admin-head-actions"><span id="adminLiveState" class="admin-live-pill"><i class="fas fa-circle"></i> SISTEMA PROTEGIDO</span><button id="adminLogout" class="admin-logout" type="button"><i class="fas fa-right-from-bracket"></i> Salir</button></div>
+    </div>
     <div id="adminLoginBox">
-      <p class="sample-note">Acceso privado para supervisar los chats del bot en tiempo real.</p>
+      <p class="sample-note"><i class="fas fa-lock"></i> Acceso privado · Inicia sesión para abrir la consola administrativa.</p>
       <form id="adminLoginForm" class="admin-login">
         <input id="adminUsername" type="text" autocomplete="username" placeholder="Usuario" required>
         <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Contraseña" required>
@@ -541,10 +573,21 @@
       </form>
     </div>
     <div id="adminConsole">
-      <div class="console-toolbar"><span class="console-live">● CONSOLA EN TIEMPO REAL</span><span id="adminMessageCount">0 mensajes</span></div>
-      <div id="adminConsoleOutput" class="console-output"><div class="console-empty">Esperando mensajes del bot...</div></div>
-      <div class="premium-admin">
-        <h3><i class="fas fa-crown"></i> Gestión de acceso Premium</h3>
+      <div class="admin-kpis">
+        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-link"></i> Sesiones activas</span><strong id="adminActiveSessions" class="admin-kpi-value">0</strong></div>
+        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-users"></i> Usuarios conectados</span><strong id="adminConnectedUsers" class="admin-kpi-value">0</strong></div>
+        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-hourglass-half"></i> Pendientes</span><strong id="adminPendingUsers" class="admin-kpi-value">0</strong></div>
+        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-comments"></i> Mensajes vistos</span><strong id="adminMessageCountKpi" class="admin-kpi-value">0</strong></div>
+      </div>
+      <div class="admin-console-grid">
+        <div class="admin-card">
+          <div class="admin-card-head"><div><h3>Actividad del bot</h3><p>Mensajes recibidos en tiempo real</p></div><span class="admin-section-tag">EN VIVO</span></div>
+          <div class="console-toolbar"><span class="console-live">● CONEXIÓN ACTIVA</span><span id="adminMessageCount">0 mensajes</span></div>
+          <div id="adminConsoleOutput" class="console-output"><div class="console-empty">Esperando mensajes del bot...</div></div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
+          <div class="premium-admin">
         <div class="premium-grid">
           <form id="premiumUserForm" class="premium-card">
             <label for="premiumUserNumber">Agregar usuario por número</label>
@@ -567,6 +610,8 @@
         <div class="premium-lists">
           <div id="premiumUsersList" class="premium-list"><strong>Usuarios Premium</strong>Sin datos todavía.</div>
           <div id="premiumTokensList" class="premium-list"><strong>Tokens generados</strong>Sin datos todavía.</div>
+        </div>
+          </div>
         </div>
       </div>
     </div>
@@ -717,6 +762,12 @@ const premiumTokenResult = document.getElementById('premiumTokenResult');
 const premiumStatus = document.getElementById('premiumStatus');
 const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
+const adminActiveSessions = document.getElementById('adminActiveSessions');
+const adminConnectedUsers = document.getElementById('adminConnectedUsers');
+const adminPendingUsers = document.getElementById('adminPendingUsers');
+const adminMessageCountKpi = document.getElementById('adminMessageCountKpi');
+const adminLiveState = document.getElementById('adminLiveState');
+const adminLogout = document.getElementById('adminLogout');
 const adminMessages = new Map();
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
@@ -752,6 +803,7 @@ function renderAdminChatMessage(entry){
   adminConsoleOutput.appendChild(line);
   adminConsoleOutput.scrollTop=adminConsoleOutput.scrollHeight;
   adminMessageCount.textContent=`${adminMessages.size} mensajes`;
+  if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
 }
 function renderAdminChatHistory(entries=[]){
   adminMessages.clear();
@@ -759,6 +811,7 @@ function renderAdminChatHistory(entries=[]){
   entries.forEach(renderAdminChatMessage);
   if(!entries.length) adminConsoleOutput.innerHTML='<div class="console-empty">Esperando mensajes del bot...</div>';
   adminMessageCount.textContent=`${adminMessages.size} mensajes`;
+  if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
 }
 if(adminLoginForm){
   adminLoginForm.addEventListener('submit',(event)=>{
@@ -771,11 +824,17 @@ socket.on('admin-auth-success',()=>{
   adminStatus.textContent='';
   adminLoginBox.style.display='none';
   adminConsole.style.display='block';
+  adminLogout.style.display='inline-flex';
+  if(adminLiveState) adminLiveState.innerHTML='<i class="fas fa-circle"></i> SESIÓN ADMINISTRATIVA ACTIVA';
   showToast('Panel administrativo abierto');
 });
 socket.on('admin-auth-fail',()=>{
   adminStatus.textContent='Usuario o contraseña incorrectos.';
   adminPassword.value='';
+});
+adminLogout?.addEventListener('click',()=>{
+  socket.disconnect();
+  window.location.href='/admin';
 });
 socket.on('admin-chat-history',renderAdminChatHistory);
 socket.on('admin-chat-message',renderAdminChatMessage);
@@ -874,6 +933,9 @@ socket.on('stats', (data)=>{
   if(data){
     if(typeof data.activeSockets !== 'undefined') document.getElementById('activeSockets').innerText = data.activeSockets;
     if(typeof data.totalUsers !== 'undefined') document.getElementById('totalUsers').innerText = data.totalUsers;
+    if(adminActiveSessions) adminActiveSessions.textContent = data.activeSockets ?? 0;
+    if(adminConnectedUsers) adminConnectedUsers.textContent = data.connectedUsers ?? data.totalUsers ?? 0;
+    if(adminPendingUsers) adminPendingUsers.textContent = data.pendingUsers ?? 0;
     const status = document.getElementById('nodeStatus');
     if(status) status.innerHTML = `<span class="pulse"></span> ${data.activeSockets > 0 ? 'NODO EN LÍNEA // USUARIOS CONECTADOS' : 'NODO EN LÍNEA // ESPERANDO USUARIOS'}`;
   }

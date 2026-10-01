@@ -1,15 +1,15 @@
 async function dpCommand(sock, from, msg) {
     try {
         let target;
-        
+
         // 1. Get target from mention
         if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length > 0) {
             target = msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
-        } 
+        }
         // 2. Get target from reply
         else if (msg.message?.extendedTextMessage?.contextInfo?.participant) {
             target = msg.message.extendedTextMessage.contextInfo.participant;
-        } 
+        }
         // 3. Default target
         else {
             // In group: target is sender
@@ -37,15 +37,15 @@ async function dpCommand(sock, from, msg) {
             }
         }
 
-        await sock.sendMessage(from, { 
-            image: { url: ppUrl }, 
-            caption: `✅ *Profile Picture*\n👤 *User:* @${target.split('@')[0]}`,
+        await sock.sendMessage(from, {
+            image: { url: ppUrl },
+            caption: `✅ *Foto de perfil*\n👤 *Usuario:* @${target.split('@')[0]}`,
             mentions: [target]
         }, { quoted: msg });
 
     } catch (e) {
         console.error("DP Command Error:", e);
-        await sock.sendMessage(from, { text: "❌ Error: Could not process DP command." }, { quoted: msg });
+        await sock.sendMessage(from, { text: "❌ Error: no se pudo obtener la foto de perfil." }, { quoted: msg });
     }
 }
 

@@ -7,7 +7,7 @@ async function vvCommand(sock, from, msg) {
         await sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
     }
     const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-    if (!quoted) return await sock.sendMessage(from, { text: "❌ Please reply to a View-Once message." }, { quoted: msg });
+    if (!quoted) return await sock.sendMessage(from, { text: "❌ Responde a un mensaje de visualización única." }, { quoted: msg });
 
     const viewOnce = quoted.viewOnceMessageV2 || quoted.viewOnceMessage;
     const message = viewOnce ? viewOnce.message : quoted;
@@ -18,15 +18,15 @@ async function vvCommand(sock, from, msg) {
             const stream = await downloadContentFromMessage(message[vType], vType.replace('Message', ''));
             let buffer = Buffer.from([]);
             for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-            
-            if (vType === 'imageMessage') await sock.sendMessage(from, { image: buffer, caption: "✅ View-Once Image Downloaded" }, { quoted: msg });
-            else if (vType === 'videoMessage') await sock.sendMessage(from, { video: buffer, caption: "✅ View-Once Video Downloaded" }, { quoted: msg });
+
+            if (vType === 'imageMessage') await sock.sendMessage(from, { image: buffer, caption: "✅ Imagen de visualización única descargada" }, { quoted: msg });
+            else if (vType === 'videoMessage') await sock.sendMessage(from, { video: buffer, caption: "✅ Vídeo de visualización única descargado" }, { quoted: msg });
             else if (vType === 'audioMessage') await sock.sendMessage(from, { audio: buffer, mimetype: 'audio/mp4' }, { quoted: msg });
         } catch (e) {
-            await sock.sendMessage(from, { text: "❌ Failed to download View-Once media." }, { quoted: msg });
+            await sock.sendMessage(from, { text: "❌ No se pudo descargar el contenido de visualización única." }, { quoted: msg });
         }
     } else {
-        await sock.sendMessage(from, { text: "❌ Not a View-Once media message." }, { quoted: msg });
+        await sock.sendMessage(from, { text: "❌ El mensaje no contiene contenido de visualización única." }, { quoted: msg });
     }
 }
 

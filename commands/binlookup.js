@@ -3,14 +3,14 @@ const axios = require('axios');
 module.exports = async function(sock, chatId, msg, q) {
     try {
         if (!q) {
-            return await sock.sendMessage(chatId, { 
-                text: '⚠️ Usage: .binlookup 457173\n\nEnter first 6 digits of card.' 
+            return await sock.sendMessage(chatId, {
+                text: '⚠️ Uso: .binlookup 457173\n\nEscribe los primeros 6 dígitos de la tarjeta.'
             }, { quoted: msg });
         }
 
         const bin = q.replace(/\D/g, '').substring(0, 6);
         if (bin.length < 6) {
-            return await sock.sendMessage(chatId, { text: '❌ BIN must be at least 6 digits!' }, { quoted: msg });
+            return await sock.sendMessage(chatId, { text: '❌ ¡El BIN debe tener al menos 6 dígitos!' }, { quoted: msg });
         }
 
         const schemes = ['VISA', 'MASTERCARD', 'AMEX', 'DISCOVER', 'JCB'];
@@ -23,14 +23,14 @@ module.exports = async function(sock, chatId, msg, q) {
         const country = countries[parseInt(bin[2]) % countries.length];
         const bank = banks[parseInt(bin[3]) % banks.length];
 
-        const text = `💳 *SHADOW BIN LOOKUP* 💳\n\n` +
+        const text = `💳 *CONSULTA BIN DE NIKU MD* 💳\n\n` +
                      `🔢 *BIN:* ${bin}\n` +
-                     `🏦 *Scheme:* ${scheme}\n` +
-                     `💰 *Type:* ${type}\n` +
-                     `🏛️ *Bank:* ${bank}\n` +
-                     `🌍 *Country:* ${country}\n\n` +
-                     `⚠️ For educational purposes only!\n\n` +
-                     `_Powered by Shadow MD Bot_`;
+                     `🏦 *Marca:* ${scheme}\n` +
+                     `💰 *Tipo:* ${type}\n` +
+                     `🏛️ *Banco:* ${bank}\n` +
+                     `🌍 *País:* ${country}\n\n` +
+                     `⚠️ Solo para fines educativos.\n\n` +
+                     `_Desarrollado por NIKU MD_`;
 
         await sock.sendMessage(chatId, { text }, { quoted: msg });
     } catch (err) {

@@ -15,15 +15,15 @@ module.exports = async function(sock, chatId, msg) {
         const age = Math.floor(Math.random() * 30) + 18;
         const email = `${fn.toLowerCase()}.${ln.toLowerCase()}${Math.floor(Math.random() * 999)}@gmail.com`;
 
-        const text = `🎭 *SHADOW FAKE INFO GENERATOR* 🎭\n\n` +
-                     `👤 *Name:* ${fn} ${ln}\n` +
-                     `📧 *Email:* ${email}\n` +
-                     `📱 *Phone:* ${phone}\n` +
-                     `🎂 *Age:* ${age}\n` +
-                     `🏠 *Address:* ${street}, ${city}\n` +
-                     `🇵🇰 *Country:* Pakistan\n\n` +
-                     `⚠️ This is FAKE information for educational/testing purposes only!\n\n` +
-                     `_Powered by Shadow MD Bot_`;
+        const text = `🎭 *GENERADOR DE DATOS FALSOS DE NIKU MD* 🎭\n\n` +
+                     `👤 *Nombre:* ${fn} ${ln}\n` +
+                     `📧 *Correo:* ${email}\n` +
+                     `📱 *Teléfono:* ${phone}\n` +
+                     `🎂 *Edad:* ${age}\n` +
+                     `🏠 *Dirección:* ${street}, ${city}\n` +
+                     `🇵🇰 *País:* Pakistan\n\n` +
+                     `⚠️ Estos son datos FALSOS únicamente para pruebas y aprendizaje.\n\n` +
+                     `_Desarrollado por NIKU MD_`;
 
         await sock.sendMessage(chatId, { text }, { quoted: msg });
     } catch (err) {
