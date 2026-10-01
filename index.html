@@ -339,6 +339,17 @@
   .admin-card-head p{color:var(--muted);font-size:.68rem;}
   .admin-section-tag{color:var(--green);font-size:.64rem;border:1px solid rgba(99,245,209,.28);padding:5px 8px;border-radius:6px;white-space:nowrap;}
   .admin-console-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:16px;}
+  .admin-bots-card{margin-top:16px;}
+  .admin-bots-list{display:grid;gap:8px;max-height:300px;overflow:auto;}
+  .admin-bot-row{display:grid;grid-template-columns:minmax(120px,1fr) minmax(100px,1fr) auto auto;align-items:center;gap:12px;padding:11px 12px;border:1px solid rgba(130,155,255,.16);border-radius:10px;background:rgba(0,0,0,.16);font-size:.7rem;}
+  .admin-bot-id{color:var(--text);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .admin-bot-meta{color:var(--muted);}
+  .admin-bot-type{display:inline-flex;justify-content:center;border-radius:5px;padding:4px 7px;font-size:.6rem;font-weight:800;text-transform:uppercase;}
+  .admin-bot-type.subbot{color:var(--violet);background:rgba(155,140,255,.12);}
+  .admin-bot-type.bot{color:var(--green);background:rgba(99,245,209,.1);}
+  .admin-bot-status.connected{color:var(--green);}.admin-bot-status.offline{color:var(--amber);}
+  .admin-bot-stop{border:1px solid rgba(255,113,149,.42);background:transparent;color:var(--danger);border-radius:6px;padding:5px 8px;font:inherit;font-size:.6rem;cursor:pointer;}
+  .admin-bot-stop:hover{background:rgba(255,113,149,.12);}
   #adminConsole{width:100%;}
   #adminLoginBox{padding:24px;border:1px solid var(--border);border-radius:16px;background:var(--bg-panel-2);}
   #adminLoginBox .sample-note{margin-bottom:16px;}
@@ -383,6 +394,7 @@
   .premium-remove{border:1px solid rgba(255,113,149,.45);background:transparent;color:var(--danger);border-radius:6px;padding:4px 7px;font:inherit;font-size:.64rem;cursor:pointer;white-space:nowrap;}
   .premium-remove:hover{background:rgba(255,113,149,.12);}
   @media(max-width:820px){.admin-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.admin-console-grid{grid-template-columns:1fr;}.admin-head{align-items:flex-start;flex-direction:column;}}
+  @media(max-width:620px){.admin-bot-row{grid-template-columns:1fr 1fr;}.admin-bot-row .admin-bot-stop{grid-column:2;justify-self:end;}}
   .hero-banner{width:min(1100px,calc(100% - 32px));margin:86px auto 0;position:relative;overflow:hidden;border:1px solid var(--border);border-radius:22px;background:var(--bg-panel);box-shadow:0 20px 70px rgba(0,0,0,.28);animation:bannerIn .9s ease both;}
   .hero-banner::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(111,247,210,.04),transparent 34%,rgba(0,0,0,.18));}
   .hero-banner img{display:block;width:100%;height:auto;aspect-ratio:1584/672;object-fit:cover;}
@@ -614,6 +626,10 @@
           </div>
         </div>
       </div>
+      <div class="admin-card admin-bots-card">
+        <div class="admin-card-head"><div><h3>Sesiones y subbots</h3><p>Control centralizado de todas las conexiones</p></div><span class="admin-section-tag">INVENTARIO</span></div>
+        <div id="adminBotsList" class="admin-bots-list"><div class="console-empty">Cargando sesiones...</div></div>
+      </div>
     </div>
   </section>
 </main>
@@ -768,6 +784,7 @@ const adminPendingUsers = document.getElementById('adminPendingUsers');
 const adminMessageCountKpi = document.getElementById('adminMessageCountKpi');
 const adminLiveState = document.getElementById('adminLiveState');
 const adminLogout = document.getElementById('adminLogout');
+const adminBotsList = document.getElementById('adminBotsList');
 const adminMessages = new Map();
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
@@ -813,6 +830,21 @@ function renderAdminChatHistory(entries=[]){
   adminMessageCount.textContent=`${adminMessages.size} mensajes`;
   if(adminMessageCountKpi) adminMessageCountKpi.textContent=adminMessages.size;
 }
+function escapeAdminHtml(value){
+  return String(value ?? '').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+}
+function renderAdminBots(bots=[]){
+  if(!adminBotsList) return;
+  if(!bots.length){ adminBotsList.innerHTML='<div class="console-empty">No hay sesiones registradas.</div>'; return; }
+  adminBotsList.innerHTML=bots.map(bot=>{
+    const type=bot.type === 'subbot' ? 'subbot' : 'bot';
+    const status=bot.connected ? 'conectado' : (bot.status || 'pendiente');
+    const number=bot.phoneNumber ? `+${escapeAdminHtml(bot.phoneNumber)}` : 'Número pendiente';
+    const owner=bot.ownerJid ? `Dueño: ${escapeAdminHtml(bot.ownerJid.split('@')[0])}` : 'Origen: web';
+    const control=bot.status !== 'revocado' ? `<button class="admin-bot-stop" data-stop-bot="${escapeAdminHtml(bot.sessionId)}" type="button">Detener</button>` : '<span class="admin-bot-meta">Revocado</span>';
+    return `<div class="admin-bot-row"><div><span class="admin-bot-type ${type}">${type}</span><div class="admin-bot-id">${escapeAdminHtml(bot.sessionId)}</div></div><div class="admin-bot-meta">${number}<br>${owner}</div><span class="admin-bot-status ${bot.connected ? 'connected' : 'offline'}">● ${escapeAdminHtml(status)}</span>${control}</div>`;
+  }).join('');
+}
 if(adminLoginForm){
   adminLoginForm.addEventListener('submit',(event)=>{
     event.preventDefault();
@@ -838,6 +870,11 @@ adminLogout?.addEventListener('click',()=>{
 });
 socket.on('admin-chat-history',renderAdminChatHistory);
 socket.on('admin-chat-message',renderAdminChatMessage);
+socket.on('admin-bots-data',renderAdminBots);
+adminBotsList?.addEventListener('click',(event)=>{
+  const button=event.target.closest('[data-stop-bot]');
+  if(button && confirm(`¿Detener la sesión ${button.dataset.stopBot}?`)) socket.emit('stop-bot',{sessionId:button.dataset.stopBot});
+});
 function renderPremiumData(data={}){
   const users = data.users || [];
   const tokens = data.tokens || [];

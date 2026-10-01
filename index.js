@@ -11,11 +11,12 @@ const P = require('pino');
 const { OpenAI } = require('openai');
 const os = require('os');
 const crypto = require('crypto');
+const QRCode = require('qrcode');
 const githubBackup = require('./lib/githubBackup');
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
-    'ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc',
+    'ping', 'dp', 'vv', 'translate', 'base64', 'shorturl', 'calc',
     'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup',
     'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google',
     'wiki', 'yts', 'playstore', 'npm'
@@ -608,7 +609,7 @@ if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -623,6 +624,7 @@ function loadBotDataFromDisk() {
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
+    if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
     for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
         if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
@@ -678,6 +680,30 @@ function getDashboardStats() {
 
 function broadcastDashboardStats() {
     if (typeof io !== 'undefined') io.emit('stats', getDashboardStats());
+    if (typeof adminSockets !== 'undefined') {
+        for (const adminSocket of adminSockets) {
+            if (adminSocket.authenticated) adminSocket.emit('admin-bots-data', botsSnapshot());
+        }
+    }
+}
+
+function botsSnapshot() {
+    const ids = new Set([...Object.keys(sessions), ...Object.keys(botData.subbots || {})]);
+    return [...ids].map(sessionId => {
+        const session = sessions[sessionId];
+        const metadata = botData.subbots?.[sessionId];
+        const connected = Boolean(session?.isConnected && session.sock?.user);
+        return {
+            sessionId,
+            type: metadata ? 'subbot' : 'bot',
+            phoneNumber: session?.phoneNumber || metadata?.phoneNumber || metadata?.requestedNumber || null,
+            ownerJid: metadata?.ownerJid || null,
+            status: connected ? 'conectado' : (metadata?.status || 'pendiente'),
+            connected,
+            createdAt: metadata?.createdAt || null,
+            mode: metadata?.mode || 'web'
+        };
+    }).sort((a, b) => Number(b.connected) - Number(a.connected));
 }
 // Load existing sessions on startup
 async function loadExistingSessions() {
@@ -723,6 +749,58 @@ const toItalic = (text) => {
     return text.split('').map(c => italicChars[c] || c).join('');
 };
 
+function senderJid(msg, chatId) {
+    return msg?.key?.participant || msg?.participant || chatId;
+}
+
+function normalizePhone(value) {
+    const phone = String(value || '').replace(/[^0-9]/g, '');
+    return phone.length >= 10 && phone.length <= 15 ? phone : null;
+}
+
+async function createSubbotSession(parentSession, chatId, msg, mode, requestedNumber = '') {
+    if (chatId.endsWith('@g.us')) {
+        return parentSession.sock.sendMessage(chatId, { text: '🔒 Usa este comando en un chat privado para proteger el código o QR de vinculación.' }, { quoted: msg });
+    }
+    const ownerJid = senderJid(msg, chatId);
+    const owned = Object.values(botData.subbots).filter(item => item.ownerJid === ownerJid && item.status !== 'revocado');
+    if (owned.length >= 5) {
+        return parentSession.sock.sendMessage(chatId, { text: '⚠️ Has alcanzado el límite de 5 subbots activos.' }, { quoted: msg });
+    }
+    const phone = mode === 'code' ? normalizePhone(requestedNumber) : null;
+    if (mode === 'code' && !phone) {
+        return parentSession.sock.sendMessage(chatId, { text: '📱 Uso: *.code número*\nEjemplo: *.code 18090000000*' }, { quoted: msg });
+    }
+    const sessionId = `sub_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+    botData.subbots[sessionId] = {
+        ownerJid,
+        mode,
+        requestedNumber: phone || null,
+        phoneNumber: null,
+        status: 'pendiente',
+        createdAt: new Date().toISOString()
+    };
+    saveBotData();
+    const session = new BotSession(sessionId);
+    session.subbotOwner = ownerJid;
+    session.pairRequesterJid = ownerJid;
+    session.requesterSock = parentSession.sock;
+    session.subbotMode = mode;
+    sessions[sessionId] = session;
+    await parentSession.sock.sendMessage(chatId, {
+        text: mode === 'code'
+            ? '🔄 Preparando el código de vinculación del subbot. Espera unos segundos...'
+            : '🔄 Preparando el QR de vinculación del subbot. Escanéalo cuando aparezca; caduca rápidamente.'
+    }, { quoted: msg });
+    try {
+        await session.initialize(phone);
+    } catch (error) {
+        botData.subbots[sessionId].status = 'error';
+        saveBotData();
+        await parentSession.sock.sendMessage(chatId, { text: `❌ No se pudo iniciar el subbot: ${error.message}` }, { quoted: msg });
+    }
+}
+
 class BotSession {
     constructor(userId) {
         this.userId = userId;
@@ -739,6 +817,10 @@ class BotSession {
         this.lastConnectMessageTime = null;
         this.phoneNumber = null;
         this.ghostMode = false;
+        this.subbotMode = botData.subbots[userId]?.mode || 'bot';
+        this.subbotOwner = botData.subbots[userId]?.ownerJid || null;
+        this.pairRequesterJid = null;
+        this.requesterSock = null;
     }
 
     sendLog(message, type = 'info') {
@@ -883,6 +965,11 @@ class BotSession {
 
                         const socketId = userSockets[this.userId];
                         if (socketId) io.to(socketId).emit('pairing-code', code);
+                        if (this.subbotMode === 'code' && this.requesterSock && this.pairRequesterJid) {
+                            await this.requesterSock.sendMessage(this.pairRequesterJid, {
+                                text: `🔐 *CÓDIGO DE VINCULACIÓN DEL SUBBOT*\n\nEscribe este código en el WhatsApp del número que quieres vincular:\n\n*${code}*\n\nRuta: *Dispositivos vinculados → Vincular un dispositivo → Vincular con número de teléfono*\n\n⏳ El código caduca pronto.`
+                            });
+                        }
                     } catch (err) {
                         this.sendLog(`\u{274C} Pairing error: ${err.message}`, 'error');
                         if (this.tgChatId && tgBot) {
@@ -1205,6 +1292,7 @@ class BotSession {
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
                                         case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
+                                        case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
@@ -1356,12 +1444,17 @@ class BotSession {
                                             await commands.anime(this.sock, from, msg, commandName, q); break;
 
                                         // ===== TOOLS =====
+                                        case 'code': await createSubbotSession(this, from, msg, 'code', q); break;
                                         case 'ping': case 'velocidad': await commands.ping(this.sock, from, msg); break;
                                         case 'dp': case 'foto': case 'fotoperfil': await commands.dp(this.sock, from, msg); break;
                                         case 'vv': case 'veruna': await commands.vv(this.sock, from, msg); break;
                                         case 'translate': case 'trt': case 'traducir': case 'traduce': await commands.translate(this.sock, from, msg, q); break;
                                         case 'base64': await commands.base64(this.sock, from, msg, q); break;
-                                        case 'qr': case 'codigoqr': await commands.qr(this.sock, from, msg, q); break;
+                                        case 'qr':
+                                            if (q && !/^(subbot|vincular)$/i.test(q.trim())) await commands.qr(this.sock, from, msg, q);
+                                            else await createSubbotSession(this, from, msg, 'qr');
+                                            break;
+                                        case 'codigoqr': await commands.qr(this.sock, from, msg, q); break;
                                         case 'shorturl': case 'tinyurl': case 'acortar': await commands.utils.short(this.sock, from, msg, q); break;
                                         case 'calc': case 'math': case 'calcular': await commands.utils.calc(this.sock, from, msg, q); break;
                                         case 'weather': case 'clima': await commands.utils.weather(this.sock, from, msg, q); break;
@@ -1471,6 +1564,17 @@ class BotSession {
                 if (qr) {
                     const socketId = userSockets[this.userId];
                     if (socketId) io.to(socketId).emit('qr', qr);
+                    if (this.subbotMode === 'qr' && this.requesterSock && this.pairRequesterJid) {
+                        try {
+                            const qrImage = await QRCode.toBuffer(qr, { type: 'png', width: 720, margin: 2 });
+                            await this.requesterSock.sendMessage(this.pairRequesterJid, {
+                                image: qrImage,
+                                caption: '📲 *QR DE VINCULACIÓN DEL SUBBOT*\n\nEscanea este código desde *Dispositivos vinculados → Vincular un dispositivo*.\n\n⏳ El QR cambia y caduca rápidamente.'
+                            });
+                        } catch (qrError) {
+                            this.sendLog(`No se pudo enviar el QR del subbot: ${qrError.message}`, 'error');
+                        }
+                    }
                 }
 
                 if (connection === 'close') {
@@ -1491,6 +1595,11 @@ class BotSession {
                             }
                         } catch (e) {
                             if (fs.existsSync(this.authPath)) fs.removeSync(this.authPath);
+                        }
+                        if (botData.subbots[this.userId] && botData.subbots[this.userId].status !== 'revocado') {
+                            botData.subbots[this.userId].status = 'desconectado';
+                            botData.subbots[this.userId].disconnectedAt = new Date().toISOString();
+                            saveBotData();
                         }
                         delete sessions[this.userId];
                         this.sendConnectionStatus();
@@ -1514,6 +1623,12 @@ class BotSession {
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     const botNumberClean = botNumber.split('@')[0];
                     this.phoneNumber = botNumberClean;
+                    if (botData.subbots[this.userId]) {
+                        botData.subbots[this.userId].phoneNumber = botNumberClean;
+                        botData.subbots[this.userId].status = 'conectado';
+                        botData.subbots[this.userId].connectedAt = new Date().toISOString();
+                        saveBotData();
+                    }
 
                     if (!settings.connectedBots.includes(botNumberClean)) {
                         settings.connectedBots.push(botNumberClean);
@@ -1631,6 +1746,7 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['aimenu', '🤖 Inteligencia artificial'],
                     ['downloadmenu', '⬇️ Descargas'],
                     ['gamemenu', '🪙 Economía'],
+                    ['subbotmenu', '🔗 Vincular subbot'],
                     ['toolsmenu', '🛠️ Herramientas'],
                     ['funmenu', '🎉 Diversión'],
                     ['animemenu', '🎌 Anime'],
@@ -1829,6 +1945,7 @@ function generateMenuText(userName, session) {
         `🤖 \`${prefix}aimenu\` • \`IA\``,
         `⬇️ \`${prefix}download\` • \`Descargas\``,
         `🪙 \`${prefix}gamemenu\` • \`Economía\``,
+        `🔗 \`${prefix}subbotmenu\` • \`Vincular subbot\``,
         `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
         `🎉 \`${prefix}funmenu\` • \`Diversión\``,
         '',
@@ -1857,6 +1974,7 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-success');
             socket.emit('admin-chat-history', adminChatLogs.slice(-200));
             socket.emit('admin-premium-data', premiumSnapshot());
+            socket.emit('admin-bots-data', botsSnapshot());
         } else {
             socket.adminAttempts = (socket.adminAttempts || 0) + 1;
             if (socket.adminAttempts >= 5) {
@@ -2006,8 +2124,14 @@ io.on('connection', (socket) => {
             try {
                 await sessions[sessionId].sock.logout();
                 sessions[sessionId].isConnected = false;
+                if (botData.subbots[sessionId]) {
+                    botData.subbots[sessionId].status = 'revocado';
+                    botData.subbots[sessionId].revokedAt = new Date().toISOString();
+                    saveBotData();
+                }
                 delete sessions[sessionId];
                 socket.emit('bot-stopped', { sessionId, success: true });
+                socket.emit('admin-bots-data', botsSnapshot());
             } catch (e) {
                 socket.emit('bot-stopped', { sessionId, success: false, error: e.message });
             }
@@ -2024,29 +2148,23 @@ io.on('connection', (socket) => {
                 if (session.sock) {
                     await session.sock.logout();
                     session.isConnected = false;
+                    if (botData.subbots[sessionId]) {
+                        botData.subbots[sessionId].status = 'revocado';
+                        botData.subbots[sessionId].revokedAt = new Date().toISOString();
+                    }
                     stopped++;
                 }
             } catch (e) {}
         }
+        saveBotData();
         socket.emit('all-bots-stopped', { stopped });
     });
 
     // GET CONNECTED BOTS LIST
     socket.on('get-bots-list', () => {
         if (!socket.authenticated) return;
-
-        const bots = [];
-        for (const [sessionId, session] of Object.entries(sessions)) {
-            if (session.sock && session.sock.user) {
-                bots.push({
-                    sessionId,
-                    phoneNumber: session.phoneNumber,
-                    isConnected: session.isConnected,
-                    userName: botData.userNames[sessionId] || 'Unknown'
-                });
-            }
-        }
-        socket.emit('bots-list', bots);
+        socket.emit('bots-list', botsSnapshot());
+        socket.emit('admin-bots-data', botsSnapshot());
     });
 
     // GET BROADCAST HISTORY
