@@ -7,6 +7,9 @@ const PREMIUM_SHOP = {
     4: { price: 32000, label: '4 días Premium' },
     5: { price: 38000, label: '5 días Premium' }
 };
+const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
+const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
+const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
 
 const ALIASES = {
     balance: ['balance', 'bal', 'coins'],
@@ -20,6 +23,11 @@ const ALIASES = {
     roulette: ['roulette', 'rt', 'ruleta', 'rtl'],
     reward: ['reward', 'regalo', 'premio'],
     shop: ['tienda'],
+    level: ['level', 'nivel', 'xp', 'experiencia'],
+    mine: ['mine', 'minar', 'mineria'],
+    fish: ['fish', 'pescar', 'pesca'],
+    clan: ['clan', 'clanes'],
+    goldtop: ['goldtop', 'orotop', 'toporo', 'riqueza'],
     slut: ['slut'],
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
@@ -29,7 +37,7 @@ const ALIASES = {
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
     daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', clan: 'clan <crear|unirse|salir|info>', goldtop: 'orotop', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all>', work: 'work'
 };
 
@@ -87,6 +95,36 @@ function timeLeft(ms) {
     return `${Math.floor(min / 60)} horas ${min % 60} minutos`;
 }
 function random(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function addXp(user, amount = 5) {
+    user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
+    const now = Date.now();
+    if (now - (Number(user.rpg.lastXp) || 0) < 30000) return { gained: 0, levelUp: false };
+    const before = Number(user.rpg.level) || 1;
+    user.rpg.xp = Math.max(0, Number(user.rpg.xp) || 0) + Math.max(1, Math.floor(amount));
+    user.rpg.level = Math.max(1, Math.floor(Math.sqrt(user.rpg.xp / 100)) + 1);
+    user.rpg.lastXp = now;
+    return { gained: amount, levelUp: user.rpg.level > before, level: user.rpg.level };
+}
+function levelBar(user) {
+    user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
+    const level = Math.max(1, Number(user.rpg.level) || 1);
+    const current = Math.max(0, Number(user.rpg.xp) || 0) - RPG_LEVEL_XP(level);
+    const need = Math.max(100, RPG_LEVEL_XP(level + 1) - RPG_LEVEL_XP(level));
+    const filled = Math.min(10, Math.floor((current / need) * 10));
+    return `${'▰'.repeat(filled)}${'▱'.repeat(10 - filled)} ${Math.max(0, current)}/${need} XP`;
+}
+function clanKey(name) { return String(name || '').trim().toLowerCase().replace(/[^a-z0-9áéíóúüñ_-]/gi, '').slice(0, 20); }
+function findClan(clans, name) { const key = clanKey(name); return key ? clans[key] : null; }
+function getUserClan(clans, jid) { return Object.values(clans || {}).find(clan => clan.members?.includes(jid)); }
+function clanList(clans) { return Object.values(clans || {}).sort((a, b) => (b.members?.length || 0) - (a.members?.length || 0)); }
+async function animate(sock, chatId, msg, frames) {
+    let sent = await reply(sock, chatId, msg, frames[0]);
+    for (const frame of frames.slice(1)) {
+        await new Promise(resolve => setTimeout(resolve, 450));
+        try { sent = await sock.sendMessage(chatId, { text: frame, edit: sent.key }); } catch (e) { /* Compatibilidad */ }
+    }
+    return sent;
+}
 const JOB_MESSAGES = {
     work: {
         gain: ['Trabajaste para el gran sistema capitalista y fuiste recompensado con', 'Cargaste cajas en el mercado toda la tarde y ganaste', 'Repartiste pizzas bajo la lluvia y recibiste', 'Programaste toda la noche y tu jefe te pagó', 'Limpiaste oficinas a escondidas y conseguiste', 'Vendiste limonada en el parque y juntaste', 'Ayudaste a una anciana a cruzar y te dio', 'Ganaste un mini torneo de barrio y te llevaste', 'Hiciste un mandado urgente y te pagaron', 'Tradujiste un texto aburrido y cobraste', 'Paseaste doce perros y todos regresaron con sus dueños', 'Arreglaste el Wi-Fi del vecino y te recompensaron con', 'Vendiste empanadas caseras y juntaste', 'Fuiste extra en una película y cobraste', 'Cuidaste un gato que te juzgó durante ocho horas y recibiste', 'Organizaste el caos de una mudanza y ganaste', 'Probaste colchones profesionalmente y te pagaron', 'Te pusiste casco, chaleco y protección para trabajar seguro y recibiste', 'Rescataste una cometa del árbol y te dieron', 'Encontraste las llaves perdidas del jefe y cobraste', 'Hiciste de fotógrafo en una boda y conseguiste', 'Reparaste una bicicleta con cinta adhesiva y te pagaron', 'Vendiste globos en el parque y regresaste con', 'Lavaste un auto tan bien que el dueño no lo reconoció y te dio', 'Trabajaste en un turno nocturno con toda la protección y ganaste'],
@@ -119,7 +157,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}orotop · Top global de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ ⚔️ ${prefix}clan · Crear o unirse\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -131,6 +169,8 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
     const mention = [jid];
+    const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
+    if (xpEvent.gained) save();
 
     if (canonical === 'shop') {
         const selected = Number(args[0]);
@@ -151,6 +191,88 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         botData.premiumUsers[jid] = { grantedAt: current?.grantedAt || new Date().toISOString(), expiresAt, source: 'tienda' };
         save();
         return reply(sock, chatId, msg, `✅ *Canje realizado*\n\n⭐ Premium por: *${item.label}*\n🪙 Pagaste: *${fmt(item.price)} ${COIN}*\n💰 Saldo restante: *${fmt(user.coins)} ${COIN}*\n📅 Disponible hasta: *${new Date(expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}*`);
+    }
+
+    if (canonical === 'level') {
+        return reply(sock, chatId, msg, `🧙 *PERFIL RPG*\n\n👤 @${numberOf(jid)}\n⭐ Nivel: *${user.rpg.level}*\n✨ XP total: *${fmt(user.rpg.xp)}*\n${levelBar(user)}`, { mentions: [jid] });
+    }
+
+    if (canonical === 'mine' || canonical === 'fish') {
+        const isMine = canonical === 'mine';
+        const waitKey = isMine ? 'lastMine' : 'lastFish';
+        const waitMs = isMine ? 45e3 : 60e3;
+        const wait = cooldown(user, waitKey, waitMs);
+        if (wait) return reply(sock, chatId, msg, `⏳ Tu personaje necesita descansar. Vuelve en *${timeLeft(wait)}*.`);
+        const reward = random(isMine ? MINING_REWARDS : FISHING_REWARDS);
+        const item = isMine ? random(['carbón', 'hierro', 'oro', 'diamante', 'redstone']) : random(['bacalao', 'salmón', 'pez globo', 'tesoro', 'libro encantado']);
+        user.coins += reward;
+        user[waitKey] = Date.now();
+        save();
+        const frames = isMine
+            ? [`⛏️ *${numberOf(jid)}* entra a una mina...`, '⛏️ Rompiendo piedra... ▰▱▱▱▱▱▱▱▱▱', '⛏️ Rompiendo piedra... ▰▰▰▰▰▱▱▱▱▱', `💎 ¡Encontraste ${item}!`]
+            : [`🎣 *${numberOf(jid)}* lanza la caña...`, '🎣 El agua se mueve... ▰▱▱▱▱▱▱▱▱▱', '🎣 ¡Algo mordió el anzuelo! ▰▰▰▰▰▰▱▱▱▱', `🐟 ¡Pescaste ${item}!`];
+        await animate(sock, chatId, msg, frames);
+        return reply(sock, chatId, msg, `✅ Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n⭐ +${xpEvent.gained || 0} XP`);
+    }
+
+    if (canonical === 'clan') {
+        botData.clans ||= {};
+        const action = String(args[0] || 'lista').toLowerCase();
+        const currentClan = getUserClan(botData.clans, jid);
+        if (['crear', 'create'].includes(action)) {
+            const displayName = args.slice(1).join(' ').trim().slice(0, 20);
+            const key = clanKey(displayName);
+            if (!key) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}clan crear <nombre>*`);
+            if (currentClan) return reply(sock, chatId, msg, `❌ Ya perteneces al clan *${currentClan.name}*.`);
+            if (botData.clans[key]) return reply(sock, chatId, msg, '❌ Ese nombre de clan ya está ocupado.');
+            const creationCost = 10000;
+            if (user.coins < creationCost) return reply(sock, chatId, msg, `❌ Crear un clan cuesta *${fmt(creationCost)} ${COIN}*.`);
+            user.coins -= creationCost;
+            botData.clans[key] = { name: displayName, owner: jid, members: [jid], createdAt: new Date().toISOString() };
+            save();
+            return reply(sock, chatId, msg, `⚔️ *Clan creado*\n\n🏰 Nombre: *${displayName}*\n💸 Costo: *${fmt(creationCost)} ${COIN}*\n👥 Miembros: *1*`);
+        }
+        if (['unirse', 'join'].includes(action)) {
+            const clan = findClan(botData.clans, args.slice(1).join(' '));
+            if (!clan) return reply(sock, chatId, msg, `❌ Clan no encontrado. Usa *${prefix}clan* para ver la lista.`);
+            if (currentClan) return reply(sock, chatId, msg, `❌ Ya perteneces al clan *${currentClan.name}*.`);
+            clan.members ||= [];
+            clan.members.push(jid);
+            save();
+            return reply(sock, chatId, msg, `✅ Te uniste al clan *${clan.name}*.\n👥 Miembros: *${clan.members.length}*`);
+        }
+        if (['salir', 'leave'].includes(action)) {
+            if (!currentClan) return reply(sock, chatId, msg, '❌ No perteneces a ningún clan.');
+            currentClan.members = currentClan.members.filter(member => member !== jid);
+            if (currentClan.owner === jid) {
+                if (currentClan.members.length) currentClan.owner = currentClan.members[0];
+                else delete botData.clans[clanKey(currentClan.name)];
+            }
+            save();
+            return reply(sock, chatId, msg, `👋 Saliste del clan *${currentClan.name}*.`);
+        }
+        if (['info', 'informacion'].includes(action)) {
+            const clan = findClan(botData.clans, args.slice(1).join(' ')) || currentClan;
+            if (!clan) return reply(sock, chatId, msg, '❌ No se encontró ese clan.');
+            return reply(sock, chatId, msg, `🏰 *CLAN ${clan.name.toUpperCase()}*\n\n👑 Líder: @${numberOf(clan.owner)}\n👥 Miembros: *${clan.members.length}*\n📅 Creado: *${new Date(clan.createdAt).toLocaleDateString('es-ES')}*`, { mentions: [clan.owner, ...clan.members] });
+        }
+        const clans = clanList(botData.clans);
+        const listing = clans.length ? clans.slice(0, 10).map((clan, index) => `${index + 1}. 🏰 *${clan.name}* — ${clan.members.length} miembros`).join('\n') : 'Todavía no hay clanes creados.';
+        return reply(sock, chatId, msg, `⚔️ *CLANES*\n\n${listing}\n\nCrear: *${prefix}clan crear <nombre>*\nUnirse: *${prefix}clan unirse <nombre>*\nSalir: *${prefix}clan salir*\nInfo: *${prefix}clan info [nombre]*`);
+    }
+
+    if (canonical === 'goldtop') {
+        const wealth = new Map();
+        for (const group of Object.values(botData.economy || {})) {
+            for (const [key, value] of Object.entries(group?.users || {})) {
+                const total = Math.max(0, Number(value.coins) || 0) + Math.max(0, Number(value.bank) || 0);
+                wealth.set(numberOf(key), (wealth.get(numberOf(key)) || 0) + total);
+            }
+        }
+        const rows = [...wealth.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]);
+        if (!rows.length) return reply(sock, chatId, msg, '🏆 Todavía no hay jugadores con oro registrado.');
+        const text = rows.slice(0, 10).map(([number, total], index) => `${index + 1}. @${number} — *${fmt(total)} ${COIN}*`).join('\n');
+        return reply(sock, chatId, msg, `🏆 *TOP GLOBAL DE ORO*\n\n👥 Jugadores con oro: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
     }
 
     if (canonical === 'balance') {
