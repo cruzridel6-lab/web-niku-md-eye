@@ -12,6 +12,8 @@ const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
 const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
 const HUNTING_REWARDS = [180, 260, 380, 550, 800, 1100, 1600];
 const DUNGEON_REWARDS = [700, 900, 1200, 1600, 2200];
+const EXPLORATION_REWARDS = [250, 350, 500, 700, 1000];
+const GATHERING_REWARDS = [180, 280, 420, 600, 850];
 const MERCHANT_ITEMS = {
     pico: { name: '⛏️ Pico', price: 2500, durability: 15, aliases: ['pico', 'pickaxe'] },
     espada: { name: '⚔️ Espada', price: 3000, durability: 12, aliases: ['espada', 'sword'] },
@@ -36,6 +38,9 @@ const ALIASES = {
     hunt: ['hunt', 'cazar', 'caza'],
     merchant: ['mercader', 'mercado'],
     repair: ['reparar', 'repair'],
+    explore: ['explore', 'explorar', 'exploracion'],
+    gather: ['gather', 'recolectar', 'recoleccion'],
+    patrol: ['patrol', 'patrullar', 'patrulla'],
     dungeon: ['dungeon', 'mazmorra', 'mazmorras'],
     mission: ['mission', 'mision', 'misiones'],
     achievements: ['achievement', 'achievements', 'logro', 'logros'],
@@ -50,7 +55,7 @@ const ALIASES = {
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
     daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all>', work: 'work'
 };
 
@@ -199,7 +204,7 @@ function ensureMission(user, forceNew = false) {
 async function animate(sock, chatId, msg, frames) {
     let sent = await reply(sock, chatId, msg, frames[0]);
     for (const frame of frames.slice(1)) {
-        await new Promise(resolve => setTimeout(resolve, 450));
+        await new Promise(resolve => setTimeout(resolve, 650));
         try { sent = await sock.sendMessage(chatId, { text: frame, edit: sent.key }); } catch (e) { /* Compatibilidad */ }
     }
     return sent;
@@ -236,7 +241,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -301,6 +306,56 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         dungeon.integrity = 100;
         save();
         return reply(sock, chatId, msg, `🔧 *MAZMORRA REPARADA*\n\n🏰 Integridad: *100/100*\n💸 Costo: *${fmt(repairCost)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*`);
+    }
+
+    if (canonical === 'explore') {
+        const wait = cooldown(user, 'lastExplore', 75e3);
+        if (wait) return reply(sock, chatId, msg, `⏳ Ya estás explorando. Regresa en *${timeLeft(wait)}*.`);
+        const reward = random(EXPLORATION_REWARDS);
+        const discovery = random(['un santuario antiguo', 'una aldea escondida', 'un mapa misterioso', 'una cueva cristalina', 'un campamento abandonado']);
+        const clan = getUserClan(botData.clans, jid);
+        user.coins += reward;
+        user.lastExplore = Date.now();
+        let clanText = '';
+        if (clan) {
+            clan.xp = (Number(clan.xp) || 0) + 35;
+            clan.level = clanLevel(clan);
+            clanText = `\n⭐ ${clan.name}: *+35 XP de clan* · Nivel *${clan.level}*`;
+        }
+        save();
+        await animate(sock, chatId, msg, ['🧭 Preparando la expedición...', '🗺️ Atravesando el bosque... ▰▱▱▱▱▱▱▱▱▱', '🗺️ Siguiendo un camino desconocido... ▰▰▰▰▰▰▱▱▱▱', `✨ Descubriste ${discovery}!`]);
+        return reply(sock, chatId, msg, `✅ Exploración completada\n\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*${clanText}\n⭐ +${xpEvent.gained || 0} XP`);
+    }
+
+    if (canonical === 'gather') {
+        const wait = cooldown(user, 'lastGather', 60e3);
+        if (wait) return reply(sock, chatId, msg, `⏳ Ya recolectaste recursos recientemente. Vuelve en *${timeLeft(wait)}*.`);
+        const tool = toolState(user, 'pico');
+        if (!tool) return reply(sock, chatId, msg, `❌ Necesitas un ⛏️ *pico* para recolectar recursos.\nUsa *${prefix}mercader pico*.`);
+        const reward = random(GATHERING_REWARDS);
+        const resource = random(['cristales', 'hierbas raras', 'madera encantada', 'semillas mágicas', 'fragmentos de mineral']);
+        const used = consumeTool(user, 'pico');
+        user.coins += reward;
+        user.lastGather = Date.now();
+        save();
+        await animate(sock, chatId, msg, ['🌿 Buscando recursos...', '🌿 Recolectando materiales... ▰▱▱▱▱▱▱▱▱▱', '🌿 La bolsa empieza a llenarse... ▰▰▰▰▰▰▰▱▱▱', `📦 Encontraste ${resource}!`]);
+        return reply(sock, chatId, msg, `✅ Recolección completada\n\n📦 Recurso: *${resource}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n🔧 Pico: *${used.durability}/${MERCHANT_ITEMS.pico.durability} usos*${used.broken ? `\n💥 Tu pico se rompió. Compra otro en *${prefix}mercader*.` : ''}`);
+    }
+
+    if (canonical === 'patrol') {
+        const clan = getUserClan(botData.clans, jid);
+        if (!clan) return reply(sock, chatId, msg, `❌ Debes pertenecer a un clan para patrullar. Usa *${prefix}clan* para unirte a uno.`);
+        const wait = cooldown(user, 'lastPatrol', 120e3);
+        if (wait) return reply(sock, chatId, msg, `⏳ El clan ya fue patrullado. Vuelve en *${timeLeft(wait)}*.`);
+        const reward = random([400, 550, 700, 900]);
+        const clanXp = random([80, 100, 120, 150]);
+        user.coins += reward;
+        user.lastPatrol = Date.now();
+        clan.xp = (Number(clan.xp) || 0) + clanXp;
+        clan.level = clanLevel(clan);
+        save();
+        await animate(sock, chatId, msg, ['🛡️ Reuniendo a la guardia del clan...', '🛡️ Revisando las fronteras... ▰▱▱▱▱▱▱▱▱▱', '🛡️ Detectando huellas enemigas... ▰▰▰▰▰▰▰▰▱▱', '✅ ¡La frontera está segura!']);
+        return reply(sock, chatId, msg, `🛡️ *PATRULLA DEL CLAN*\n\n🏰 Clan: *${clan.name}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n⭐ XP del clan: *+${clanXp}*\n📈 Nivel del clan: *${clan.level}*`);
     }
 
     if (canonical === 'mission') {
