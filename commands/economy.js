@@ -11,6 +11,7 @@ const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
 const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
 const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
 const HUNTING_REWARDS = [180, 260, 380, 550, 800, 1100, 1600];
+const DUNGEON_REWARDS = [700, 900, 1200, 1600, 2200];
 const MERCHANT_ITEMS = {
     pico: { name: '⛏️ Pico', price: 2500, durability: 15, aliases: ['pico', 'pickaxe'] },
     espada: { name: '⚔️ Espada', price: 3000, durability: 12, aliases: ['espada', 'sword'] },
@@ -34,6 +35,8 @@ const ALIASES = {
     fish: ['fish', 'pescar', 'pesca'],
     hunt: ['hunt', 'cazar', 'caza'],
     merchant: ['mercader', 'mercado'],
+    dungeon: ['dungeon', 'mazmorra', 'mazmorras'],
+    mission: ['mission', 'mision', 'misiones'],
     clan: ['clan', 'clanes'],
     goldtop: ['goldtop', 'orotop', 'toporo', 'riqueza'],
     slut: ['slut'],
@@ -45,7 +48,7 @@ const ALIASES = {
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
     daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', clan: 'clan <crear|unirse|salir|info>', goldtop: 'orotop', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', dungeon: 'mazmorra', mission: 'misiones [nueva]', clan: 'clan <crear|unirse|salir|info>', goldtop: 'orotop', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all>', work: 'work'
 };
 
@@ -142,6 +145,19 @@ function consumeTool(user, key) {
     const broken = tool.durability === 0;
     return { ok: true, broken, durability: tool.durability };
 }
+function dayKey() { return new Date().toISOString().slice(0, 10); }
+function ensureDungeonState(user) {
+    user.dungeon ||= { day: dayKey(), runs: 0 };
+    if (user.dungeon.day !== dayKey()) user.dungeon = { day: dayKey(), runs: 0 };
+    return user.dungeon;
+}
+function ensureMission(user, forceNew = false) {
+    if (forceNew || !user.mission || user.mission.completed) {
+        const target = 15 + Math.floor(Math.random() * 6);
+        user.mission = { type: 'dungeon', target, progress: 0, reward: 12000 + Math.floor(Math.random() * 9001), createdAt: new Date().toISOString(), completed: false };
+    }
+    return user.mission;
+}
 async function animate(sock, chatId, msg, frames) {
     let sent = await reply(sock, chatId, msg, frames[0]);
     for (const frame of frames.slice(1)) {
@@ -182,7 +198,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}orotop · Top global de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ ⚔️ ${prefix}clan · Crear o unirse\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}orotop · Top global de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Crear o unirse\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -235,6 +251,44 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         user.tools[selected] = { durability: item.durability, maxDurability: item.durability, boughtAt: new Date().toISOString() };
         save();
         return reply(sock, chatId, msg, `✅ Compraste ${item.name}\n\n💸 Precio: *${fmt(item.price)} ${COIN}*\n🔧 Durabilidad: *${item.durability}/${item.durability} usos*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*`);
+    }
+
+    if (canonical === 'mission') {
+        const action = String(args[0] || '').toLowerCase();
+        if (action === 'nueva' && user.mission && !user.mission.completed) return reply(sock, chatId, msg, '📜 Ya tienes una misión activa. Complétala antes de pedir otra.');
+        const hadMission = Boolean(user.mission);
+        const current = action === 'nueva' ? ensureMission(user, true) : (user.mission || ensureMission(user));
+        if (action === 'nueva' || !hadMission) save();
+        const dungeon = ensureDungeonState(user);
+        if (current.completed) return reply(sock, chatId, msg, `📜 *MISIÓN COMPLETADA*\n\n🏰 Mata *${current.target} monstruos* en la mazmorra.\n🎁 Recompensa recibida: *${fmt(current.reward)} ${COIN}*\n\nEscribe *${prefix}misiones nueva* para obtener otra misión.`);
+        return reply(sock, chatId, msg, `📜 *MISIÓN DE MAZMORRA*\n\n🏰 Derrota monstruos: *${current.progress}/${current.target}*\n🎁 Recompensa: *${fmt(current.reward)} ${COIN}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n\nUsa *${prefix}mazmorra* para avanzar.`);
+    }
+
+    if (canonical === 'dungeon') {
+        const dungeon = ensureDungeonState(user);
+        if (user.mission?.completed) return reply(sock, chatId, msg, `🎉 Ya completaste tu misión actual de *${user.mission.target} monstruos*.\nUsa *${prefix}misiones nueva* para recibir otra misión.`);
+        const mission = ensureMission(user);
+        if (dungeon.runs >= 3) return reply(sock, chatId, msg, `🚪 Ya bajaste a la mazmorra *3/3 veces* hoy.\nVuelve mañana para continuar la misión.`);
+        const sword = toolState(user, 'espada');
+        if (!sword) return reply(sock, chatId, msg, `❌ Necesitas una ⚔️ *espada* para entrar a la mazmorra.\nUsa *${prefix}mercader espada* para comprar una.`);
+        const remaining = Math.max(0, mission.target - mission.progress);
+        const runsLeft = 3 - dungeon.runs;
+        const kills = runsLeft === 1 ? remaining : Math.min(remaining, 5 + Math.floor(Math.random() * 8));
+        const used = consumeTool(user, 'espada');
+        dungeon.runs += 1;
+        mission.progress += kills;
+        const reward = random(DUNGEON_REWARDS);
+        user.coins += reward;
+        let completion = '';
+        if (mission.progress >= mission.target) {
+            mission.progress = mission.target;
+            mission.completed = true;
+            user.coins += mission.reward;
+            completion = `\n\n🎉 *¡Misión completada!*\n🎁 Bonus: *${fmt(mission.reward)} ${COIN}*`;
+        }
+        save();
+        await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
+        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}`);
     }
 
     if (canonical === 'level') {
