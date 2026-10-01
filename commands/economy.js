@@ -35,6 +35,7 @@ const ALIASES = {
     fish: ['fish', 'pescar', 'pesca'],
     hunt: ['hunt', 'cazar', 'caza'],
     merchant: ['mercader', 'mercado'],
+    repair: ['reparar', 'repair'],
     dungeon: ['dungeon', 'mazmorra', 'mazmorras'],
     mission: ['mission', 'mision', 'misiones'],
     achievements: ['achievement', 'achievements', 'logro', 'logros'],
@@ -49,7 +50,7 @@ const ALIASES = {
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
     daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all>', work: 'work'
 };
 
@@ -160,6 +161,9 @@ function clanKey(name) { return String(name || '').trim().toLowerCase().replace(
 function findClan(clans, name) { const key = clanKey(name); return key ? clans[key] : null; }
 function getUserClan(clans, jid) { return Object.values(clans || {}).find(clan => clan.members?.includes(jid)); }
 function clanList(clans) { return Object.values(clans || {}).sort((a, b) => (b.members?.length || 0) - (a.members?.length || 0)); }
+function clanLevel(clan) { return Math.max(1, Math.floor(Math.sqrt((Number(clan?.xp) || 0) / 100)) + 1); }
+function clanPower(clan) { return (clan.members?.length || 0) * 100 + (Number(clan.xp) || 0) + (Number(clan.wins) || 0) * 250 + Math.floor(Math.random() * 101); }
+function clanWarList(wars) { return Object.values(wars || {}).filter(war => ['pending', 'accepted'].includes(war.status)); }
 function toolFor(value) {
     const wanted = String(value || '').trim().toLowerCase();
     return Object.entries(MERCHANT_ITEMS).find(([, item]) => item.aliases.includes(wanted))?.[0] || null;
@@ -179,8 +183,10 @@ function consumeTool(user, key) {
 }
 function dayKey() { return new Date().toISOString().slice(0, 10); }
 function ensureDungeonState(user) {
-    user.dungeon ||= { day: dayKey(), runs: 0 };
+    user.dungeon ||= { day: dayKey(), runs: 0, integrity: 100 };
     if (user.dungeon.day !== dayKey()) user.dungeon = { day: dayKey(), runs: 0 };
+    if (!Number.isFinite(Number(user.dungeon.integrity))) user.dungeon.integrity = 100;
+    user.dungeon.integrity = Math.max(0, Math.min(100, Number(user.dungeon.integrity)));
     return user.dungeon;
 }
 function ensureMission(user, forceNew = false) {
@@ -230,7 +236,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Crear o unirse\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -286,6 +292,17 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         return reply(sock, chatId, msg, `✅ Compraste ${item.name}\n\n💸 Precio: *${fmt(item.price)} ${COIN}*\n🔧 Durabilidad: *${item.durability}/${item.durability} usos*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*`);
     }
 
+    if (canonical === 'repair') {
+        const dungeon = ensureDungeonState(user);
+        const repairCost = 1500;
+        if (dungeon.integrity >= 100) return reply(sock, chatId, msg, '✅ Tu mazmorra ya está completamente reparada (*100/100*).');
+        if (user.coins < repairCost) return reply(sock, chatId, msg, `❌ Reparar la mazmorra cuesta *${fmt(repairCost)} ${COIN}*.\nTienes: *${fmt(user.coins)}*.`);
+        user.coins -= repairCost;
+        dungeon.integrity = 100;
+        save();
+        return reply(sock, chatId, msg, `🔧 *MAZMORRA REPARADA*\n\n🏰 Integridad: *100/100*\n💸 Costo: *${fmt(repairCost)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*`);
+    }
+
     if (canonical === 'mission') {
         const action = String(args[0] || '').toLowerCase();
         if (action === 'nueva' && user.mission && !user.mission.completed) return reply(sock, chatId, msg, '📜 Ya tienes una misión activa. Complétala antes de pedir otra.');
@@ -301,6 +318,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const dungeon = ensureDungeonState(user);
         const mission = ensureMission(user);
         if (dungeon.runs >= 3) return reply(sock, chatId, msg, `🚪 Ya bajaste a la mazmorra *3/3 veces* hoy.\nVuelve mañana para continuar la misión.`);
+        if (dungeon.integrity < 25) return reply(sock, chatId, msg, `🏚️ Tu mazmorra está demasiado dañada (*${dungeon.integrity}/100*).\nUsa *${prefix}reparar* para restaurarla por *1.500 ${COIN}*.`);
         const sword = toolState(user, 'espada');
         if (!sword) return reply(sock, chatId, msg, `❌ Necesitas una ⚔️ *espada* para entrar a la mazmorra.\nUsa *${prefix}mercader espada* para comprar una.`);
         const remaining = Math.max(0, mission.target - mission.progress);
@@ -308,6 +326,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const kills = runsLeft === 1 ? remaining : Math.min(remaining, 5 + Math.floor(Math.random() * 8));
         const used = consumeTool(user, 'espada');
         dungeon.runs += 1;
+        dungeon.integrity = Math.max(0, dungeon.integrity - 35);
         mission.progress += kills;
         const dungeonAchievements = addStat(user, 'dungeonKills', kills);
         const reward = random(DUNGEON_REWARDS);
@@ -329,7 +348,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const unlocked = [...dungeonAchievements, ...missionAchievements];
         save();
         await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
-        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}`);
+        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}`);
     }
 
     if (canonical === 'level') {
@@ -371,8 +390,65 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
 
     if (canonical === 'clan') {
         botData.clans ||= {};
+        botData.clanWars ||= {};
         const action = String(args[0] || 'lista').toLowerCase();
         const currentClan = getUserClan(botData.clans, jid);
+        if (['guerra', 'war', 'guerras'].includes(action)) {
+            if (!currentClan) return reply(sock, chatId, msg, '❌ Debes pertenecer a un clan para participar en guerras.');
+            const currentKey = clanKey(currentClan.name);
+            const subAction = String(args[1] || 'lista').toLowerCase();
+            if (['desafiar', 'desafio', 'challenge'].includes(subAction)) {
+                if (currentClan.owner !== jid) return reply(sock, chatId, msg, '❌ Solo el líder del clan puede iniciar una guerra.');
+                const target = findClan(botData.clans, args.slice(2).join(' '));
+                if (!target) return reply(sock, chatId, msg, `❌ Clan objetivo no encontrado. Usa *${prefix}clan* para ver los clanes.`);
+                const targetKey = clanKey(target.name);
+                if (targetKey === currentKey) return reply(sock, chatId, msg, '❌ No puedes desafiar a tu propio clan.');
+                if (clanWarList(botData.clanWars).some(war => [war.challenger, war.defender].includes(currentKey) && [war.challenger, war.defender].includes(targetKey))) return reply(sock, chatId, msg, '⚔️ Ya existe una guerra pendiente o activa entre esos clanes.');
+                const id = `war-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                botData.clanWars[id] = { id, challenger: currentKey, defender: targetKey, status: 'pending', createdAt: new Date().toISOString() };
+                save();
+                return reply(sock, chatId, msg, `⚔️ *DESAFÍO ENVIADO*\n\n🏰 ${currentClan.name} vs ${target.name}\n\nEl líder de *${target.name}* debe aceptar con:\n*${prefix}clan guerra aceptar*`);
+            }
+            if (['aceptar', 'accept'].includes(subAction)) {
+                if (currentClan.owner !== jid) return reply(sock, chatId, msg, '❌ Solo el líder del clan puede aceptar una guerra.');
+                const war = clanWarList(botData.clanWars).find(item => item.status === 'pending' && item.defender === currentKey);
+                if (!war) return reply(sock, chatId, msg, '❌ No tienes desafíos de guerra pendientes.');
+                war.status = 'accepted';
+                war.acceptedAt = new Date().toISOString();
+                save();
+                return reply(sock, chatId, msg, `🛡️ *GUERRA ACEPTADA*\n\nYa puedes resolver el combate con:\n*${prefix}clan guerra combatir*`);
+            }
+            if (['combatir', 'resolver', 'fight', 'batalla'].includes(subAction)) {
+                if (currentClan.owner !== jid) return reply(sock, chatId, msg, '❌ Solo el líder puede iniciar el combate.');
+                const war = clanWarList(botData.clanWars).find(item => item.status === 'accepted' && [item.challenger, item.defender].includes(currentKey));
+                if (!war) return reply(sock, chatId, msg, '❌ No tienes una guerra aceptada lista para combatir.');
+                const challenger = botData.clans[war.challenger];
+                const defender = botData.clans[war.defender];
+                if (!challenger || !defender) return reply(sock, chatId, msg, '❌ La guerra ya no es válida porque falta uno de los clanes.');
+                const challengerPower = clanPower(challenger);
+                const defenderPower = clanPower(defender);
+                const winner = challengerPower >= defenderPower ? challenger : defender;
+                const loser = winner === challenger ? defender : challenger;
+                const reward = 5000 + (loser.members?.length || 1) * 1000;
+                const xpReward = 250 + (loser.members?.length || 1) * 50;
+                winner.coins = (Number(winner.coins) || 0) + reward;
+                winner.xp = (Number(winner.xp) || 0) + xpReward;
+                winner.level = clanLevel(winner);
+                winner.wins = (Number(winner.wins) || 0) + 1;
+                loser.losses = (Number(loser.losses) || 0) + 1;
+                war.status = 'resolved';
+                war.resolvedAt = new Date().toISOString();
+                war.winner = clanKey(winner.name);
+                war.challengerPower = challengerPower;
+                war.defenderPower = defenderPower;
+                if (winner === currentClan) user.coins += reward;
+                save();
+                return reply(sock, chatId, msg, `🏆 *GUERRA RESUELTA*\n\n👑 Ganador: *${winner.name}*\n⚔️ Poder: *${winner === challenger ? challengerPower : defenderPower}*\n💥 Derrotado: *${loser.name}*\n\n🪙 Premio del clan: *${fmt(reward)} ${COIN}*\n⭐ XP del clan: *+${fmt(xpReward)}*\n📈 Nivel de ${winner.name}: *${winner.level}*\n🏆 Victorias: *${winner.wins}*`);
+            }
+            const wars = clanWarList(botData.clanWars).filter(war => [war.challenger, war.defender].includes(currentKey));
+            const listing = wars.length ? wars.map(war => `⚔️ ${botData.clans[war.challenger]?.name || war.challenger} vs ${botData.clans[war.defender]?.name || war.defender} · *${war.status}*`).join('\n') : 'No tienes guerras pendientes.';
+            return reply(sock, chatId, msg, `⚔️ *GUERRAS DE CLANES*\n\n${listing}\n\nDesafiar: *${prefix}clan guerra desafiar <clan>*\nAceptar: *${prefix}clan guerra aceptar*\nCombatir: *${prefix}clan guerra combatir*`);
+        }
         if (['crear', 'create'].includes(action)) {
             const displayName = args.slice(1).join(' ').trim().slice(0, 20);
             const key = clanKey(displayName);
@@ -382,7 +458,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             const creationCost = 10000;
             if (user.coins < creationCost) return reply(sock, chatId, msg, `❌ Crear un clan cuesta *${fmt(creationCost)} ${COIN}*.`);
             user.coins -= creationCost;
-            botData.clans[key] = { name: displayName, owner: jid, members: [jid], createdAt: new Date().toISOString() };
+            botData.clans[key] = { name: displayName, owner: jid, members: [jid], xp: 0, level: 1, coins: 0, wins: 0, losses: 0, createdAt: new Date().toISOString() };
             const unlocked = addStat(user, 'clansCreated', 1);
             save();
             return reply(sock, chatId, msg, `⚔️ *Clan creado*\n\n🏰 Nombre: *${displayName}*\n💸 Costo: *${fmt(creationCost)} ${COIN}*\n👥 Miembros: *1*${achievementText(unlocked)}`);
@@ -409,11 +485,14 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (['info', 'informacion'].includes(action)) {
             const clan = findClan(botData.clans, args.slice(1).join(' ')) || currentClan;
             if (!clan) return reply(sock, chatId, msg, '❌ No se encontró ese clan.');
-            return reply(sock, chatId, msg, `🏰 *CLAN ${clan.name.toUpperCase()}*\n\n👑 Líder: @${numberOf(clan.owner)}\n👥 Miembros: *${clan.members.length}*\n📅 Creado: *${new Date(clan.createdAt).toLocaleDateString('es-ES')}*`, { mentions: [clan.owner, ...clan.members] });
+            clan.xp = Number(clan.xp) || 0;
+            clan.level = clanLevel(clan);
+            clan.coins = Number(clan.coins) || 0;
+            return reply(sock, chatId, msg, `🏰 *CLAN ${clan.name.toUpperCase()}*\n\n👑 Líder: @${numberOf(clan.owner)}\n👥 Miembros: *${clan.members.length}*\n⭐ Nivel: *${clan.level}* · XP: *${fmt(clan.xp)}*\n🪙 Tesorería: *${fmt(clan.coins)} ${COIN}*\n🏆 Victorias: *${clan.wins || 0}* · Derrotas: *${clan.losses || 0}*\n📅 Creado: *${new Date(clan.createdAt).toLocaleDateString('es-ES')}*`, { mentions: [clan.owner, ...clan.members] });
         }
         const clans = clanList(botData.clans);
         const listing = clans.length ? clans.slice(0, 10).map((clan, index) => `${index + 1}. 🏰 *${clan.name}* — ${clan.members.length} miembros`).join('\n') : 'Todavía no hay clanes creados.';
-        return reply(sock, chatId, msg, `⚔️ *CLANES*\n\n${listing}\n\nCrear: *${prefix}clan crear <nombre>*\nUnirse: *${prefix}clan unirse <nombre>*\nSalir: *${prefix}clan salir*\nInfo: *${prefix}clan info [nombre]*`);
+        return reply(sock, chatId, msg, `⚔️ *CLANES*\n\n${listing}\n\nCrear: *${prefix}clan crear <nombre>*\nUnirse: *${prefix}clan unirse <nombre>*\nSalir: *${prefix}clan salir*\nInfo: *${prefix}clan info [nombre]*\nGuerra: *${prefix}clan guerra desafiar <clan>*`);
     }
 
     if (canonical === 'coinTop') {
