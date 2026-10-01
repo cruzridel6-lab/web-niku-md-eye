@@ -674,10 +674,23 @@ function getDashboardStats() {
         totalUsers: connectedSessions.length,
         connectedUsers: connectedSessions.length,
         pendingUsers: Object.keys(sessions).length - connectedSessions.length,
+        bots: publicBotsSnapshot(),
         updatedAt: new Date().toISOString()
     };
 }
-
+function publicBotsSnapshot() {
+    return Object.entries(sessions)
+        .filter(([, session]) => session.isConnected && session.sock?.user)
+        .map(([sessionId, session], index) => {
+            const digits = String(session.phoneNumber || '').replace(/\D/g, '');
+            return {
+                id: `public-${index}-${sessionId.slice(-6)}`,
+                type: botData.subbots?.[sessionId] ? 'Subbot' : 'Bot principal',
+                phone: digits ? `+•••• ${digits.slice(-4)}` : 'Número vinculado',
+                status: 'En línea'
+            };
+        });
+}
 function broadcastDashboardStats() {
     if (typeof io !== 'undefined') io.emit('stats', getDashboardStats());
     if (typeof adminSockets !== 'undefined') {

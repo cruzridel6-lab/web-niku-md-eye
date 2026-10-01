@@ -172,6 +172,16 @@
   header p.sub strong{color:var(--green);}
 
   .stats-row{display:flex;justify-content:center;gap:20px;margin-top:44px;flex-wrap:wrap;}
+  .public-bots-panel{width:min(760px,100%);margin:18px auto 0;padding:14px 16px;border:1px solid var(--border);border-radius:15px;background:rgba(7,10,22,.56);text-align:left;}
+  .public-bots-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+  .public-bots-title{display:flex;align-items:center;gap:8px;color:var(--text);font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+  .public-bots-title i{color:var(--green);}
+  .public-bots-live{color:var(--green);font-size:.62rem;font-weight:700;}
+  .public-bots-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;}
+  .public-bot-item{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid rgba(130,155,255,.14);border-radius:10px;background:rgba(255,255,255,.018);}
+  .public-bot-icon{display:grid;place-items:center;width:29px;height:29px;flex:0 0 29px;border-radius:9px;background:rgba(99,245,209,.1);color:var(--green);font-size:.72rem;}
+  .public-bot-info{min-width:0;flex:1;}.public-bot-name{display:block;color:var(--text);font-size:.7rem;font-weight:800;}.public-bot-number{display:block;color:var(--muted);font-size:.65rem;margin-top:2px;}
+  .public-bot-status{color:var(--green);font-size:.6rem;white-space:nowrap;}.public-bots-empty{padding:9px;color:var(--muted);font-size:.68rem;text-align:center;border:1px dashed var(--border);border-radius:9px;grid-column:1/-1;}
   .stat-card{
     display:flex;align-items:center;gap:14px;background:var(--bg-panel);
     border:1px solid var(--border);border-radius:var(--radius);padding:18px 26px;
@@ -496,6 +506,10 @@
     <div class="stat-card"><i class="fas fa-signal"></i><div><div class="stat-value" id="activeSockets">0</div><div class="stat-label">Conexiones activas</div></div></div>
     <div class="stat-card"><i class="fas fa-users"></i><div><div class="stat-value" id="totalUsers">0</div><div class="stat-label">Usuarios conectados</div></div></div>
   </div>
+  <div class="public-bots-panel" aria-live="polite">
+    <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
+    <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
+  </div>
 </header>
 
 <main>
@@ -778,6 +792,8 @@ const premiumTokenResult = document.getElementById('premiumTokenResult');
 const premiumStatus = document.getElementById('premiumStatus');
 const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
+const publicBotsList = document.getElementById('publicBotsList');
+const publicBotsLive = document.getElementById('publicBotsLive');
 const adminActiveSessions = document.getElementById('adminActiveSessions');
 const adminConnectedUsers = document.getElementById('adminConnectedUsers');
 const adminPendingUsers = document.getElementById('adminPendingUsers');
@@ -844,6 +860,26 @@ function renderAdminBots(bots=[]){
     const control=bot.status !== 'revocado' ? `<button class="admin-bot-stop" data-stop-bot="${escapeAdminHtml(bot.sessionId)}" type="button">Detener</button>` : '<span class="admin-bot-meta">Revocado</span>';
     return `<div class="admin-bot-row"><div><span class="admin-bot-type ${type}">${type}</span><div class="admin-bot-id">${escapeAdminHtml(bot.sessionId)}</div></div><div class="admin-bot-meta">${number}<br>${owner}</div><span class="admin-bot-status ${bot.connected ? 'connected' : 'offline'}">● ${escapeAdminHtml(status)}</span>${control}</div>`;
   }).join('');
+}
+function renderPublicBots(bots=[]){
+  if(!publicBotsList) return;
+  publicBotsList.innerHTML='';
+  if(!bots.length){
+    publicBotsList.innerHTML='<div class="public-bots-empty">No hay bots conectados en este momento.</div>';
+    if(publicBotsLive) publicBotsLive.textContent='0 en línea';
+    return;
+  }
+  bots.forEach(bot=>{
+    const item=document.createElement('div'); item.className='public-bot-item';
+    const icon=document.createElement('span'); icon.className='public-bot-icon'; icon.innerHTML=bot.type === 'Subbot' ? '<i class="fas fa-code-branch"></i>' : '<i class="fas fa-robot"></i>';
+    const info=document.createElement('div'); info.className='public-bot-info';
+    const name=document.createElement('strong'); name.className='public-bot-name'; name.textContent=bot.type || 'Bot';
+    const number=document.createElement('span'); number.className='public-bot-number'; number.textContent=bot.phone || 'Número vinculado';
+    info.append(name,number);
+    const status=document.createElement('span'); status.className='public-bot-status'; status.textContent='● En línea';
+    item.append(icon,info,status); publicBotsList.appendChild(item);
+  });
+  if(publicBotsLive) publicBotsLive.textContent=`${bots.length} en línea`;
 }
 if(adminLoginForm){
   adminLoginForm.addEventListener('submit',(event)=>{
@@ -968,6 +1004,7 @@ socket.on('connection-status', (status)=>{
 
 socket.on('stats', (data)=>{
   if(data){
+    renderPublicBots(data.bots || []);
     if(typeof data.activeSockets !== 'undefined') document.getElementById('activeSockets').innerText = data.activeSockets;
     if(typeof data.totalUsers !== 'undefined') document.getElementById('totalUsers').innerText = data.totalUsers;
     if(adminActiveSessions) adminActiveSessions.textContent = data.activeSockets ?? 0;
