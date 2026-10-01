@@ -608,10 +608,20 @@ app.use(express.static(path.join(__dirname), { index: false }));
 const INDEX_TEMPLATE = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const BANNER_FILE = 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg';
 function sendIndexWithPreview(req, res) {
-    const protocol = req.get('x-forwarded-proto') || req.protocol || 'https';
-    const imageUrl = `${protocol.split(',')[0].trim()}://${req.get('host')}/${BANNER_FILE}`;
-    res.type('html').send(INDEX_TEMPLATE.replaceAll('__NIKU_OG_IMAGE__', imageUrl));
+    const protocol = String(req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
+    const host = req.get('x-forwarded-host') || req.get('host');
+    const baseUrl = `${protocol}://${host}`;
+    const imageUrl = `${baseUrl}/og-image.jpg`;
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.type('html').send(INDEX_TEMPLATE
+        .replaceAll('__NIKU_OG_IMAGE__', imageUrl)
+        .replaceAll('__NIKU_OG_URL__', `${baseUrl}${req.path === '/admin' ? '/admin' : '/'}`));
 }
+
+app.get('/og-image.jpg', (req, res) => {
+    res.set({ 'Cache-Control': 'public, max-age=3600', 'Content-Type': 'image/jpeg', 'X-Content-Type-Options': 'nosniff' });
+    res.sendFile(path.join(__dirname, BANNER_FILE));
+});
 
 app.get('/', (req, res) => {
     sendIndexWithPreview(req, res);
