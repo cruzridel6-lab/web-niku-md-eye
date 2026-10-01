@@ -2,6 +2,11 @@
 .env.*
 !.env.example
 node_modules/
+bot/
+data/
+auth_info/
+tmp/
+temp/
 session/
 auth_info_baileys/
 creds.json

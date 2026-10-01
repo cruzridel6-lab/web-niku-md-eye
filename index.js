@@ -11,6 +11,7 @@ const P = require('pino');
 const { OpenAI } = require('openai');
 const os = require('os');
 const crypto = require('crypto');
+const githubBackup = require('./lib/githubBackup');
 
 const PREMIUM_COMMANDS = new Set([
     'book', 'owner', 'ownermenu', 'toolsmenu', 'tools', 'bugmenu', 'bugs', 'bug', 'crash', 'freeze',
@@ -582,27 +583,60 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
-const AUTH_DIR = './auth_info';
-const DATA_FILE = './data/bot_data.json';
+const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
+const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
+const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'bot'));
+const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info');
+const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
+const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
+const DATA_BACKUP = `${DATA_FILE}.bak`;
+const DATA_TEMP = `${DATA_FILE}.tmp`;
+fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
-fs.ensureDirSync('./data');
+fs.ensureDirSync(UPLOADS_DIR);
+
+// Al activar el volumen por primera vez, conserva los datos locales existentes.
+if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
+    const legacyDataFile = path.join(LEGACY_DATA_DIR, 'bot_data.json');
+    if (!fs.existsSync(DATA_FILE) && fs.existsSync(legacyDataFile)) fs.copyFileSync(legacyDataFile, DATA_FILE);
+    if (fs.existsSync(LEGACY_AUTH_DIR)) {
+        for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
+            const source = path.join(LEGACY_AUTH_DIR, userId);
+            const target = path.join(AUTH_DIR, userId);
+            if (!fs.existsSync(target)) fs.copySync(source, target);
+        }
+    }
+}
 
 let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {} };
-if (fs.existsSync(DATA_FILE)) {
-    try { botData = fs.readJsonSync(DATA_FILE); } catch (e) {}
-}
-if (!Array.isArray(botData.comments)) botData.comments = [];
-if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
-if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
-if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
-if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
-if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
-for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
-    if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
+function loadBotDataFromDisk() {
+    for (const candidate of [DATA_FILE, DATA_BACKUP]) {
+        if (!fs.existsSync(candidate)) continue;
+        try {
+            botData = fs.readJsonSync(candidate);
+            break;
+        } catch (e) {}
+    }
+    if (!botData || typeof botData !== 'object' || Array.isArray(botData)) botData = {};
+    if (!Array.isArray(botData.comments)) botData.comments = [];
+    if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
+    if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
+    if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
+    if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
+    if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
+    for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
+        if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
+    }
 }
 
+loadBotDataFromDisk();
+
 function saveBotData() {
-    fs.writeJsonSync(DATA_FILE, botData);
+    fs.ensureDirSync(PERSISTENT_DIR);
+    fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
+    if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
+    fs.renameSync(DATA_TEMP, DATA_FILE);
+    githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
 }
 
 const sessions = {}; 
@@ -858,7 +892,10 @@ class BotSession {
                 }
             }
 
-            this.sock.ev.on('creds.update', saveCreds);
+            this.sock.ev.on('creds.update', async (update) => {
+                await saveCreds(update);
+                githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+            });
 
             this.sock.ev.on('call', async (calls) => {
                 if (botData.antiCall[this.userId]) {
@@ -2029,6 +2066,16 @@ server.listen(PORT, async () => {
     console.log(`\u{1F311} niku666MDBOT v${settings.version} Server running on port ${PORT}`);
     console.log(`\u{1F4E1} Total commands loaded: 120+`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
+    if (githubBackup.enabled()) {
+        try {
+            const restored = await githubBackup.restoreBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+            if (restored) loadBotDataFromDisk();
+        } catch (error) {
+            console.error('[Backup] No se pudo restaurar el estado cifrado:', error.response?.data?.message || error.message);
+        }
+    } else {
+        console.log('[Backup] GitHub cifrado no configurado; usando el almacenamiento local persistente.');
+    }
     await loadExistingSessions();
     broadcastDashboardStats();
 });

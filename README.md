@@ -52,9 +52,32 @@ OWNER_TELEGRAM_ID=tu_id_de_telegram
 TELEGRAM_BOT_TOKEN=token_opcional
 OPENAI_API_KEY=clave_opcional
 PORT=3000
+# En Railway: ruta donde estará montado el volumen persistente
+PERSISTENT_DATA_DIR=/data/bot
+GITHUB_BACKUP_TOKEN=token_privado_con_contents_write
+GITHUB_BACKUP_REPO=cruzridel6-lab/web-niku-md-eye
+GITHUB_BACKUP_BRANCH=main
+GITHUB_BACKUP_PATH=bot/state.enc
+BACKUP_ENCRYPTION_KEY=clave_larga_y_unica
 ```
 
 Para Railway, configura las mismas variables en **Variables** e incluye Python y FFmpeg en el entorno de despliegue.
+
+### Persistencia en Railway
+
+Railway usa un sistema de archivos temporal si no se configura un volumen. Para conservar sesiones, economía, perfiles, tokens Premium y configuraciones:
+
+1. En el servicio de Railway, crea un **Volume**.
+2. Monta el volumen en `/data`.
+3. Añade la variable `PERSISTENT_DATA_DIR=/data/bot`.
+4. Usa una sola réplica del servicio para que la sesión de WhatsApp y el volumen no se dividan entre instancias.
+5. Despliega nuevamente y verifica que `bot/auth_info/` y `bot/bot_data.json` estén dentro del volumen.
+
+El bot centraliza en `bot/` la economía, perfiles, Premium, tokens, configuraciones, sesiones de WhatsApp y archivos persistentes de `uploads/`. Escribe `bot_data.json` de forma atómica y conserva una copia `bot_data.json.bak` para recuperarse si un proceso se interrumpe durante una escritura. La carpeta `auth_info/` también se guarda dentro de la ruta persistente, por lo que no debería ser necesario volver a vincular el número después de cada deploy.
+
+Si configuras las variables de GitHub anteriores, el bot restaura al arrancar y actualiza cada 30 segundos un archivo `bot/state.enc` cifrado con AES-256-GCM. El respaldo contiene la economía, perfiles, tokens, Premium y sesiones, pero GitHub solo recibe el texto cifrado. El token de GitHub y la clave de cifrado deben existir únicamente en Railway Variables.
+
+> Importante: nunca subas `bot/` en texto plano ni guardes la clave de cifrado dentro del repositorio. El archivo seguro es únicamente `bot/state.enc`, generado por el bot mediante la API de GitHub.
 
 ## Actualizaciones recientes
 
