@@ -408,6 +408,7 @@
   .public-chat-card{margin-top:16px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);box-shadow:0 12px 30px rgba(0,0,0,.18);}
   .public-chat-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}.public-chat-head h3{font-size:.9rem;color:var(--text);}.public-chat-head p{color:var(--muted);font-size:.68rem;margin-top:4px;}.public-chat-live{color:var(--green);font-size:.64rem;font-weight:800;white-space:nowrap;}
   .public-chat-output{height:300px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
+  .public-board-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px;}.public-board-card{padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);}.public-board-card h3{font-size:.9rem;color:var(--text);margin-bottom:4px;}.public-board-card p{font-size:.68rem;color:var(--muted);margin-bottom:12px;}.public-board-list{display:grid;gap:7px;}.public-board-row{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid rgba(154,177,225,.1);border-radius:9px;color:var(--text);font-size:.7rem;}.public-board-row strong{color:var(--green);}.public-board-empty{color:var(--muted);font-size:.7rem;padding:10px 0;}.public-events{margin-top:16px;}.public-events-output{height:150px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.72rem;}@media(max-width:620px){.public-board-grid{grid-template-columns:1fr;}}
   .premium-admin{margin-top:22px;padding-top:22px;border-top:1px solid var(--border);}
   .premium-admin h3{color:var(--green);font-size:.95rem;margin-bottom:14px;}
   .premium-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;}
@@ -537,6 +538,11 @@
     <div class="public-chat-head"><div><h3><i class="fas fa-comments"></i> Actividad de grupos</h3><p>Mensajes grupales recibidos por los bots en tiempo real.</p></div><span class="public-chat-live">● SOLO GRUPOS · <span id="publicGroupChatCount">0</span></span></div>
     <div id="publicGroupChatOutput" class="public-chat-output"><div class="console-empty">Esperando actividad de grupos...</div></div>
   </div>
+  <div class="public-board-grid">
+    <div class="public-board-card"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
+    <div class="public-board-card"><h3><i class="fas fa-coins"></i> Top de Neko Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
+  </div>
+  <div class="public-chat-card public-events"><div class="public-chat-head"><div><h3><i class="fas fa-bolt"></i> Recompensas en vivo</h3><p>Actualizaciones automáticas cuando alguien gana coins o desbloquea un logro.</p></div><span class="public-chat-live">● EN VIVO</span></div><div id="publicRewardEvents" class="public-events-output"><div class="console-empty">Esperando nuevas recompensas...</div></div></div>
 </header>
 
 <main>
@@ -829,6 +835,9 @@ const premiumTokensList = document.getElementById('premiumTokensList');
 const rewardTokensList = document.getElementById('rewardTokensList');
 const publicBotsList = document.getElementById('publicBotsList');
 const publicBotsLive = document.getElementById('publicBotsLive');
+const publicAchievementsBoard = document.getElementById('publicAchievementsBoard');
+const publicCoinsBoard = document.getElementById('publicCoinsBoard');
+const publicRewardEvents = document.getElementById('publicRewardEvents');
 const adminActiveSessions = document.getElementById('adminActiveSessions');
 const adminConnectedUsers = document.getElementById('adminConnectedUsers');
 const adminPendingUsers = document.getElementById('adminPendingUsers');
@@ -881,6 +890,30 @@ function renderGroupChatHistory(entries=[]){
   if(!groupMessages.size) publicGroupChatOutput.innerHTML='<div class="console-empty">Esperando actividad de grupos...</div>';
   if(publicGroupChatCount) publicGroupChatCount.textContent=groupMessages.size;
   if(adminMessageCountKpi) adminMessageCountKpi.textContent=groupMessages.size;
+}
+function renderPublicLeaderboard(data={}){
+  const achievements=data.achievements||[], coins=data.coins||[];
+  if(publicAchievementsBoard) publicAchievementsBoard.innerHTML=achievements.length ? achievements.map(item=>`<div class="public-board-row"><span>${item.position}. ${escapeAdminHtml(item.player)}</span><strong>🏆 ${Number(item.count||0)} logros</strong></div>`).join('') : '<div class="public-board-empty">Aún no hay logros registrados.</div>';
+  if(publicCoinsBoard) publicCoinsBoard.innerHTML=coins.length ? coins.map(item=>`<div class="public-board-row"><span>${item.position}. ${escapeAdminHtml(item.player)}</span><strong>🪙 ${Number(item.coins||0).toLocaleString('es-ES')}</strong></div>`).join('') : '<div class="public-board-empty">Aún no hay saldos registrados.</div>';
+  renderPublicRewardEvents(data.events||[]);
+}
+function rewardEventText(event){
+  const player=escapeAdminHtml(event.player||'Jugador');
+  if(event.type==='achievement') return `🏆 ${player} desbloqueó el logro *${escapeAdminHtml(event.achievement||'nuevo')}*`;
+  return `🪙 ${player} ganó *${Number(event.amount||0).toLocaleString('es-ES')} Neko Coins* · ${escapeAdminHtml(event.source||'RPG')}`;
+}
+function renderPublicRewardEvents(events=[]){
+  if(!publicRewardEvents) return;
+  publicRewardEvents.innerHTML='';
+  if(!events.length){ publicRewardEvents.innerHTML='<div class="console-empty">Esperando nuevas recompensas...</div>'; return; }
+  events.slice(0,30).forEach(event=>{ const line=document.createElement('div'); line.className='console-line group'; const date=event.timestamp?new Date(event.timestamp):new Date(); line.textContent=`[${date.toLocaleTimeString('es-ES')}] ${rewardEventText(event).replace(/\*/g,'')}`; publicRewardEvents.appendChild(line); });
+  publicRewardEvents.scrollTop=0;
+}
+function renderPublicRewardEvent(event){
+  if(!publicRewardEvents || !event) return;
+  const empty=publicRewardEvents.querySelector('.console-empty'); if(empty) empty.remove();
+  const line=document.createElement('div'); line.className='console-line group'; line.textContent=`[${new Date(event.timestamp||Date.now()).toLocaleTimeString('es-ES')}] ${rewardEventText(event).replace(/\*/g,'')}`; publicRewardEvents.prepend(line);
+  while(publicRewardEvents.children.length>30) publicRewardEvents.lastElementChild.remove();
 }
 function escapeAdminHtml(value){
   return String(value ?? '').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -942,6 +975,8 @@ adminLogout?.addEventListener('click',()=>{
 });
 socket.on('group-chat-history',renderGroupChatHistory);
 socket.on('group-chat-message',renderGroupChatMessage);
+socket.on('public-leaderboard',renderPublicLeaderboard);
+socket.on('public-reward-event',renderPublicRewardEvent);
 socket.on('admin-bots-data',renderAdminBots);
 socket.on('admin-promo-status',(data={})=>{
   if(adminPromoButton){ adminPromoButton.disabled=Boolean(data.running); adminPromoButton.innerHTML=data.running ? '<i class="fas fa-spinner fa-spin"></i> Enviando...' : '<i class="fas fa-paper-plane"></i> Enviar promoción'; }

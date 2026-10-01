@@ -724,6 +724,7 @@ const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
 const adminChatLogs = [];
+const publicRewardEvents = [];
 
 function publishAdminChatMessage(entry) {
     if (!entry?.isGroup) return;
@@ -754,6 +755,53 @@ function getDashboardStats() {
         bots: publicBotsSnapshot(),
         updatedAt: new Date().toISOString()
     };
+}
+function publicNumber(jid) { return String(jid || '').split('@')[0].replace(/\D/g, ''); }
+function publicPlayer(jid) {
+    const number = publicNumber(jid);
+    return number ? `Jugador ${number.slice(-4)}` : 'Jugador';
+}
+function capturePublicEconomy(chatId, jid) {
+    const users = botData.economy?.[chatId]?.users || {};
+    const wanted = publicNumber(jid);
+    const key = Object.keys(users).find(item => publicNumber(item) === wanted);
+    const user = key ? users[key] : {};
+    return {
+        coins: Math.max(0, Number(user.coins) || 0),
+        bank: Math.max(0, Number(user.bank) || 0),
+        achievements: new Set(Object.keys(user.rpg?.achievements || {}))
+    };
+}
+function publicLeaderboardSnapshot() {
+    const coins = new Map();
+    const achievements = new Map();
+    for (const state of Object.values(botData.economy || {})) {
+        for (const [jid, user] of Object.entries(state?.users || {})) {
+            const number = publicNumber(jid);
+            if (!number) continue;
+            const total = Math.max(0, Number(user.coins) || 0) + Math.max(0, Number(user.bank) || 0);
+            coins.set(number, (coins.get(number) || 0) + total);
+            const current = achievements.get(number) || { ids: new Set() };
+            Object.keys(user.rpg?.achievements || {}).forEach(id => current.ids.add(id));
+            achievements.set(number, current);
+        }
+    }
+    return {
+        coins: [...coins.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([number, total], index) => ({ position: index + 1, player: publicPlayer(number), coins: total })),
+        achievements: [...achievements.entries()].filter(([, item]) => item.ids.size > 0).sort((a, b) => b[1].ids.size - a[1].ids.size).slice(0, 10).map(([number, item], index) => ({ position: index + 1, player: publicPlayer(number), count: item.ids.size })),
+        events: publicRewardEvents.slice(-30).reverse()
+    };
+}
+function publishPublicEconomyDelta(before, chatId, jid, commandName) {
+    const after = capturePublicEconomy(chatId, jid);
+    const gained = after.coins + after.bank - (before.coins + before.bank);
+    const newAchievements = [...after.achievements].filter(id => !before.achievements.has(id));
+    if (gained > 0) publicRewardEvents.push({ type: 'coins', player: publicPlayer(jid), amount: gained, source: `.${commandName}`, timestamp: new Date().toISOString() });
+    newAchievements.forEach(achievement => publicRewardEvents.push({ type: 'achievement', player: publicPlayer(jid), achievement, timestamp: new Date().toISOString() }));
+    while (publicRewardEvents.length > 100) publicRewardEvents.shift();
+    if (typeof io !== 'undefined') {
+        io.emit('public-leaderboard', publicLeaderboardSnapshot());
+    }
 }
 function publicBotsSnapshot() {
     return Object.entries(sessions)
@@ -1327,6 +1375,7 @@ class BotSession {
                             (async () => {
                                 try {
                                     // =================== 120+ COMMAND SWITCH ===================
+                                    const publicEconomyBefore = capturePublicEconomy(from, sender);
                                     switch (commandName) {
                                         // ===== MENU =====
                                         case 'menu': {
@@ -1675,6 +1724,7 @@ class BotSession {
                                         case 'restore': await commands.restore(this.sock, from, msg, isOwner); break;
                                         case 'mycmd': case 'mycommands': await commands.mycmd(this.sock, from, msg); break;
                                     }
+                                    publishPublicEconomyDelta(publicEconomyBefore, from, sender, commandName);
                                 } catch (e) {
                                     this.sendLog(`Command error (${commandName}): ` + e.message, 'error');
                                     try {
@@ -1770,6 +1820,12 @@ class BotSession {
 
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
                     const starterPackGranted = grantStarterPack(botNumber);
+                    if (starterPackGranted) {
+                        const starterEvent = { type: 'coins', player: publicPlayer(botNumber), amount: 1000, source: 'pack inicial', timestamp: new Date().toISOString() };
+                        publicRewardEvents.push(starterEvent);
+                        while (publicRewardEvents.length > 100) publicRewardEvents.shift();
+                        io.emit('public-leaderboard', publicLeaderboardSnapshot());
+                    }
 
                     if (this.tgChatId && tgBot) {
                         const successMsg =
@@ -2097,6 +2153,7 @@ function generateMenuText(userName, session) {
 io.on('connection', (socket) => {
     socket.emit('stats', getDashboardStats());
     socket.emit('group-chat-history', adminChatLogs.slice(-200));
+    socket.emit('public-leaderboard', publicLeaderboardSnapshot());
 
     // Admin auth
     socket.on('admin-auth', ({ username, password } = {}) => {
