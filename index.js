@@ -1378,8 +1378,8 @@ class BotSession {
                                             saveBotData();
                                             await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*
 
-🪙 Recibiste: *${coins.toLocaleString('es-ES')} Niku Coin*
-💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Niku Coin*
+🪙 Recibiste: *${coins.toLocaleString('es-ES')} Neko Coins*
+💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Neko Coins*
 
 ✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
                                             break;
@@ -1396,11 +1396,11 @@ class BotSession {
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
-                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'orotop', 'nivel', 'mercader', 'minar', 'pescar', 'cazar', 'mazmorra', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
+                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU · NEKO COINS', ['balance', 'baltop', 'nekotop', 'nivel', 'logros', 'mercader', 'minar', 'pescar', 'cazar', 'mazmorra', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
-                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'orotop', 'nivel', 'mercader', 'minar', 'pescar', 'cazar', 'mazmorra', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
+                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · NEKO COINS', ['balance', 'baltop', 'nekotop', 'nivel', 'logros', 'mercader', 'minar', 'pescar', 'cazar', 'mazmorra', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
                                         case 'economy': case 'tienda': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
@@ -1424,8 +1424,8 @@ class BotSession {
                                         case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
                                         case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
                                         case 'level': case 'nivel': case 'xp': case 'experiencia':
-                                        case 'mine': case 'minar': case 'mineria': case 'fish': case 'pescar': case 'pesca': case 'hunt': case 'cazar': case 'caza': case 'mercader': case 'mercado': case 'dungeon': case 'mazmorra': case 'mazmorras': case 'mission': case 'mision': case 'misiones':
-                                        case 'clan': case 'clanes': case 'goldtop': case 'orotop': case 'toporo': case 'riqueza':
+                                        case 'mine': case 'minar': case 'mineria': case 'fish': case 'pescar': case 'pesca': case 'hunt': case 'cazar': case 'caza': case 'mercader': case 'mercado': case 'dungeon': case 'mazmorra': case 'mazmorras': case 'mission': case 'mision': case 'misiones': case 'achievement': case 'achievements': case 'logro': case 'logros':
+                                        case 'clan': case 'clanes': case 'goldtop': case 'orotop': case 'toporo': case 'riqueza': case 'nekotop': case 'topcoins': case 'coinstop':
                                         case 'work': case 'w': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'angry', 'bath', 'bite', 'bleh', 'blush', 'bored', 'coffee', 'cry', 'cuddle', 'dance', 'drunk', 'eat', 'handhold', 'happy', 'highfive', 'hug', 'jump', 'kill', 'kiss', 'kisscheek', 'laugh', 'lick', 'love', 'nope', 'pat', 'pout', 'punch', 'push', 'run', 'sad', 'scared', 'seduce', 'shy', 'slap', 'sleep', 'smile', 'smoke', 'spit', 'step', 'think', 'walk', 'wave', 'wink', 'manga']); break;
                                         case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'textsticker', 'emojimix', 'toimg']); break;
@@ -2124,7 +2124,7 @@ io.on('connection', (socket) => {
         if (!socket.authenticated) return;
         const safeCoins = Math.floor(Number(coins) || 0);
         if (!Number.isSafeInteger(safeCoins) || safeCoins < 1 || safeCoins > 1000000000) {
-            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Niku Coin.' });
+            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Neko Coins.' });
             return;
         }
         const result = createRewardToken(safeCoins);

@@ -1,4 +1,4 @@
-const COIN = '🪙 Niku Coin';
+const COIN = '🪙 Neko Coins';
 const MIN_BET = 200;
 const PREMIUM_SHOP = {
     1: { price: 10000, label: '1 día Premium' },
@@ -37,8 +37,9 @@ const ALIASES = {
     merchant: ['mercader', 'mercado'],
     dungeon: ['dungeon', 'mazmorra', 'mazmorras'],
     mission: ['mission', 'mision', 'misiones'],
+    achievements: ['achievement', 'achievements', 'logro', 'logros'],
     clan: ['clan', 'clanes'],
-    goldtop: ['goldtop', 'orotop', 'toporo', 'riqueza'],
+    coinTop: ['nekotop', 'topcoins', 'coinstop', 'goldtop', 'orotop', 'toporo', 'riqueza'],
     slut: ['slut'],
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
@@ -48,7 +49,7 @@ const ALIASES = {
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
     daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', dungeon: 'mazmorra', mission: 'misiones [nueva]', clan: 'clan <crear|unirse|salir|info>', goldtop: 'orotop', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all>', work: 'work'
 };
 
@@ -116,6 +117,37 @@ function addXp(user, amount = 5) {
     user.rpg.lastXp = now;
     return { gained: amount, levelUp: user.rpg.level > before, level: user.rpg.level };
 }
+const ACHIEVEMENTS = [
+    { id: 'first_steps', title: '🌱 Primeros pasos', test: s => s.commandsUsed >= 1, reward: 500 },
+    { id: 'level_five', title: '⭐ Aventurero nivel 5', test: (s, u) => u.rpg.level >= 5, reward: 2000 },
+    { id: 'miner', title: '⛏️ Minero incansable', test: s => s.mined >= 10, reward: 1500 },
+    { id: 'angler', title: '🎣 Maestro pescador', test: s => s.fished >= 10, reward: 1500 },
+    { id: 'hunter', title: '🏹 Cazador experto', test: s => s.hunted >= 10, reward: 1800 },
+    { id: 'dungeon', title: '🏰 Explorador de mazmorras', test: s => s.dungeonKills >= 50, reward: 3000 },
+    { id: 'mission', title: '📜 Cumplidor de misiones', test: s => s.missionsCompleted >= 1, reward: 2500 },
+    { id: 'clan', title: '⚔️ Fundador de clan', test: s => s.clansCreated >= 1, reward: 2000 }
+];
+function unlockAchievements(user) {
+    user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
+    user.rpg.stats ||= {};
+    user.rpg.achievements ||= {};
+    const unlocked = [];
+    for (const achievement of ACHIEVEMENTS) {
+        if (!user.rpg.achievements[achievement.id] && achievement.test(user.rpg.stats, user)) {
+            user.rpg.achievements[achievement.id] = { unlockedAt: new Date().toISOString(), reward: achievement.reward };
+            user.coins = (Number(user.coins) || 0) + achievement.reward;
+            unlocked.push(`🏆 ${achievement.title} (+${fmt(achievement.reward)} Neko Coins)`);
+        }
+    }
+    return unlocked;
+}
+function addStat(user, key, amount = 1) {
+    user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
+    user.rpg.stats ||= {};
+    user.rpg.stats[key] = (Number(user.rpg.stats[key]) || 0) + amount;
+    return unlockAchievements(user);
+}
+function achievementText(unlocked) { return unlocked?.length ? `\n\n${unlocked.join('\n')}` : ''; }
 function levelBar(user) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
     const level = Math.max(1, Number(user.rpg.level) || 1);
@@ -198,7 +230,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}orotop · Top global de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Crear o unirse\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Crear o unirse\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -210,8 +242,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
     const mention = [jid];
+    const commandAchievements = addStat(user, 'commandsUsed', 1);
     const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
-    if (xpEvent.gained) save();
+    if (xpEvent.gained || commandAchievements.length) save();
 
     if (canonical === 'shop') {
         const selected = Number(args[0]);
@@ -266,7 +299,6 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
 
     if (canonical === 'dungeon') {
         const dungeon = ensureDungeonState(user);
-        if (user.mission?.completed) return reply(sock, chatId, msg, `🎉 Ya completaste tu misión actual de *${user.mission.target} monstruos*.\nUsa *${prefix}misiones nueva* para recibir otra misión.`);
         const mission = ensureMission(user);
         if (dungeon.runs >= 3) return reply(sock, chatId, msg, `🚪 Ya bajaste a la mazmorra *3/3 veces* hoy.\nVuelve mañana para continuar la misión.`);
         const sword = toolState(user, 'espada');
@@ -277,22 +309,37 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const used = consumeTool(user, 'espada');
         dungeon.runs += 1;
         mission.progress += kills;
+        const dungeonAchievements = addStat(user, 'dungeonKills', kills);
         const reward = random(DUNGEON_REWARDS);
         user.coins += reward;
         let completion = '';
+        let missionAchievements = [];
         if (mission.progress >= mission.target) {
             mission.progress = mission.target;
             mission.completed = true;
             user.coins += mission.reward;
-            completion = `\n\n🎉 *¡Misión completada!*\n🎁 Bonus: *${fmt(mission.reward)} ${COIN}*`;
+            missionAchievements = addStat(user, 'missionsCompleted', 1);
+            user.missionHistory ||= [];
+            user.missionHistory.push({ target: mission.target, completedAt: new Date().toISOString(), reward: mission.reward });
+            const completedTarget = mission.target;
+            const nextMission = ensureMission(user, true);
+            completion = `\n\n🎉 *¡Misión completada!*\n🎁 Bonus: *${fmt(mission.reward)} ${COIN}*\n📜 Nueva misión: derrota *${nextMission.target} monstruos*.`;
+            user.lastCompletedMission = completedTarget;
         }
+        const unlocked = [...dungeonAchievements, ...missionAchievements];
         save();
         await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
-        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}`);
+        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}`);
     }
 
     if (canonical === 'level') {
         return reply(sock, chatId, msg, `🧙 *PERFIL RPG*\n\n👤 @${numberOf(jid)}\n⭐ Nivel: *${user.rpg.level}*\n✨ XP total: *${fmt(user.rpg.xp)}*\n${levelBar(user)}`, { mentions: [jid] });
+    }
+
+    if (canonical === 'achievements') {
+        const unlocked = user.rpg.achievements || {};
+        const rows = ACHIEVEMENTS.map(item => `${unlocked[item.id] ? '✅' : '🔒'} ${item.title} · +${fmt(item.reward)} ${COIN}`).join('\n');
+        return reply(sock, chatId, msg, `🏆 *LOGROS RPG*\n\n${rows}\n\nDesbloqueados: *${Object.keys(unlocked).length}/${ACHIEVEMENTS.length}*`);
     }
 
     if (canonical === 'mine' || canonical === 'fish' || canonical === 'hunt') {
@@ -313,12 +360,13 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const used = consumeTool(user, toolKey);
         user.coins += reward;
         user[waitKey] = Date.now();
+        const unlocked = addStat(user, isMine ? 'mined' : isFish ? 'fished' : 'hunted', 1);
         save();
         const frames = isMine
             ? [`⛏️ *${numberOf(jid)}* entra a una mina...`, '⛏️ Rompiendo piedra... ▰▱▱▱▱▱▱▱▱▱', '⛏️ Rompiendo piedra... ▰▰▰▰▰▱▱▱▱▱', `💎 ¡Encontraste ${item}!`]
             : isFish ? [`🎣 *${numberOf(jid)}* lanza la caña...`, '🎣 El agua se mueve... ▰▱▱▱▱▱▱▱▱▱', '🎣 ¡Algo mordió el anzuelo! ▰▰▰▰▰▰▱▱▱▱', `🐟 ¡Pescaste ${item}!`] : [`⚔️ *${numberOf(jid)}* se prepara para cazar...`, '⚔️ Siguiendo huellas... ▰▱▱▱▱▱▱▱▱▱', '⚔️ ¡La presa apareció! ▰▰▰▰▰▰▱▱▱▱', `🏹 ¡Cazaste un ${item}!`];
         await animate(sock, chatId, msg, frames);
-        return reply(sock, chatId, msg, `✅ Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}\n⭐ +${xpEvent.gained || 0} XP`);
+        return reply(sock, chatId, msg, `✅ Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}\n⭐ +${xpEvent.gained || 0} XP${achievementText(unlocked)}`);
     }
 
     if (canonical === 'clan') {
@@ -335,8 +383,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             if (user.coins < creationCost) return reply(sock, chatId, msg, `❌ Crear un clan cuesta *${fmt(creationCost)} ${COIN}*.`);
             user.coins -= creationCost;
             botData.clans[key] = { name: displayName, owner: jid, members: [jid], createdAt: new Date().toISOString() };
+            const unlocked = addStat(user, 'clansCreated', 1);
             save();
-            return reply(sock, chatId, msg, `⚔️ *Clan creado*\n\n🏰 Nombre: *${displayName}*\n💸 Costo: *${fmt(creationCost)} ${COIN}*\n👥 Miembros: *1*`);
+            return reply(sock, chatId, msg, `⚔️ *Clan creado*\n\n🏰 Nombre: *${displayName}*\n💸 Costo: *${fmt(creationCost)} ${COIN}*\n👥 Miembros: *1*${achievementText(unlocked)}`);
         }
         if (['unirse', 'join'].includes(action)) {
             const clan = findClan(botData.clans, args.slice(1).join(' '));
@@ -367,7 +416,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         return reply(sock, chatId, msg, `⚔️ *CLANES*\n\n${listing}\n\nCrear: *${prefix}clan crear <nombre>*\nUnirse: *${prefix}clan unirse <nombre>*\nSalir: *${prefix}clan salir*\nInfo: *${prefix}clan info [nombre]*`);
     }
 
-    if (canonical === 'goldtop') {
+    if (canonical === 'coinTop') {
         const wealth = new Map();
         for (const group of Object.values(botData.economy || {})) {
             for (const [key, value] of Object.entries(group?.users || {})) {
@@ -376,9 +425,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             }
         }
         const rows = [...wealth.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]);
-        if (!rows.length) return reply(sock, chatId, msg, '🏆 Todavía no hay jugadores con oro registrado.');
+        if (!rows.length) return reply(sock, chatId, msg, '🏆 Todavía no hay jugadores con Neko Coins registrados.');
         const text = rows.slice(0, 10).map(([number, total], index) => `${index + 1}. @${number} — *${fmt(total)} ${COIN}*`).join('\n');
-        return reply(sock, chatId, msg, `🏆 *TOP GLOBAL DE ORO*\n\n👥 Jugadores con oro: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
+        return reply(sock, chatId, msg, `🏆 *TOP GLOBAL DE NEKO COINS*\n\n👥 Jugadores con Neko Coins: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
     }
 
     if (canonical === 'balance') {

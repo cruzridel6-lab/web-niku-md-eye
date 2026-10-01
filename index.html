@@ -652,7 +652,7 @@
             <div id="premiumTokenResult" class="premium-token" title="Pulsa para copiar"></div>
           </form>
           <form id="rewardTokenForm" class="premium-card">
-            <label for="rewardTokenCoins">Generar token de regalo · Niku Coin</label>
+            <label for="rewardTokenCoins">Generar token de regalo · Neko Coins</label>
             <input id="rewardTokenCoins" type="number" min="1" max="1000000000" step="1" value="10000" placeholder="Ej.: 10000" required>
             <button class="btn" type="submit"><i class="fas fa-gift"></i> Generar regalo</button>
             <div id="rewardTokenResult" class="premium-token" title="Pulsa para copiar"></div>
@@ -1009,7 +1009,7 @@ rewardTokenResult?.addEventListener('click',()=>{
 socket.on('admin-reward-token',(result={})=>{
   rewardTokenResult.textContent=result.token || '';
   rewardTokenResult.classList.toggle('show',Boolean(result.token));
-  if(result.token) showToast(`Regalo generado: ${Number(result.coins||0).toLocaleString('es-ES')} Niku Coin`);
+  if(result.token) showToast(`Regalo generado: ${Number(result.coins||0).toLocaleString('es-ES')} Neko Coins`);
 });
 socket.on('admin-reward-data',renderRewardData);
 rewardTokensList?.addEventListener('click',(event)=>{
