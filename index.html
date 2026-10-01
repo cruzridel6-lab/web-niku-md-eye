@@ -649,11 +649,18 @@
             <button class="btn" type="submit"><i class="fas fa-key"></i> Generar token</button>
             <div id="premiumTokenResult" class="premium-token" title="Pulsa para copiar"></div>
           </form>
+          <form id="rewardTokenForm" class="premium-card">
+            <label for="rewardTokenCoins">Generar token de regalo · Niku Coin</label>
+            <input id="rewardTokenCoins" type="number" min="1" max="1000000000" step="1" value="10000" placeholder="Ej.: 10000" required>
+            <button class="btn" type="submit"><i class="fas fa-gift"></i> Generar regalo</button>
+            <div id="rewardTokenResult" class="premium-token" title="Pulsa para copiar"></div>
+          </form>
         </div>
         <div id="premiumStatus" class="premium-status" aria-live="polite"></div>
         <div class="premium-lists">
           <div id="premiumUsersList" class="premium-list"><strong>Usuarios Premium</strong>Sin datos todavía.</div>
           <div id="premiumTokensList" class="premium-list"><strong>Tokens generados</strong>Sin datos todavía.</div>
+          <div id="rewardTokensList" class="premium-list"><strong>Tokens de regalo</strong>Sin datos todavía.</div>
         </div>
           </div>
         </div>
@@ -807,9 +814,13 @@ const premiumUserNumber = document.getElementById('premiumUserNumber');
 const premiumTokenForm = document.getElementById('premiumTokenForm');
 const premiumTokenDays = document.getElementById('premiumTokenDays');
 const premiumTokenResult = document.getElementById('premiumTokenResult');
+const rewardTokenForm = document.getElementById('rewardTokenForm');
+const rewardTokenCoins = document.getElementById('rewardTokenCoins');
+const rewardTokenResult = document.getElementById('rewardTokenResult');
 const premiumStatus = document.getElementById('premiumStatus');
 const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
+const rewardTokensList = document.getElementById('rewardTokensList');
 const publicBotsList = document.getElementById('publicBotsList');
 const publicBotsLive = document.getElementById('publicBotsLive');
 const adminActiveSessions = document.getElementById('adminActiveSessions');
@@ -977,6 +988,32 @@ socket.on('admin-premium-status',(result={})=>{
   if(result.ok) premiumUserNumber.value='';
 });
 socket.on('admin-premium-data',renderPremiumData);
+function renderRewardData(data={}){
+  const tokens = data.tokens || [];
+  rewardTokensList.innerHTML='<strong>Tokens de regalo</strong>' + (tokens.length ? tokens.map(token=>{
+    const state = token.claimed ? `✅ reclamado por ${token.claimedBy || 'usuario'}` : '🟡 disponible';
+    return `<div class="premium-list-row"><span>${token.preview} · 🪙 ${Number(token.coins||0).toLocaleString('es-ES')} · ${state}</span><button class="premium-remove" data-reward-token="${token.id}" type="button">Eliminar</button></div>`;
+  }).join('') : 'Sin tokens de regalo.');
+}
+rewardTokenForm?.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  rewardTokenResult.classList.remove('show');
+  socket.emit('admin-reward-generate',{coins:Number(rewardTokenCoins.value)});
+});
+rewardTokenResult?.addEventListener('click',()=>{
+  if(!rewardTokenResult.textContent) return;
+  navigator.clipboard?.writeText(rewardTokenResult.textContent)?.then(()=>showToast('Token de regalo copiado'));
+});
+socket.on('admin-reward-token',(result={})=>{
+  rewardTokenResult.textContent=result.token || '';
+  rewardTokenResult.classList.toggle('show',Boolean(result.token));
+  if(result.token) showToast(`Regalo generado: ${Number(result.coins||0).toLocaleString('es-ES')} Niku Coin`);
+});
+socket.on('admin-reward-data',renderRewardData);
+rewardTokensList?.addEventListener('click',(event)=>{
+  const button=event.target.closest('[data-reward-token]');
+  if(button && confirm('¿Eliminar este token de regalo?')) socket.emit('admin-reward-remove-token',{id:button.dataset.rewardToken});
+});
 premiumUsersList?.addEventListener('click',(event)=>{
   const button=event.target.closest('[data-premium-user]');
   if(button && confirm(`¿Quitar Premium a ${button.dataset.premiumUser}?`)) socket.emit('admin-premium-remove-user',{jid:button.dataset.premiumUser});

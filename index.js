@@ -342,6 +342,25 @@ function hashPremiumToken(token) {
     return crypto.createHash('sha256').update(String(token || '').trim()).digest('hex');
 }
 
+function hashRewardToken(token) {
+    return crypto.createHash('sha256').update(String(token || '').trim().toUpperCase()).digest('hex');
+}
+
+function createRewardToken(coins = 1000) {
+    const safeCoins = Math.min(1000000000, Math.max(1, Math.floor(Number(coins) || 0)));
+    const token = `NIKU-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+    const id = hashRewardToken(token);
+    botData.rewardTokens[id] = {
+        preview: `${token.slice(0, 10)}…`,
+        coins: safeCoins,
+        createdAt: new Date().toISOString(),
+        claimedBy: null,
+        claimedAt: null
+    };
+    saveBotData();
+    return { token, coins: safeCoins };
+}
+
 function createPremiumToken(days = 30) {
     const safeDays = Math.min(3650, Math.max(1, Number(days) || 30));
     const token = `NIKU-${crypto.randomBytes(15).toString('hex').toUpperCase()}`;
@@ -371,6 +390,18 @@ function premiumSnapshot() {
         claimed: Boolean(token.claimedBy)
     })).slice(-100).reverse();
     return { users, tokens };
+}
+
+function rewardSnapshot() {
+    const tokens = Object.entries(botData.rewardTokens || {}).map(([id, token]) => ({
+        id,
+        preview: token.preview,
+        coins: Number(token.coins) || 0,
+        createdAt: token.createdAt,
+        claimed: Boolean(token.claimedBy),
+        claimedBy: token.claimedBy || null
+    })).slice(-100).reverse();
+    return { tokens };
 }
 
 // Owner check for Telegram
@@ -633,6 +664,7 @@ function loadBotDataFromDisk() {
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
+    if (!botData.rewardTokens || typeof botData.rewardTokens !== 'object' || Array.isArray(botData.rewardTokens)) botData.rewardTokens = {};
     if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
     for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
@@ -1305,6 +1337,41 @@ class BotSession {
                                             await this.sock.sendMessage(from, { text: `✅ Usted ha reclamado su Premium.\n\n🎉 Ahora es usuario Premium.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Acceso concedido hasta el: *${grantedUntil}*\n\n✨ Ya puede usar los comandos Premium.` }, { quoted: msg });
                                             break;
                                         }
+                                        case 'reward': case 'regalo': case 'premio': {
+                                            const tokenText = String(args[0] || '').trim().toUpperCase();
+                                            const reward = botData.rewardTokens[hashRewardToken(tokenText)];
+                                            const claimJid = normalizePremiumJid(sender);
+                                            if (!tokenText) {
+                                                await this.sock.sendMessage(from, { text: '🎁 Usa *.regalo <token>* o *.premio <token>* para reclamar tu recompensa.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (!reward || reward.claimedBy) {
+                                                await this.sock.sendMessage(from, { text: '❌ Ese token de regalo no existe o ya fue utilizado.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            if (!claimJid) {
+                                                await this.sock.sendMessage(from, { text: '❌ No pude identificar tu número de WhatsApp.' }, { quoted: msg });
+                                                break;
+                                            }
+                                            botData.economy[from] ||= { users: {} };
+                                            botData.economy[from].users ||= {};
+                                            botData.economy[from].users[claimJid] ||= { coins: 0, bank: 0, lastSeen: 0 };
+                                            const wallet = botData.economy[from].users[claimJid];
+                                            wallet.coins = Math.max(0, Number(wallet.coins) || 0);
+                                            wallet.bank = Math.max(0, Number(wallet.bank) || 0);
+                                            const coins = Math.max(1, Math.floor(Number(reward.coins) || 0));
+                                            wallet.coins += coins;
+                                            reward.claimedBy = claimJid;
+                                            reward.claimedAt = new Date().toISOString();
+                                            saveBotData();
+                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*
+
+🪙 Recibiste: *${coins.toLocaleString('es-ES')} Niku Coin*
+💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Niku Coin*
+
+✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
+                                            break;
+                                        }
                                         case 'book':
                                             await this.sock.sendMessage(from, { text: '📚 *BOOK PREMIUM*\n\n🔐 Tu cuenta tiene acceso a funciones exclusivas.\n\n👤 .owner\n🛠️ .toolsmenu\n👑 .ownermenu\n🐛 .bugmenu\n\nUsa *.menu* para volver al menú principal.' }, { quoted: msg });
                                             break;
@@ -1317,11 +1384,11 @@ class BotSession {
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
-                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
+                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'einfo']); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
-                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'einfo']); break;
+                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · ECONOMÍA', ['balance', 'baltop', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'einfo']); break;
                                         case 'economy': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
@@ -2000,6 +2067,7 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-success');
             socket.emit('admin-chat-history', adminChatLogs.slice(-200));
             socket.emit('admin-premium-data', premiumSnapshot());
+            socket.emit('admin-reward-data', rewardSnapshot());
             socket.emit('admin-bots-data', botsSnapshot());
         } else {
             socket.adminAttempts = (socket.adminAttempts || 0) + 1;
@@ -2035,6 +2103,36 @@ io.on('connection', (socket) => {
     socket.on('admin-premium-data', () => {
         if (!socket.authenticated) return;
         socket.emit('admin-premium-data', premiumSnapshot());
+    });
+
+    socket.on('admin-reward-generate', ({ coins } = {}) => {
+        if (!socket.authenticated) return;
+        const safeCoins = Math.floor(Number(coins) || 0);
+        if (!Number.isSafeInteger(safeCoins) || safeCoins < 1 || safeCoins > 1000000000) {
+            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Niku Coin.' });
+            return;
+        }
+        const result = createRewardToken(safeCoins);
+        socket.emit('admin-reward-token', result);
+        socket.emit('admin-premium-status', { ok: true, message: 'Token de regalo generado. Cópialo y entrégaselo al usuario.' });
+        socket.emit('admin-reward-data', rewardSnapshot());
+    });
+
+    socket.on('admin-reward-data', () => {
+        if (!socket.authenticated) return;
+        socket.emit('admin-reward-data', rewardSnapshot());
+    });
+
+    socket.on('admin-reward-remove-token', ({ id } = {}) => {
+        if (!socket.authenticated) return;
+        if (!id || !botData.rewardTokens[id]) {
+            socket.emit('admin-premium-status', { ok: false, message: 'No se encontró ese token de regalo.' });
+            return;
+        }
+        delete botData.rewardTokens[id];
+        saveBotData();
+        socket.emit('admin-premium-status', { ok: true, message: 'Token de regalo eliminado correctamente.' });
+        socket.emit('admin-reward-data', rewardSnapshot());
     });
 
     socket.on('admin-promote-channel', async () => {
