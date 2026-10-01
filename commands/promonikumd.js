@@ -1,4 +1,4 @@
-const DEFAULT_MESSAGE = `📢 *NIKU MD — Canal oficial*\n\nÚnete al canal oficial de WhatsApp para recibir novedades, actualizaciones y avisos del bot:\n\n🔗 https://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l\n\n✨ NIKU MD • Comunidad oficial`;
+const DEFAULT_MESSAGE = `📢 *NIKUBOT MD*\n\n🤖 Novedades, actualizaciones y herramientas para tu WhatsApp.\n\n🔗 *Únete al canal oficial:*\nhttps://whatsapp.com/channel/0029Vb5s0hbADTO8E0xtQI1l\n\n✨ ¡No te pierdas nada!`;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
