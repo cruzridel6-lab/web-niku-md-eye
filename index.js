@@ -789,7 +789,7 @@ function adminUsersSnapshot() {
     for (const [jid, profile] of Object.entries(botData.profiles || {})) {
         const number = publicNumber(jid);
         if (!number || !profile?.registered) continue;
-        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, achievements: new Map(), items: new Map() });
+        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, level: 1, xp: 0, achievements: new Map(), items: new Map() });
     }
     for (const state of Object.values(botData.economy || {})) {
         for (const [jid, wallet] of Object.entries(state?.users || {})) {
@@ -797,6 +797,8 @@ function adminUsersSnapshot() {
             if (!item) continue;
             item.coins += Math.max(0, Number(wallet?.coins) || 0);
             item.bank += Math.max(0, Number(wallet?.bank) || 0);
+            item.level = Math.max(item.level, Math.floor(Number(wallet?.rpg?.level) || 1));
+            item.xp = Math.max(item.xp, Math.floor(Number(wallet?.rpg?.xp) || 0));
             Object.entries(wallet?.rpg?.achievements || {}).forEach(([id, entry]) => {
                 const meta = achievementCatalog.find(value => value.id === id) || { id, title: id, reward: Number(entry?.reward) || 0 };
                 item.achievements.set(id, { id, title: meta.title, reward: meta.reward, unlockedAt: entry?.unlockedAt || null });
@@ -810,7 +812,7 @@ function adminUsersSnapshot() {
         }
     }
     const rows = [...users.values()]
-        .map(item => ({ number: item.number, name: item.name, coins: item.coins, bank: item.bank, total: item.coins + item.bank, achievements: [...item.achievements.values()], items: [...item.items.values()] }))
+        .map(item => ({ number: item.number, name: item.name, coins: item.coins, bank: item.bank, total: item.coins + item.bank, level: item.level, xp: item.xp, achievements: [...item.achievements.values()], items: [...item.items.values()] }))
         .sort((a, b) => b.total - a.total || b.achievements.length - a.achievements.length || a.name.localeCompare(b.name, 'es'));
     return { users: rows, achievements: achievementCatalog, items: itemCatalog };
 }
@@ -2223,6 +2225,21 @@ io.on('connection', (socket) => {
         if (!socket.authenticated) return;
         emitAdminUsers(socket);
     });
+    socket.on('admin-user-rename', ({ number, name } = {}) => {
+        if (!socket.authenticated) return;
+        const target = String(number || '').replace(/\D/g, '');
+        const nextName = String(name || '').trim().replace(/\s+/g, ' ');
+        const normalized = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!target || nextName.length < 2 || nextName.length > 32) return adminUserStatus(socket, 'El nombre debe tener entre 2 y 32 caracteres.', false);
+        const wanted = normalized(nextName);
+        const conflict = Object.entries(botData.profiles || {}).some(([jid, profile]) => publicNumber(jid) !== target && profile?.registered && profile?.name && (normalized(profile.name) === wanted || normalized(profile.name).includes(wanted) || wanted.includes(normalized(profile.name))));
+        if (conflict) return adminUserStatus(socket, 'Ese nombre ya está ocupado o es demasiado parecido a otro usuario.', false);
+        let changed = false;
+        for (const [jid, profile] of Object.entries(botData.profiles || {})) if (publicNumber(jid) === target) { profile.name = nextName; changed = true; }
+        if (!changed) return adminUserStatus(socket, 'No se encontró el perfil de ese usuario.', false);
+        saveBotData();
+        return adminUserStatus(socket, `Nombre actualizado a ${nextName}.`);
+    });
     socket.on('admin-user-adjust-balance', ({ number, wallet = 'coins', action = 'add', amount } = {}) => {
         if (!socket.authenticated) return;
         const target = String(number || '').replace(/\D/g, '');
@@ -2321,6 +2338,9 @@ io.on('connection', (socket) => {
                 if (publicNumber(key) === target) { delete state.users[key]; deleted = true; }
             }
         }
+        for (const key of Object.keys(botData.premiumUsers || {})) if (publicNumber(key) === target) { delete botData.premiumUsers[key]; deleted = true; }
+        for (const key of Object.keys(botData.userNames || {})) if (publicNumber(key) === target) { delete botData.userNames[key]; deleted = true; }
+        for (const clan of Object.values(botData.clans || {})) if (Array.isArray(clan?.members)) clan.members = clan.members.filter(jid => publicNumber(jid) !== target);
         if (!deleted) {
             socket.emit('admin-users-status', { ok: false, message: 'No se encontró ese usuario.' });
             return;

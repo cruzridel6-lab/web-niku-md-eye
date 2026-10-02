@@ -536,6 +536,7 @@
     <div class="rpg-modal-body">
       <div id="adminUserModalStats" class="quick-strip"></div><div class="rpg-divider"></div>
       <div class="rpg-admin-grid">
+        <div class="rpg-control-card"><h4><i class="fas fa-id-card"></i> Identidad</h4><form id="adminProfileForm"><input id="adminProfileName" type="text" minlength="2" maxlength="32" placeholder="Nombre del personaje" required><button class="btn" type="submit">Guardar nombre</button></form></div>
         <div class="rpg-control-card"><h4><i class="fas fa-coins"></i> Economía</h4><form id="adminBalanceForm"><select id="adminBalanceWallet"><option value="coins">Neko Coins</option><option value="bank">Banco</option></select><select id="adminBalanceAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><input id="adminBalanceAmount" type="number" min="1" step="1" placeholder="Cantidad" required><button class="btn" type="submit">Aplicar saldo</button></form></div>
         <div class="rpg-control-card"><h4><i class="fas fa-box-open"></i> Objetos</h4><form id="adminItemForm"><select id="adminItemId"></select><select id="adminItemAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><button class="btn" type="submit">Aplicar objeto</button></form><div id="adminItemsCollection" class="rpg-collection"></div></div>
       </div>
@@ -899,6 +900,8 @@ const adminPendingUsers = document.getElementById('adminPendingUsers');
   const adminUserModalSubtitle = document.getElementById('adminUserModalSubtitle');
   const adminUserDeleteButton = document.getElementById('adminUserDeleteButton');
   const adminUserModalStats = document.getElementById('adminUserModalStats');
+  const adminProfileForm = document.getElementById('adminProfileForm');
+  const adminProfileName = document.getElementById('adminProfileName');
   const adminBalanceForm = document.getElementById('adminBalanceForm');
   const adminItemForm = document.getElementById('adminItemForm');
   const adminItemId = document.getElementById('adminItemId');
@@ -966,13 +969,14 @@ function renderAdminUsers(data={}){
   adminUsersState=data || {users:[],achievements:[],items:{}};
   const users=adminUsersState.users || [];
   if(!users.length){ adminUsersList.innerHTML='<div class="console-empty">No hay usuarios registrados.</div>'; return; }
-  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">🪙 ${Number(user.total||0).toLocaleString('es-ES')} total<br>🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
+  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">🛡️ Nivel ${Number(user.level||1)} · 🪙 ${Number(user.total||0).toLocaleString('es-ES')} total<br>🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
   if(selectedAdminUser && adminUserModal?.classList.contains('active')) openAdminUser(selectedAdminUser.number);
 }
 function openAdminUser(number){
   const user=(adminUsersState.users||[]).find(item=>item.number===number); if(!user||!adminUserModal) return;
   selectedAdminUser=user; adminUserModalTitle.textContent=`Gestionar ${user.name}`; adminUserModalSubtitle.textContent=`Aventurero · +${user.number}`;
-  adminUserModalStats.innerHTML=`<div class="quick-item"><i class="fas fa-coins"></i>${Number(user.coins||0).toLocaleString('es-ES')} efectivo</div><div class="quick-item"><i class="fas fa-vault"></i>${Number(user.bank||0).toLocaleString('es-ES')} banco</div><div class="quick-item"><i class="fas fa-trophy"></i>${(user.achievements||[]).length} logros</div>`;
+  adminProfileName.value=user.name||'';
+  adminUserModalStats.innerHTML=`<div class="quick-item"><i class="fas fa-shield-halved"></i>Nivel ${Number(user.level||1)}</div><div class="quick-item"><i class="fas fa-coins"></i>${Number(user.coins||0).toLocaleString('es-ES')} efectivo</div><div class="quick-item"><i class="fas fa-vault"></i>${Number(user.bank||0).toLocaleString('es-ES')} banco</div><div class="quick-item"><i class="fas fa-trophy"></i>${(user.achievements||[]).length} logros</div>`;
   adminItemId.innerHTML=Object.entries(adminUsersState.items||{}).map(([id,item])=>`<option value="${escapeAdminHtml(id)}">${escapeAdminHtml(item.name)}</option>`).join('');
   const unlocked=new Map((user.achievements||[]).map(item=>[item.id,item]));
   adminAchievementsCollection.innerHTML=(adminUsersState.achievements||[]).map(item=>{const has=unlocked.has(item.id);return `<div class="rpg-collection-row ${has?'':'locked'}"><span><span class="achievement-icon">${has?'🏆':'🔒'}</span>${escapeAdminHtml(item.title)} <small>+${Number(item.reward||0).toLocaleString('es-ES')}</small></span><button class="${has?'remove':''}" type="button" data-achievement-action="${has?'remove':'add'}" data-achievement-id="${escapeAdminHtml(item.id)}">${has?'Quitar':'Agregar'}</button></div>`;}).join('');
@@ -1056,6 +1060,7 @@ adminUsersList?.addEventListener('click',(event)=>{
 adminUserModalClose?.addEventListener('click',closeAdminUser);
 adminUserDeleteButton?.addEventListener('click',()=>{ if(selectedAdminUser&&confirm(`¿Eliminar definitivamente el perfil de ${selectedAdminUser.name} y todos sus datos RPG?`)){ socket.emit('admin-user-delete',{number:selectedAdminUser.number}); closeAdminUser(); } });
 adminUserModal?.addEventListener('click',(event)=>{ if(event.target===adminUserModal) closeAdminUser(); });
+adminProfileForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(selectedAdminUser) socket.emit('admin-user-rename',{number:selectedAdminUser.number,name:adminProfileName.value}); });
 adminBalanceForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(!selectedAdminUser) return; const amount=Number(document.getElementById('adminBalanceAmount').value); socket.emit('admin-user-adjust-balance',{number:selectedAdminUser.number,wallet:document.getElementById('adminBalanceWallet').value,action:document.getElementById('adminBalanceAction').value,amount}); });
 adminItemForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(!selectedAdminUser) return; socket.emit('admin-user-item',{number:selectedAdminUser.number,item:adminItemId.value,action:document.getElementById('adminItemAction').value}); });
 adminAchievementsCollection?.addEventListener('click',(event)=>{ const button=event.target.closest('[data-achievement-id]'); if(button&&selectedAdminUser) socket.emit('admin-user-achievement',{number:selectedAdminUser.number,achievementId:button.dataset.achievementId,action:button.dataset.achievementAction}); });
