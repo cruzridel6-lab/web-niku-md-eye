@@ -723,27 +723,7 @@ const sessions = {};
 const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
-const adminChatLogs = [];
 const publicRewardEvents = [];
-
-function publishAdminChatMessage(entry) {
-    if (!entry?.isGroup) return;
-    const cleanEntry = {
-        id: entry.id,
-        sessionId: entry.sessionId,
-        chatId: entry.chatId,
-        chatName: entry.chatName || entry.chatId,
-        sender: entry.sender || 'Desconocido',
-        text: entry.text || '',
-        type: entry.type || 'conversation',
-        isGroup: Boolean(entry.isGroup),
-        fromMe: Boolean(entry.fromMe),
-        timestamp: entry.timestamp || new Date().toISOString()
-    };
-    adminChatLogs.push(cleanEntry);
-    if (adminChatLogs.length > 200) adminChatLogs.shift();
-    io.emit('group-chat-message', cleanEntry);
-}
 
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
@@ -955,7 +935,6 @@ class BotSession {
         this.processedMessages = new Set();
         this.activeInterval = null;
         this.isInitializing = false;
-        this.userChats = {};
         this.lastConnectMessageTime = null;
         this.phoneNumber = null;
         this.ghostMode = false;
@@ -1219,30 +1198,6 @@ class BotSession {
                         if (this.processedMessages.has(msgId)) return;
                         this.processedMessages.add(msgId);
                         if (this.processedMessages.size > 1000) this.processedMessages.delete(this.processedMessages.values().next().value);
-                        if (!isStatus) {
-                            const senderJid = msg.key.participant || (isMe ? this.sock.user?.id : from);
-                            let chatName = this.userChats?.[from]?.name || from;
-                            if (isGroup && !this.userChats?.[from]?.name) {
-                                try {
-                                    const metadata = await this.sock.groupMetadata(from);
-                                    chatName = metadata.subject || from;
-                                    this.userChats[from] = { name: chatName };
-                                } catch (e) {}
-                            }
-                            publishAdminChatMessage({
-                                id: msgId,
-                                sessionId: this.userId,
-                                chatId: from,
-                                chatName,
-                                sender: msg.pushName || senderJid,
-                                text: text || `[${type.replace('Message', '') || 'mensaje'}]`,
-                                type,
-                                isGroup,
-                                fromMe: isMe,
-                                timestamp: new Date(Number(msg.messageTimestamp || Date.now()) * 1000 || Date.now()).toISOString()
-                            });
-                        }
-
                         if (!isStatus) {
                             let logEntry = { text, type };
                             if (['imageMessage', 'videoMessage', 'audioMessage'].includes(type)) {
@@ -2154,7 +2109,6 @@ function generateMenuText(userName, session) {
 // =================== SOCKET.IO ===================
 io.on('connection', (socket) => {
     socket.emit('stats', getDashboardStats());
-    socket.emit('group-chat-history', adminChatLogs.slice(-200));
     socket.emit('public-leaderboard', publicLeaderboardSnapshot());
 
     // Admin auth

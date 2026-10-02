@@ -113,7 +113,7 @@
     display:flex;justify-content:space-between;align-items:center;
   }
   .modal-head h2{font-size:1rem;letter-spacing:1px;color:var(--green);font-weight:600;}
-  .modal-head h2::before{content:"root@syed:~$ ";color:var(--muted);}
+  .modal-head h2::before{content:"root@niku:~$ ";color:var(--muted);}
   .modal-close{background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;line-height:1;}
   .modal-close:hover{color:var(--green);}
   .modal-body{padding:22px;}
@@ -402,12 +402,9 @@
   .console-line.group{border-left:2px solid var(--violet);}
   .console-line.private{border-left:2px solid var(--green);}
   .console-time{color:var(--muted);margin-right:8px;}
-  .console-chat{color:var(--amber);}
   .console-sender{color:var(--green);font-weight:700;}
   .console-empty{color:var(--muted);padding:30px;text-align:center;}
-  .public-chat-card{margin-top:16px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);box-shadow:0 12px 30px rgba(0,0,0,.18);}
-  .public-chat-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}.public-chat-head h3{font-size:.9rem;color:var(--text);}.public-chat-head p{color:var(--muted);font-size:.68rem;margin-top:4px;}.public-chat-live{color:var(--green);font-size:.64rem;font-weight:800;white-space:nowrap;}
-  .public-chat-output{height:300px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.74rem;}
+  .public-events-card{margin-top:16px;padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);box-shadow:0 12px 30px rgba(0,0,0,.18);}.public-events-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}.public-events-head h3{font-size:.9rem;color:var(--text);}.public-events-head p{color:var(--muted);font-size:.68rem;margin-top:4px;}.public-events-live{color:var(--green);font-size:.64rem;font-weight:800;white-space:nowrap;}
   .public-board-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px;}.public-board-card{padding:18px;border:1px solid var(--border);border-radius:16px;background:rgba(7,10,22,.72);}.public-board-card h3{font-size:.9rem;color:var(--text);margin-bottom:4px;}.public-board-card p{font-size:.68rem;color:var(--muted);margin-bottom:12px;}.public-board-list{display:grid;gap:7px;}.public-board-row{display:flex;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid rgba(154,177,225,.1);border-radius:9px;color:var(--text);font-size:.7rem;}.public-board-row strong{color:var(--green);}.public-board-empty{color:var(--muted);font-size:.7rem;padding:10px 0;}.public-events{margin-top:16px;}.public-events-output{height:150px;overflow:auto;border:1px solid var(--border);border-radius:14px;background:#050811;padding:12px;font-family:'Share Tech Mono',monospace;font-size:.72rem;}@media(max-width:620px){.public-board-grid{grid-template-columns:1fr;}}
   .premium-admin{margin-top:22px;padding-top:22px;border-top:1px solid var(--border);}
   .premium-admin h3{color:var(--green);font-size:.95rem;margin-bottom:14px;}
@@ -521,9 +518,9 @@
     <a class="btn btn-outline" href="#features"><i class="fas fa-compass"></i> Explorar funciones</a>
   </div>
   <div class="quick-strip" aria-label="Ventajas principales">
-    <div class="quick-item"><i class="fas fa-bolt"></i>Panel sencillo</div>
-    <div class="quick-item"><i class="fas fa-chart-line"></i>Estado en tiempo real</div>
-    <div class="quick-item"><i class="fas fa-mobile-screen-button"></i>Diseñado para móvil</div>
+    <div class="quick-item"><i class="fas fa-bolt"></i>Bot NIKU MD activo</div>
+    <div class="quick-item"><i class="fas fa-coins"></i>Economía Neko Coins</div>
+    <div class="quick-item"><i class="fas fa-trophy"></i>RPG, clanes y logros</div>
   </div>
 
   <div class="stats-row">
@@ -534,15 +531,11 @@
     <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
     <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
   </div>
-  <div class="public-chat-card" aria-live="polite">
-    <div class="public-chat-head"><div><h3><i class="fas fa-comments"></i> Actividad de grupos</h3><p>Mensajes grupales recibidos por los bots en tiempo real.</p></div><span class="public-chat-live">● SOLO GRUPOS · <span id="publicGroupChatCount">0</span></span></div>
-    <div id="publicGroupChatOutput" class="public-chat-output"><div class="console-empty">Esperando actividad de grupos...</div></div>
-  </div>
   <div class="public-board-grid">
     <div class="public-board-card"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
     <div class="public-board-card"><h3><i class="fas fa-coins"></i> Top de Neko Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
   </div>
-  <div class="public-chat-card public-events"><div class="public-chat-head"><div><h3><i class="fas fa-bolt"></i> Recompensas en vivo</h3><p>Actualizaciones automáticas cuando alguien gana coins o desbloquea un logro.</p></div><span class="public-chat-live">● EN VIVO</span></div><div id="publicRewardEvents" class="public-events-output"><div class="console-empty">Esperando nuevas recompensas...</div></div></div>
+  <div class="public-events-card"><div class="public-events-head"><div><h3><i class="fas fa-bolt"></i> Recompensas en vivo</h3><p>Actualizaciones automáticas cuando alguien gana coins o desbloquea un logro.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicRewardEvents" class="public-events-output"><div class="console-empty">Esperando nuevas recompensas...</div></div></div>
 </header>
 
 <main>
@@ -636,7 +629,6 @@
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-link"></i> Sesiones activas</span><strong id="adminActiveSessions" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-users"></i> Usuarios conectados</span><strong id="adminConnectedUsers" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-hourglass-half"></i> Pendientes</span><strong id="adminPendingUsers" class="admin-kpi-value">0</strong></div>
-        <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-comments"></i> Mensajes grupales</span><strong id="adminMessageCountKpi" class="admin-kpi-value">0</strong></div>
       </div>
       <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
       <div class="admin-console-grid">
@@ -782,13 +774,13 @@ const channelModal = document.getElementById('channelModal');
 const modalClose = document.getElementById('modalClose');
 const confirmFollow = document.getElementById('confirmFollow');
 window.addEventListener('load', ()=>{
-  if(!localStorage.getItem('syed_followed_channels')){
+  if(!localStorage.getItem('niku_followed_channels')){
     setTimeout(()=>channelModal.classList.add('active'), 1200);
   }
 });
 modalClose.addEventListener('click', ()=>channelModal.classList.remove('active'));
 confirmFollow.addEventListener('click', ()=>{
-  localStorage.setItem('syed_followed_channels','1');
+  localStorage.setItem('niku_followed_channels','1');
   channelModal.classList.remove('active');
 });
 
@@ -819,8 +811,6 @@ const adminConsole = document.getElementById('adminConsole');
 const adminUsername = document.getElementById('adminUsername');
 const adminPassword = document.getElementById('adminPassword');
 const adminStatus = document.getElementById('adminStatus');
-const publicGroupChatOutput = document.getElementById('publicGroupChatOutput');
-const publicGroupChatCount = document.getElementById('publicGroupChatCount');
 const premiumUserForm = document.getElementById('premiumUserForm');
 const premiumUserNumber = document.getElementById('premiumUserNumber');
 const premiumTokenForm = document.getElementById('premiumTokenForm');
@@ -841,12 +831,10 @@ const publicRewardEvents = document.getElementById('publicRewardEvents');
 const adminActiveSessions = document.getElementById('adminActiveSessions');
 const adminConnectedUsers = document.getElementById('adminConnectedUsers');
 const adminPendingUsers = document.getElementById('adminPendingUsers');
-const adminMessageCountKpi = document.getElementById('adminMessageCountKpi');
 const adminLiveState = document.getElementById('adminLiveState');
 const adminLogout = document.getElementById('adminLogout');
 const adminBotsList = document.getElementById('adminBotsList');
 const adminPromoButton = document.getElementById('adminPromoButton');
-const groupMessages = new Map();
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
   document.body.classList.toggle('admin-route', isAdminRoute);
@@ -858,39 +846,6 @@ function updateAdminRoute(){
 }
 updateAdminRoute();
 window.addEventListener('hashchange', updateAdminRoute);
-function renderGroupChatMessage(entry){
-  if(!entry?.id || !entry.isGroup || groupMessages.has(entry.id)) return;
-  groupMessages.set(entry.id,entry);
-  const empty = publicGroupChatOutput.querySelector('.console-empty');
-  if(empty) empty.remove();
-  const line = document.createElement('div');
-  line.className = `console-line ${entry.isGroup ? 'group' : 'private'}`;
-  const date = entry.timestamp ? new Date(entry.timestamp) : new Date();
-  const time = document.createElement('span');
-  time.className='console-time';
-  time.textContent=`[${date.toLocaleTimeString('es-ES')}]`;
-  const chat = document.createElement('span');
-  chat.className='console-chat';
-  chat.textContent=`${entry.isGroup ? 'GRUPO' : 'CHAT'} ${entry.chatName || entry.chatId}: `;
-  const sender = document.createElement('span');
-  sender.className='console-sender';
-  sender.textContent=`${entry.sender || 'Usuario'}${entry.fromMe ? ' (BOT)' : ''}: `;
-  const message = document.createElement('span');
-  message.textContent=entry.text || `[${entry.type || 'mensaje'}]`;
-  line.append(time,chat,sender,message);
-  publicGroupChatOutput.appendChild(line);
-  publicGroupChatOutput.scrollTop=publicGroupChatOutput.scrollHeight;
-  if(publicGroupChatCount) publicGroupChatCount.textContent=groupMessages.size;
-  if(adminMessageCountKpi) adminMessageCountKpi.textContent=groupMessages.size;
-}
-function renderGroupChatHistory(entries=[]){
-  groupMessages.clear();
-  publicGroupChatOutput.innerHTML='';
-  entries.filter(entry=>entry?.isGroup).forEach(renderGroupChatMessage);
-  if(!groupMessages.size) publicGroupChatOutput.innerHTML='<div class="console-empty">Esperando actividad de grupos...</div>';
-  if(publicGroupChatCount) publicGroupChatCount.textContent=groupMessages.size;
-  if(adminMessageCountKpi) adminMessageCountKpi.textContent=groupMessages.size;
-}
 function renderPublicLeaderboard(data={}){
   const achievements=data.achievements||[], coins=data.coins||[];
   if(publicAchievementsBoard) publicAchievementsBoard.innerHTML=achievements.length ? achievements.map(item=>`<div class="public-board-row"><span>${item.position}. ${escapeAdminHtml(item.player)}</span><strong>🏆 ${Number(item.count||0)} logros</strong></div>`).join('') : '<div class="public-board-empty">Aún no hay logros registrados.</div>';
@@ -973,8 +928,6 @@ adminLogout?.addEventListener('click',()=>{
   socket.disconnect();
   window.location.href='/admin';
 });
-socket.on('group-chat-history',renderGroupChatHistory);
-socket.on('group-chat-message',renderGroupChatMessage);
 socket.on('public-leaderboard',renderPublicLeaderboard);
 socket.on('public-reward-event',renderPublicRewardEvent);
 socket.on('admin-bots-data',renderAdminBots);
