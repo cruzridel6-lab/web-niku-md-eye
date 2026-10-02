@@ -654,3 +654,5 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
 module.exports = runEconomy;
 module.exports.aliases = ALIASES;
 module.exports.menu = menu;
+module.exports.achievements = ACHIEVEMENTS.map(({ id, title, reward }) => ({ id, title, reward }));
+module.exports.items = Object.fromEntries(Object.entries(MERCHANT_ITEMS).map(([key, item]) => [key, { name: item.name, durability: item.durability }]));

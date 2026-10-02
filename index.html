@@ -457,6 +457,30 @@
   @media(max-width:768px){.comment-form{grid-template-columns:1fr;}.comment-form .btn{width:100%;}.comment-meta{flex-direction:column;gap:2px;}}
   @media(max-width:768px){.quick-strip,.steps-grid{grid-template-columns:1fr;}}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;}}
+  /* ---------- RPG impact layer ---------- */
+  body{background:radial-gradient(circle at 50% -10%,rgba(115,71,255,.2),transparent 34%),linear-gradient(160deg,#070612 0%,#0b0717 48%,#05070e 100%);}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(115deg,transparent 0 42%,rgba(255,211,105,.035) 50%,transparent 58%);animation:worldScan 13s ease-in-out infinite;}
+  @keyframes worldScan{0%,100%{transform:translateX(-30%);opacity:.25;}50%{transform:translateX(30%);opacity:.8;}}
+  .brand .mark{border-color:rgba(244,200,102,.5);box-shadow:0 0 22px rgba(244,200,102,.18);}
+  .hero-banner{border-color:rgba(184,162,255,.42);box-shadow:0 28px 100px rgba(0,0,0,.6),0 0 60px rgba(115,71,255,.2);}
+  .hero-banner img{filter:saturate(1.2) contrast(1.06);}
+  header h1{background:linear-gradient(100deg,#fff5cf 10%,#f4c866 44%,#ff5b61 72%,#b8a2ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 32px rgba(244,200,102,.2);}
+  .eyebrow{border-color:rgba(244,200,102,.4);box-shadow:inset 0 0 20px rgba(244,200,102,.04),0 0 25px rgba(115,71,255,.12);}
+  .stat-card,.public-bots-panel,.public-board-card,.public-events-card{border-color:rgba(184,162,255,.25);background:linear-gradient(145deg,rgba(25,19,47,.84),rgba(8,11,22,.78));box-shadow:0 18px 50px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.04);}
+  .public-board-card{position:relative;overflow:hidden;}.public-board-card::before{content:"✦";position:absolute;right:18px;top:8px;color:var(--gold);font-size:2rem;opacity:.18;animation:starOrbit 5s ease-in-out infinite;}
+  @keyframes starOrbit{50%{transform:translateY(8px) rotate(18deg);opacity:.6;}}
+  .public-board-row{background:rgba(255,255,255,.025);border-color:rgba(184,162,255,.16);transition:.25s;}.public-board-row:hover{transform:translateX(5px);border-color:rgba(244,200,102,.6);background:rgba(244,200,102,.07);}
+  .achievement-icon{display:inline-grid;place-items:center;width:28px;height:28px;margin-right:8px;border-radius:10px;background:linear-gradient(145deg,rgba(244,200,102,.28),rgba(184,162,255,.18));color:#ffe7a1;box-shadow:0 0 16px rgba(244,200,102,.25);animation:achievementFloat 2.8s ease-in-out infinite;vertical-align:middle;}
+  .achievement-icon:nth-child(2n){animation-delay:.45s;}.achievement-icon:nth-child(3n){animation-delay:.9s;}
+  @keyframes achievementFloat{0%,100%{transform:translateY(0) rotate(-4deg);filter:brightness(1);}50%{transform:translateY(-5px) rotate(4deg);filter:brightness(1.35);}}
+  .quick-item,.step-card,.feature-item,.official-card{border-color:rgba(184,162,255,.22);background:linear-gradient(145deg,rgba(31,22,57,.5),rgba(255,255,255,.018));}
+  section.panel{border-color:rgba(184,162,255,.23);background:linear-gradient(145deg,rgba(21,16,39,.83),rgba(8,11,22,.88));}
+  section.panel h2{color:#ffe4a1;text-shadow:0 0 18px rgba(244,200,102,.18);}
+  .rpg-divider{height:1px;margin:20px 0;background:linear-gradient(90deg,transparent,rgba(244,200,102,.65),rgba(184,162,255,.5),transparent);}
+  .rpg-admin-modal{max-width:720px;max-height:88vh;overflow:auto;background:linear-gradient(145deg,#17102c,#090b17);border-color:rgba(244,200,102,.45);box-shadow:0 30px 100px rgba(0,0,0,.75),0 0 60px rgba(115,71,255,.24);}
+  .rpg-modal-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:20px 22px;border-bottom:1px solid rgba(184,162,255,.2);}.rpg-modal-head h3{color:#ffe4a1;font-size:1rem;}.rpg-modal-head p{color:var(--muted);font-size:.68rem;margin-top:3px;}
+  .rpg-modal-body{padding:20px 22px;}.rpg-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}.rpg-control-card{padding:14px;border:1px solid rgba(184,162,255,.2);border-radius:14px;background:rgba(255,255,255,.025);}.rpg-control-card h4{color:var(--text);font-size:.75rem;margin-bottom:10px;}.rpg-control-card form{display:grid;grid-template-columns:1fr 1fr;gap:7px;}.rpg-control-card input,.rpg-control-card select{width:100%;border:1px solid var(--border);border-radius:8px;background:#0b0a16;color:var(--text);font:inherit;font-size:.68rem;padding:8px;}.rpg-control-card .btn{grid-column:1/-1;width:100%;padding:9px;font-size:.65rem;}.rpg-collection{display:grid;gap:7px;margin-top:10px;}.rpg-collection-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border-radius:9px;background:rgba(0,0,0,.2);font-size:.68rem;}.rpg-collection-row.locked{opacity:.6;}.rpg-collection-row button{border:1px solid rgba(244,200,102,.4);background:transparent;color:#ffe4a1;border-radius:6px;padding:4px 7px;font:inherit;font-size:.6rem;cursor:pointer;}.rpg-collection-row button.remove{color:var(--danger);border-color:rgba(255,113,149,.4);}.admin-user-actions .manage-user{border-color:rgba(244,200,102,.45);color:#ffe4a1;}
+  @media(max-width:700px){.rpg-admin-grid{grid-template-columns:1fr;}.admin-user-row{grid-template-columns:1fr;}.admin-user-actions{justify-content:flex-start;}}
 
   @media(max-width:768px){
     nav{padding:0 18px;}
@@ -506,7 +530,19 @@
     </div>
   </div>
 </div>
-
+<div id="adminUserModal" class="modal">
+  <div class="modal-content rpg-admin-modal">
+    <div class="rpg-modal-head"><div><h3 id="adminUserModalTitle">Gestionar aventurero</h3><p id="adminUserModalSubtitle">Panel de personaje</p></div><div class="admin-user-actions"><button class="manage-user" id="adminUserDeleteButton" type="button">Eliminar perfil</button><button class="modal-close" id="adminUserModalClose" type="button">&times;</button></div></div>
+    <div class="rpg-modal-body">
+      <div id="adminUserModalStats" class="quick-strip"></div><div class="rpg-divider"></div>
+      <div class="rpg-admin-grid">
+        <div class="rpg-control-card"><h4><i class="fas fa-coins"></i> Economía</h4><form id="adminBalanceForm"><select id="adminBalanceWallet"><option value="coins">Neko Coins</option><option value="bank">Banco</option></select><select id="adminBalanceAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><input id="adminBalanceAmount" type="number" min="1" step="1" placeholder="Cantidad" required><button class="btn" type="submit">Aplicar saldo</button></form></div>
+        <div class="rpg-control-card"><h4><i class="fas fa-box-open"></i> Objetos</h4><form id="adminItemForm"><select id="adminItemId"></select><select id="adminItemAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><button class="btn" type="submit">Aplicar objeto</button></form><div id="adminItemsCollection" class="rpg-collection"></div></div>
+      </div>
+      <div class="rpg-control-card" style="margin-top:12px"><h4><i class="fas fa-trophy"></i> Logros específicos</h4><div id="adminAchievementsCollection" class="rpg-collection"></div></div>
+    </div>
+  </div>
+</div>
 <nav>
   <div class="brand">
     <div class="mark">$_</div>
@@ -515,6 +551,8 @@
       <div class="tag">automatización de WhatsApp</div>
     </div>
   </div>
+  <div class="nav-links" id="navLinks"><a href="#features"><i class="fas fa-scroll"></i> Aventuras</a><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
+  <button class="nav-toggle" id="navToggle" type="button" aria-label="Abrir navegación"><i class="fas fa-bars"></i></button>
 </nav>
 <div class="hero-banner" role="img" aria-label="Banner oficial de NIKU MD">
   <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="Banner oficial de NIKU MD BOT">
@@ -524,7 +562,6 @@
   <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
   <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
-  <a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a>
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -548,7 +585,7 @@
     <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
     <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
   </div>
-  <div class="public-board-grid">
+  <div class="public-board-grid" id="leaderboards">
     <div class="public-board-card"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
     <div class="public-board-card"><h3><i class="fas fa-coins"></i> Top de Neko Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
   </div>
@@ -691,7 +728,7 @@
         <div id="adminBotsList" class="admin-bots-list"><div class="console-empty">Cargando sesiones...</div></div>
       </div>
       <div class="admin-card admin-users-card">
-        <div class="admin-card-head"><div><h3>Usuarios registrados y rankings</h3><p>Identifica duplicados, quita coins o elimina un perfil de los rankings globales.</p></div><span class="admin-section-tag">MODERACIÓN</span></div>
+        <div class="admin-card-head"><div><h3>Usuarios registrados y rankings</h3><p>Administra saldo, banco, logros, objetos y perfiles desde un único gestor RPG.</p></div><span class="admin-section-tag">MODERACIÓN</span></div>
         <div id="adminUsersList" class="admin-users-list"><div class="console-empty">Cargando usuarios...</div></div>
       </div>
     </div>
@@ -856,7 +893,24 @@ const adminPendingUsers = document.getElementById('adminPendingUsers');
   const adminLogout = document.getElementById('adminLogout');
   const adminBotsList = document.getElementById('adminBotsList');
   const adminUsersList = document.getElementById('adminUsersList');
+  const adminUserModal = document.getElementById('adminUserModal');
+  const adminUserModalClose = document.getElementById('adminUserModalClose');
+  const adminUserModalTitle = document.getElementById('adminUserModalTitle');
+  const adminUserModalSubtitle = document.getElementById('adminUserModalSubtitle');
+  const adminUserDeleteButton = document.getElementById('adminUserDeleteButton');
+  const adminUserModalStats = document.getElementById('adminUserModalStats');
+  const adminBalanceForm = document.getElementById('adminBalanceForm');
+  const adminItemForm = document.getElementById('adminItemForm');
+  const adminItemId = document.getElementById('adminItemId');
+  const adminAchievementsCollection = document.getElementById('adminAchievementsCollection');
+  const adminItemsCollection = document.getElementById('adminItemsCollection');
+  let adminUsersState = { users: [], achievements: [], items: {} };
+  let selectedAdminUser = null;
   const adminPromoButton = document.getElementById('adminPromoButton');
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  navToggle?.addEventListener('click',()=>navLinks?.classList.toggle('active'));
+  navLinks?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>navLinks.classList.remove('active')));
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
   document.body.classList.toggle('admin-route', isAdminRoute);
@@ -870,7 +924,7 @@ updateAdminRoute();
 window.addEventListener('hashchange', updateAdminRoute);
 function renderPublicLeaderboard(data={}){
   const achievements=data.achievements||[], coins=data.coins||[];
-  if(publicAchievementsBoard) publicAchievementsBoard.innerHTML=achievements.length ? achievements.map(item=>`<div class="public-board-row"><span>${item.position}. ${escapeAdminHtml(item.player)}</span><strong>🏆 ${Number(item.count||0)} logros</strong></div>`).join('') : '<div class="public-board-empty">Aún no hay logros registrados.</div>';
+  if(publicAchievementsBoard) publicAchievementsBoard.innerHTML=achievements.length ? achievements.map(item=>`<div class="public-board-row"><span><span class="achievement-icon">🏆</span>${item.position}. ${escapeAdminHtml(item.player)}</span><strong>${Number(item.count||0)} logros</strong></div>`).join('') : '<div class="public-board-empty">Aún no hay logros registrados.</div>';
   if(publicCoinsBoard) publicCoinsBoard.innerHTML=coins.length ? coins.map(item=>`<div class="public-board-row"><span>${item.position}. ${escapeAdminHtml(item.player)}</span><strong>🪙 ${Number(item.coins||0).toLocaleString('es-ES')}</strong></div>`).join('') : '<div class="public-board-empty">Aún no hay saldos registrados.</div>';
   renderPublicRewardEvents(data.events||[]);
 }
@@ -907,11 +961,26 @@ function renderAdminBots(bots=[]){
     return `<div class="admin-bot-row"><div><span class="admin-bot-type ${type}">${type}</span><div class="admin-bot-id">${escapeAdminHtml(bot.sessionId)}</div></div><div class="admin-bot-meta">${number}<br>${owner}</div><span class="admin-bot-status ${bot.connected ? 'connected' : 'offline'}">● ${escapeAdminHtml(status)}</span>${control}</div>`;
   }).join('');
 }
-function renderAdminUsers(users=[]){
+function renderAdminUsers(data={}){
   if(!adminUsersList) return;
+  adminUsersState=data || {users:[],achievements:[],items:{}};
+  const users=adminUsersState.users || [];
   if(!users.length){ adminUsersList.innerHTML='<div class="console-empty">No hay usuarios registrados.</div>'; return; }
-  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">🪙 ${Number(user.total||0).toLocaleString('es-ES')} total<br>🏆 ${Number(user.achievements||0)} logros</div><div class="admin-user-actions"><input type="number" min="1" step="1" placeholder="Coins" data-coin-amount="${escapeAdminHtml(user.number)}"><button type="button" data-remove-coins="${escapeAdminHtml(user.number)}">Quitar coins</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
+  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">🪙 ${Number(user.total||0).toLocaleString('es-ES')} total<br>🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
+  if(selectedAdminUser && adminUserModal?.classList.contains('active')) openAdminUser(selectedAdminUser.number);
 }
+function openAdminUser(number){
+  const user=(adminUsersState.users||[]).find(item=>item.number===number); if(!user||!adminUserModal) return;
+  selectedAdminUser=user; adminUserModalTitle.textContent=`Gestionar ${user.name}`; adminUserModalSubtitle.textContent=`Aventurero · +${user.number}`;
+  adminUserModalStats.innerHTML=`<div class="quick-item"><i class="fas fa-coins"></i>${Number(user.coins||0).toLocaleString('es-ES')} efectivo</div><div class="quick-item"><i class="fas fa-vault"></i>${Number(user.bank||0).toLocaleString('es-ES')} banco</div><div class="quick-item"><i class="fas fa-trophy"></i>${(user.achievements||[]).length} logros</div>`;
+  adminItemId.innerHTML=Object.entries(adminUsersState.items||{}).map(([id,item])=>`<option value="${escapeAdminHtml(id)}">${escapeAdminHtml(item.name)}</option>`).join('');
+  const unlocked=new Map((user.achievements||[]).map(item=>[item.id,item]));
+  adminAchievementsCollection.innerHTML=(adminUsersState.achievements||[]).map(item=>{const has=unlocked.has(item.id);return `<div class="rpg-collection-row ${has?'':'locked'}"><span><span class="achievement-icon">${has?'🏆':'🔒'}</span>${escapeAdminHtml(item.title)} <small>+${Number(item.reward||0).toLocaleString('es-ES')}</small></span><button class="${has?'remove':''}" type="button" data-achievement-action="${has?'remove':'add'}" data-achievement-id="${escapeAdminHtml(item.id)}">${has?'Quitar':'Agregar'}</button></div>`;}).join('');
+  const owned=new Map((user.items||[]).map(item=>[item.id,item]));
+  adminItemsCollection.innerHTML=Object.entries(adminUsersState.items||{}).map(([id,item])=>{const current=owned.get(id);return `<div class="rpg-collection-row ${current?'':'locked'}"><span><span class="achievement-icon">${current?'🎒':'◇'}</span>${escapeAdminHtml(item.name)} ${current?`· ${current.durability}/${current.maxDurability}`:'· no disponible'}</span><button class="${current?'remove':''}" type="button" data-item-action="${current?'remove':'add'}" data-item-id="${escapeAdminHtml(id)}">${current?'Quitar':'Agregar'}</button></div>`;}).join('');
+  adminUserModal.classList.add('active');
+}
+function closeAdminUser(){adminUserModal?.classList.remove('active');selectedAdminUser=null;}
 function renderPublicBots(bots=[]){
   if(!publicBotsList) return;
   publicBotsList.innerHTML='';
@@ -976,20 +1045,21 @@ adminBotsList?.addEventListener('click',(event)=>{
   if(button && confirm(`¿Detener la sesión ${button.dataset.stopBot}?`)) socket.emit('stop-bot',{sessionId:button.dataset.stopBot});
 });
 adminUsersList?.addEventListener('click',(event)=>{
-  const removeButton=event.target.closest('[data-remove-coins]');
+  const manageButton=event.target.closest('[data-manage-user]');
   const deleteButton=event.target.closest('[data-delete-user]');
-  if(removeButton){
-    const number=removeButton.dataset.removeCoins;
-    const input=adminUsersList.querySelector(`[data-coin-amount="${number}"]`);
-    const amount=Number(input?.value||0);
-    if(!Number.isInteger(amount)||amount<1){ showToast('⚠️ Indica una cantidad válida de coins.'); return; }
-    if(confirm(`¿Quitar ${amount.toLocaleString('es-ES')} Neko Coins a ${number}?`)) socket.emit('admin-user-remove-coins',{number,amount});
-  }
+  if(manageButton) openAdminUser(manageButton.dataset.manageUser);
   if(deleteButton){
     const number=deleteButton.dataset.deleteUser;
     if(confirm(`¿Eliminar definitivamente el usuario ${number} de perfiles, coins y logros?`)) socket.emit('admin-user-delete',{number});
   }
 });
+adminUserModalClose?.addEventListener('click',closeAdminUser);
+adminUserDeleteButton?.addEventListener('click',()=>{ if(selectedAdminUser&&confirm(`¿Eliminar definitivamente el perfil de ${selectedAdminUser.name} y todos sus datos RPG?`)){ socket.emit('admin-user-delete',{number:selectedAdminUser.number}); closeAdminUser(); } });
+adminUserModal?.addEventListener('click',(event)=>{ if(event.target===adminUserModal) closeAdminUser(); });
+adminBalanceForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(!selectedAdminUser) return; const amount=Number(document.getElementById('adminBalanceAmount').value); socket.emit('admin-user-adjust-balance',{number:selectedAdminUser.number,wallet:document.getElementById('adminBalanceWallet').value,action:document.getElementById('adminBalanceAction').value,amount}); });
+adminItemForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(!selectedAdminUser) return; socket.emit('admin-user-item',{number:selectedAdminUser.number,item:adminItemId.value,action:document.getElementById('adminItemAction').value}); });
+adminAchievementsCollection?.addEventListener('click',(event)=>{ const button=event.target.closest('[data-achievement-id]'); if(button&&selectedAdminUser) socket.emit('admin-user-achievement',{number:selectedAdminUser.number,achievementId:button.dataset.achievementId,action:button.dataset.achievementAction}); });
+adminItemsCollection?.addEventListener('click',(event)=>{ const button=event.target.closest('[data-item-id]'); if(button&&selectedAdminUser) socket.emit('admin-user-item',{number:selectedAdminUser.number,item:button.dataset.itemId,action:button.dataset.itemAction}); });
 function renderPremiumData(data={}){
   const users = data.users || [];
   const tokens = data.tokens || [];

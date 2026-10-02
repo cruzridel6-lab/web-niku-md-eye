@@ -784,10 +784,12 @@ function publicLeaderboardSnapshot() {
 }
 function adminUsersSnapshot() {
     const users = new Map();
+    const achievementCatalog = commands.economy.achievements || [];
+    const itemCatalog = commands.economy.items || {};
     for (const [jid, profile] of Object.entries(botData.profiles || {})) {
         const number = publicNumber(jid);
         if (!number || !profile?.registered) continue;
-        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, achievements: new Set() });
+        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, achievements: new Map(), items: new Map() });
     }
     for (const state of Object.values(botData.economy || {})) {
         for (const [jid, wallet] of Object.entries(state?.users || {})) {
@@ -795,12 +797,38 @@ function adminUsersSnapshot() {
             if (!item) continue;
             item.coins += Math.max(0, Number(wallet?.coins) || 0);
             item.bank += Math.max(0, Number(wallet?.bank) || 0);
-            Object.keys(wallet?.rpg?.achievements || {}).forEach(id => item.achievements.add(id));
+            Object.entries(wallet?.rpg?.achievements || {}).forEach(([id, entry]) => {
+                const meta = achievementCatalog.find(value => value.id === id) || { id, title: id, reward: Number(entry?.reward) || 0 };
+                item.achievements.set(id, { id, title: meta.title, reward: meta.reward, unlockedAt: entry?.unlockedAt || null });
+            });
+            Object.entries(wallet?.tools || {}).forEach(([id, tool]) => {
+                const meta = itemCatalog[id];
+                if (!meta) return;
+                const current = item.items.get(id);
+                if (!current || Number(tool?.durability) > current.durability) item.items.set(id, { id, name: meta.name, durability: Math.max(0, Number(tool?.durability) || 0), maxDurability: Number(tool?.maxDurability) || meta.durability });
+            });
         }
     }
-    return [...users.values()]
-        .map(item => ({ number: item.number, name: item.name, coins: item.coins, bank: item.bank, total: item.coins + item.bank, achievements: item.achievements.size }))
-        .sort((a, b) => b.total - a.total || b.achievements - a.achievements || a.name.localeCompare(b.name, 'es'));
+    const rows = [...users.values()]
+        .map(item => ({ number: item.number, name: item.name, coins: item.coins, bank: item.bank, total: item.coins + item.bank, achievements: [...item.achievements.values()], items: [...item.items.values()] }))
+        .sort((a, b) => b.total - a.total || b.achievements.length - a.achievements.length || a.name.localeCompare(b.name, 'es'));
+    return { users: rows, achievements: achievementCatalog, items: itemCatalog };
+}
+function adminWallets(number, create = false) {
+    const targets = [];
+    for (const state of Object.values(botData.economy || {})) {
+        for (const [jid, wallet] of Object.entries(state?.users || {})) if (publicNumber(jid) === number) targets.push(wallet);
+    }
+    if (!targets.length && create) {
+        botData.economy.__admin__ ||= { users: {} };
+        botData.economy.__admin__.users[`${number}@s.whatsapp.net`] ||= { coins: 0, bank: 0, lastSeen: Date.now() };
+        targets.push(botData.economy.__admin__.users[`${number}@s.whatsapp.net`]);
+    }
+    return targets;
+}
+function adminUserStatus(socket, message, ok = true) {
+    socket.emit('admin-users-status', { ok, message });
+    if (ok) { emitAdminUsers(socket); io.emit('public-leaderboard', publicLeaderboardSnapshot()); }
 }
 function emitAdminUsers(socket) {
     if (socket?.authenticated) socket.emit('admin-users-data', adminUsersSnapshot());
@@ -2194,6 +2222,58 @@ io.on('connection', (socket) => {
     socket.on('admin-users-data', () => {
         if (!socket.authenticated) return;
         emitAdminUsers(socket);
+    });
+    socket.on('admin-user-adjust-balance', ({ number, wallet = 'coins', action = 'add', amount } = {}) => {
+        if (!socket.authenticated) return;
+        const target = String(number || '').replace(/\D/g, '');
+        const safeAmount = Math.floor(Number(amount) || 0);
+        if (!target || !['coins', 'bank'].includes(wallet) || !['add', 'remove'].includes(action) || !Number.isSafeInteger(safeAmount) || safeAmount < 1 || safeAmount > 1000000000) return adminUserStatus(socket, 'Número, operación o cantidad inválida.', false);
+        const wallets = adminWallets(target, action === 'add');
+        if (!wallets.length) return adminUserStatus(socket, 'No se encontró la cartera de ese usuario.', false);
+        if (action === 'add') wallets[0][wallet] = Math.max(0, Number(wallets[0][wallet]) || 0) + safeAmount;
+        else {
+            let remaining = safeAmount;
+            for (const current of wallets) {
+                current[wallet] = Math.max(0, Number(current[wallet]) || 0);
+                const removed = Math.min(current[wallet], remaining);
+                current[wallet] -= removed; remaining -= removed;
+                if (!remaining) break;
+            }
+            if (remaining === safeAmount) return adminUserStatus(socket, 'Ese usuario no tiene saldo suficiente.', false);
+        }
+        saveBotData();
+        return adminUserStatus(socket, `${action === 'add' ? 'Agregados' : 'Quitados'} ${safeAmount.toLocaleString('es-ES')} ${wallet === 'bank' ? 'coins del banco' : 'Neko Coins'} a ${target}.`);
+    });
+    socket.on('admin-user-achievement', ({ number, achievementId, action = 'add' } = {}) => {
+        if (!socket.authenticated) return;
+        const target = String(number || '').replace(/\D/g, '');
+        const achievement = (commands.economy.achievements || []).find(item => item.id === achievementId);
+        if (!target || !achievement || !['add', 'remove'].includes(action)) return adminUserStatus(socket, 'Logro u operación inválida.', false);
+        const wallets = adminWallets(target, action === 'add');
+        if (!wallets.length) return adminUserStatus(socket, 'No se encontró la cartera de ese usuario.', false);
+        if (action === 'add') {
+            wallets[0].rpg ||= { xp: 0, level: 1, lastXp: 0 };
+            wallets[0].rpg.achievements ||= {};
+            wallets[0].rpg.achievements[achievement.id] ||= { unlockedAt: new Date().toISOString(), reward: achievement.reward, source: 'admin' };
+        } else {
+            for (const wallet of wallets) if (wallet.rpg?.achievements) delete wallet.rpg.achievements[achievement.id];
+        }
+        saveBotData();
+        return adminUserStatus(socket, `${action === 'add' ? 'Logro agregado:' : 'Logro quitado:'} ${achievement.title}`);
+    });
+    socket.on('admin-user-item', ({ number, item, action = 'add' } = {}) => {
+        if (!socket.authenticated) return;
+        const target = String(number || '').replace(/\D/g, '');
+        const meta = commands.economy.items?.[item];
+        if (!target || !meta || !['add', 'remove'].includes(action)) return adminUserStatus(socket, 'Objeto u operación inválida.', false);
+        const wallets = adminWallets(target, action === 'add');
+        if (!wallets.length) return adminUserStatus(socket, 'No se encontró la cartera de ese usuario.', false);
+        if (action === 'add') {
+            wallets[0].tools ||= {};
+            wallets[0].tools[item] = { durability: meta.durability, maxDurability: meta.durability, boughtAt: new Date().toISOString(), source: 'admin' };
+        } else for (const wallet of wallets) if (wallet.tools) delete wallet.tools[item];
+        saveBotData();
+        return adminUserStatus(socket, `${action === 'add' ? 'Objeto agregado:' : 'Objeto quitado:'} ${meta.name}`);
     });
     socket.on('admin-user-remove-coins', ({ number, amount } = {}) => {
         if (!socket.authenticated) return;
