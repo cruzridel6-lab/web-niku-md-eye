@@ -1,6 +1,7 @@
 const pendingMarriages = new Map();
 
 const ALIASES = {
+    register: ['registrarse', 'registrar', 'register', 'registro'],
     profile: ['profile', 'perfil', 'user'],
     marry: ['marry', 'casar'],
     divorce: ['divorce', 'divorciar'],
@@ -30,9 +31,10 @@ function findTarget(msg, q, own) {
 }
 function ensure(botData, jid, name = 'Usuario') {
     botData.profiles ||= {};
-    botData.profiles[jid] ||= { name, description: '', genre: '', birth: '', partner: null, history: [] };
+    botData.profiles[jid] ||= { name, registered: false, description: '', genre: '', birth: '', partner: null, history: [] };
     const profile = botData.profiles[jid];
     profile.name ||= name;
+    profile.registered = Boolean(profile.registered);
     profile.description ||= '';
     profile.genre ||= '';
     profile.birth ||= '';
@@ -61,7 +63,7 @@ function formatBirth(value) {
 }
 function targetName(botData, jid) { return botData.profiles?.[jid]?.name || `+${numberOf(jid)}`; }
 function profileMenu(prefix = '.') {
-    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
+    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
 }
 
 async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {
@@ -69,6 +71,14 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     const own = jidOf(msg, chatId);
     const ownProfile = ensure(botData, own, msg?.pushName || 'Usuario');
     const save = () => saveBotData();
+    if (canonical === 'register') {
+        const name = String(q || '').trim().replace(/\s+/g, ' ');
+        if (name.length < 2 || name.length > 32) return reply(sock, chatId, msg, `📝 Para registrarte usa: *${prefix}registrarse Tu Nombre*\n\nTu nombre debe tener entre 2 y 32 caracteres.`);
+        ownProfile.name = name;
+        ownProfile.registered = true;
+        save();
+        return reply(sock, chatId, msg, `✅ *Registro completado*\n\nTu nombre público ahora es: *${name}*\nYa puedes usar *.menu* y todas las funciones del bot.`);
+    }
     if (canonical === 'profile' && !q && !contextTarget(msg)) return showProfile(sock, chatId, msg, own, ownProfile, botData);
     if (canonical === 'profile') {
         const target = findTarget(msg, q, own); return showProfile(sock, chatId, msg, target, ensure(botData, target), botData);

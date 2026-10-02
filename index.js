@@ -759,6 +759,8 @@ function getDashboardStats() {
 function publicNumber(jid) { return String(jid || '').split('@')[0].replace(/\D/g, ''); }
 function publicPlayer(jid) {
     const number = publicNumber(jid);
+    const profile = Object.entries(botData.profiles || {}).find(([key, value]) => publicNumber(key) === number && value?.registered && value?.name);
+    if (profile) return String(profile[1].name).slice(0, 32);
     return number ? `Jugador ${number.slice(-4)}` : 'Jugador';
 }
 function capturePublicEconomy(chatId, jid) {
@@ -779,6 +781,8 @@ function publicLeaderboardSnapshot() {
         for (const [jid, user] of Object.entries(state?.users || {})) {
             const number = publicNumber(jid);
             if (!number) continue;
+            const registered = Object.entries(botData.profiles || {}).some(([key, profile]) => publicNumber(key) === number && profile?.registered && profile?.name);
+            if (!registered) continue;
             const total = Math.max(0, Number(user.coins) || 0) + Math.max(0, Number(user.bank) || 0);
             coins.set(number, (coins.get(number) || 0) + total);
             const current = achievements.get(number) || { ids: new Set() };
@@ -1363,6 +1367,13 @@ class BotSession {
                             const args = text.split(' ').slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro']);
+                            const registrationJid = normalizePremiumJid(sender) || sender;
+                            const registeredProfile = botData.profiles?.[sender] || botData.profiles?.[registrationJid];
+                            if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
+                                await this.sock.sendMessage(from, { text: '📝 Usted debe registrarse primero para usar el bot.\n\nEscribe *.registrarse Tu Nombre* para crear tu perfil.' }, { quoted: msg });
+                                return;
+                            }
                             if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
                                 await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
@@ -1378,7 +1389,7 @@ class BotSession {
                                     const publicEconomyBefore = capturePublicEconomy(from, sender);
                                     switch (commandName) {
                                         // ===== MENU =====
-                                        case 'menu': {
+                                        case 'menu': case 'menú': {
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = generateMenuText(customName, this);
                                             try {
@@ -1488,6 +1499,7 @@ class BotSession {
                                         case 'testwelcome': await commands.testwelcome(this.sock, from, msg, isAdmin, botData); break;
                                         case 'testbye': await commands.testbye(this.sock, from, msg, isAdmin, botData); break;
                                         case 'profilemenu': await sendCategoryMenu(this.sock, from, msg, '👤 PROFILE MENU', ['profile', 'marry', 'divorce', 'history', 'pfp', 'setbio', 'setbirthday', 'setgenre']); break;
+                                        case 'registrarse': case 'registrar': case 'register': case 'registro':
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
                                         case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
@@ -1881,16 +1893,6 @@ class BotSession {
                             await this.sock.sendMessage(botNumber, {
                                 image: { url: settings.startimage },
                                 caption: welcomeText
-                            });
-                        }
-
-                        const songPath = path.join(__dirname, 'song.mp3');
-                        if (fs.existsSync(songPath)) {
-                            await this.sock.sendMessage(botNumber, {
-                                audio: fs.readFileSync(songPath),
-                                mimetype: 'audio/mpeg',
-                                fileName: 'song.mp3',
-                                ptt: false
                             });
                         }
 
