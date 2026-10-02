@@ -17,7 +17,11 @@ const MONTHS = { enero: 1, january: 1, febrero: 2, february: 2, marzo: 3, march:
 const MONTH_NAMES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 function numberOf(jid) { return String(jid || '').split('@')[0].split(':')[0].replace(/[^0-9]/g, ''); }
-function jidOf(msg, chatId) { return msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId); }
+function canonicalJid(jid) {
+    const number = numberOf(jid);
+    return number ? `${number}@s.whatsapp.net` : String(jid || '').trim();
+}
+function jidOf(msg, chatId) { return canonicalJid(msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId)); }
 function reply(sock, chatId, msg, text, extra = {}) { return sock.sendMessage(chatId, { text, ...extra }, { quoted: msg }); }
 function contextTarget(msg) {
     const context = msg?.message?.extendedTextMessage?.contextInfo || {};
@@ -31,8 +35,13 @@ function findTarget(msg, q, own) {
 }
 function ensure(botData, jid, name = 'Usuario') {
     botData.profiles ||= {};
-    botData.profiles[jid] ||= { name, registered: false, description: '', genre: '', birth: '', partner: null, history: [] };
-    const profile = botData.profiles[jid];
+    const key = canonicalJid(jid);
+    if (!botData.profiles[key]) {
+        const legacyKey = Object.keys(botData.profiles).find(item => numberOf(item) && numberOf(item) === numberOf(key));
+        if (legacyKey) botData.profiles[key] = botData.profiles[legacyKey];
+    }
+    botData.profiles[key] ||= { name, registered: false, description: '', genre: '', birth: '', partner: null, history: [] };
+    const profile = botData.profiles[key];
     profile.name ||= name;
     profile.registered = Boolean(profile.registered);
     profile.description ||= '';
@@ -40,6 +49,35 @@ function ensure(botData, jid, name = 'Usuario') {
     profile.birth ||= '';
     profile.history = Array.isArray(profile.history) ? profile.history : [];
     return profile;
+}
+function normalizeName(name) {
+    return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function editDistance(a, b) {
+    const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        let previous = row[0]; row[0] = i;
+        for (let j = 1; j <= b.length; j++) {
+            const current = row[j];
+            row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+            previous = current;
+        }
+    }
+    return row[b.length];
+}
+function isSimilarName(candidate, existing) {
+    const a = normalizeName(candidate); const b = normalizeName(existing);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const shorter = Math.min(a.length, b.length);
+    if (shorter >= 4 && (a.includes(b) || b.includes(a))) return true;
+    return shorter >= 4 && editDistance(a, b) <= Math.max(1, Math.floor(shorter * 0.2));
+}
+function findNameConflict(botData, name, ownJid) {
+    const ownNumber = numberOf(ownJid);
+    return Object.entries(botData.profiles || {}).find(([jid, profile]) =>
+        numberOf(jid) !== ownNumber && profile?.registered && profile?.name && isSimilarName(name, profile.name)
+    );
 }
 function displayGenre(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'Sin especificar'; }
 function spouseWord(genre) { return genre === 'mujer' ? 'casada' : genre === 'hombre' ? 'casado' : 'casade'; }
@@ -74,6 +112,9 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     if (canonical === 'register') {
         const name = String(q || '').trim().replace(/\s+/g, ' ');
         if (name.length < 2 || name.length > 32) return reply(sock, chatId, msg, `╭━━〔 ⚠️ *NOMBRE NO VÁLIDO* 〕━━╮\n┃\n┃ Usa un nombre de 2 a 32 caracteres.\n┃\n┃ 📌 Ejemplo:\n┃ ➜ *${prefix}registrarse Valentina*\n┃\n╰━━〔 🪙 NIKU MD 〕━━╯`);
+        if (ownProfile.registered) return reply(sock, chatId, msg, `❌ Ya estás registrado como *${ownProfile.name}*. Cada número de WhatsApp solo puede registrarse una vez.`);
+        const conflict = findNameConflict(botData, name, own);
+        if (conflict) return reply(sock, chatId, msg, `❌ El nombre *${name}* ya está ocupado o es demasiado parecido a *${conflict[1].name}*. Elige otro nombre único.`);
         ownProfile.name = name;
         ownProfile.registered = true;
         save();

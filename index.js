@@ -782,6 +782,29 @@ function publicLeaderboardSnapshot() {
         events: publicRewardEvents.slice(-30).reverse()
     };
 }
+function adminUsersSnapshot() {
+    const users = new Map();
+    for (const [jid, profile] of Object.entries(botData.profiles || {})) {
+        const number = publicNumber(jid);
+        if (!number || !profile?.registered) continue;
+        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, achievements: new Set() });
+    }
+    for (const state of Object.values(botData.economy || {})) {
+        for (const [jid, wallet] of Object.entries(state?.users || {})) {
+            const item = users.get(publicNumber(jid));
+            if (!item) continue;
+            item.coins += Math.max(0, Number(wallet?.coins) || 0);
+            item.bank += Math.max(0, Number(wallet?.bank) || 0);
+            Object.keys(wallet?.rpg?.achievements || {}).forEach(id => item.achievements.add(id));
+        }
+    }
+    return [...users.values()]
+        .map(item => ({ number: item.number, name: item.name, coins: item.coins, bank: item.bank, total: item.coins + item.bank, achievements: item.achievements.size }))
+        .sort((a, b) => b.total - a.total || b.achievements - a.achievements || a.name.localeCompare(b.name, 'es'));
+}
+function emitAdminUsers(socket) {
+    if (socket?.authenticated) socket.emit('admin-users-data', adminUsersSnapshot());
+}
 function publishPublicEconomyDelta(before, chatId, jid, commandName) {
     const after = capturePublicEconomy(chatId, jid);
     const gained = after.coins + after.bank - (before.coins + before.bank);
@@ -2157,6 +2180,7 @@ io.on('connection', (socket) => {
             socket.emit('admin-premium-data', premiumSnapshot());
             socket.emit('admin-reward-data', rewardSnapshot());
             socket.emit('admin-bots-data', botsSnapshot());
+            emitAdminUsers(socket);
         } else {
             socket.adminAttempts = (socket.adminAttempts || 0) + 1;
             if (socket.adminAttempts >= 5) {
@@ -2165,6 +2189,66 @@ io.on('connection', (socket) => {
             }
             socket.emit('admin-auth-fail');
         }
+    });
+
+    socket.on('admin-users-data', () => {
+        if (!socket.authenticated) return;
+        emitAdminUsers(socket);
+    });
+    socket.on('admin-user-remove-coins', ({ number, amount } = {}) => {
+        if (!socket.authenticated) return;
+        const target = String(number || '').replace(/\D/g, '');
+        const safeAmount = Math.floor(Number(amount) || 0);
+        if (!target || !Number.isSafeInteger(safeAmount) || safeAmount < 1 || safeAmount > 1000000000) {
+            socket.emit('admin-users-status', { ok: false, message: 'Indica un número y una cantidad válida entre 1 y 1.000.000.000.' });
+            return;
+        }
+        let remaining = safeAmount;
+        for (const state of Object.values(botData.economy || {})) {
+            for (const [jid, wallet] of Object.entries(state?.users || {})) {
+                if (publicNumber(jid) !== target || remaining <= 0) continue;
+                wallet.coins = Math.max(0, Number(wallet.coins) || 0);
+                wallet.bank = Math.max(0, Number(wallet.bank) || 0);
+                const fromCoins = Math.min(wallet.coins, remaining);
+                wallet.coins -= fromCoins; remaining -= fromCoins;
+                const fromBank = Math.min(wallet.bank, remaining);
+                wallet.bank -= fromBank; remaining -= fromBank;
+            }
+        }
+        const removed = safeAmount - remaining;
+        if (!removed) {
+            socket.emit('admin-users-status', { ok: false, message: 'No se encontró saldo para ese usuario.' });
+            return;
+        }
+        saveBotData();
+        socket.emit('admin-users-status', { ok: true, message: `Se quitaron ${removed.toLocaleString('es-ES')} Neko Coins a ${target}.` });
+        emitAdminUsers(socket);
+        io.emit('public-leaderboard', publicLeaderboardSnapshot());
+    });
+    socket.on('admin-user-delete', ({ number } = {}) => {
+        if (!socket.authenticated) return;
+        const target = String(number || '').replace(/\D/g, '');
+        if (!target) {
+            socket.emit('admin-users-status', { ok: false, message: 'Indica un número válido.' });
+            return;
+        }
+        let deleted = false;
+        for (const key of Object.keys(botData.profiles || {})) {
+            if (publicNumber(key) === target) { delete botData.profiles[key]; deleted = true; }
+        }
+        for (const state of Object.values(botData.economy || {})) {
+            for (const key of Object.keys(state?.users || {})) {
+                if (publicNumber(key) === target) { delete state.users[key]; deleted = true; }
+            }
+        }
+        if (!deleted) {
+            socket.emit('admin-users-status', { ok: false, message: 'No se encontró ese usuario.' });
+            return;
+        }
+        saveBotData();
+        socket.emit('admin-users-status', { ok: true, message: `Usuario ${target} eliminado de perfiles y rankings.` });
+        emitAdminUsers(socket);
+        io.emit('public-leaderboard', publicLeaderboardSnapshot());
     });
 
     socket.on('admin-premium-add', ({ jid } = {}) => {
