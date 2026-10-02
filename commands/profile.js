@@ -99,7 +99,17 @@ function formatBirth(value) {
     const day = Number(parts[0]); const month = Number(parts[1]);
     return `${day} de ${MONTH_NAMES[month - 1] || 'mes desconocido'}${parts[2] ? ` de ${parts[2]}` : ''}`;
 }
-function targetName(botData, jid) { return botData.profiles?.[jid]?.name || `+${numberOf(jid)}`; }
+function targetName(botData, jid) {
+    const wanted = numberOf(jid);
+    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => numberOf(key) === wanted && profile?.name);
+    return match?.[1]?.name || `+${wanted}`;
+}
+function economyFor(botData, chatId, jid) {
+    const users = botData.economy?.[chatId]?.users || {};
+    const wanted = numberOf(jid);
+    const key = Object.keys(users).find(item => numberOf(item) === wanted);
+    return key ? users[key] : {};
+}
 function profileMenu(prefix = '.') {
     return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
 }
@@ -188,7 +198,7 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
 }
 
 async function showProfile(sock, chatId, msg, jid, profile, botData) {
-    const economy = botData.economy?.[chatId]?.users?.[jid] || {};
+    const economy = economyFor(botData, chatId, jid);
     const partner = profile.partner ? `💍 ${spouseWord(profile.genre)} con *${targetName(botData, profile.partner)}*` : '💍 Sin pareja';
     const text = `👤 *PERFIL DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🎂 Cumpleaños: *${formatBirth(profile.birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n💰 Efectivo: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Banco: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
     try {

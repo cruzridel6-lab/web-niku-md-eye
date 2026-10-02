@@ -742,7 +742,13 @@ function getDashboardStats() {
         updatedAt: new Date().toISOString()
     };
 }
-function publicNumber(jid) { return String(jid || '').split('@')[0].replace(/\D/g, ''); }
+function publicNumber(jid) { return String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, ''); }
+function registeredProfileFor(jid) {
+    const wanted = publicNumber(jid);
+    if (!wanted) return null;
+    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => publicNumber(key) === wanted && profile?.registered && profile?.name);
+    return match ? match[1] : null;
+}
 function publicPlayer(jid) {
     const number = publicNumber(jid);
     const profile = Object.entries(botData.profiles || {}).find(([key, value]) => publicNumber(key) === number && value?.registered && value?.name);
@@ -1382,8 +1388,7 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro']);
-                            const registrationJid = normalizePremiumJid(sender) || sender;
-                            const registeredProfile = botData.profiles?.[sender] || botData.profiles?.[registrationJid];
+                            const registeredProfile = registeredProfileFor(sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
 ┃
@@ -1536,10 +1541,9 @@ class BotSession {
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
                                         case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
                                             if (['registrarse', 'registrar', 'register', 'registro'].includes(commandName)) {
-                                                const profileKey = normalizePremiumJid(sender) || sender;
-                                                const wasRegistered = Boolean(botData.profiles?.[profileKey]?.registered || botData.profiles?.[sender]?.registered);
+                                                const wasRegistered = Boolean(registeredProfileFor(sender));
                                                 await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
-                                                const isRegistered = Boolean(botData.profiles?.[profileKey]?.registered || botData.profiles?.[sender]?.registered);
+                                                const isRegistered = Boolean(registeredProfileFor(sender));
                                                 if (!wasRegistered && isRegistered && grantStarterPack(from, sender)) {
                                                     publishStarterPackEvent(sender);
                                                     await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Neko Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ Ya puedes comenzar tu aventura en el RPG. Usa *.gamemenu* para explorar.` }, { quoted: msg });
