@@ -381,12 +381,12 @@ function createPremiumToken(days = 30) {
     saveBotData();
     return { token, expiresAt: botData.premiumTokens[hashPremiumToken(token)].expiresAt };
 }
-function grantStarterPack(botNumber) {
-    const jid = jidNormalizedUser(botNumber);
-    botData.economy[jid] ||= { users: {} };
-    botData.economy[jid].users ||= {};
-    botData.economy[jid].users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
-    const wallet = botData.economy[jid].users[jid];
+function grantStarterPack(chatId, playerJid) {
+    const jid = jidNormalizedUser(playerJid || chatId);
+    botData.economy[chatId] ||= { users: {} };
+    botData.economy[chatId].users ||= {};
+    botData.economy[chatId].users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
+    const wallet = botData.economy[chatId].users[jid];
     if (wallet.starterPackClaimed) return false;
     wallet.coins = Math.max(0, Number(wallet.coins) || 0) + 1000;
     wallet.tools ||= {};
@@ -397,6 +397,12 @@ function grantStarterPack(botNumber) {
     wallet.starterPackGrantedAt = new Date().toISOString();
     saveBotData();
     return true;
+}
+function publishStarterPackEvent(jid) {
+    const starterEvent = { type: 'coins', player: publicPlayer(jid), amount: 1000, source: 'pack inicial', timestamp: new Date().toISOString() };
+    publicRewardEvents.push(starterEvent);
+    while (publicRewardEvents.length > 100) publicRewardEvents.shift();
+    if (typeof io !== 'undefined') io.emit('public-leaderboard', publicLeaderboardSnapshot());
 }
 
 function premiumSnapshot() {
@@ -1476,7 +1482,19 @@ class BotSession {
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
                                         case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
-                                            await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                            if (['registrarse', 'registrar', 'register', 'registro'].includes(commandName)) {
+                                                const profileKey = normalizePremiumJid(sender) || sender;
+                                                const wasRegistered = Boolean(botData.profiles?.[profileKey]?.registered || botData.profiles?.[sender]?.registered);
+                                                await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
+                                                const isRegistered = Boolean(botData.profiles?.[profileKey]?.registered || botData.profiles?.[sender]?.registered);
+                                                if (!wasRegistered && isRegistered && grantStarterPack(from, sender)) {
+                                                    publishStarterPackEvent(sender);
+                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Neko Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ Ya puedes comenzar tu aventura en el RPG. Usa *.gamemenu* para explorar.` }, { quoted: msg });
+                                                }
+                                            } else {
+                                                await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
+                                            }
+                                            break;
                                         case 'balance': case 'bal': case 'coins':
                                         case 'baltop': case 'eboard': case 'economytop':
                                         case 'cf': case 'coinflip': case 'flip': case 'crime': case 'daily':
@@ -1804,13 +1822,6 @@ class BotSession {
                     }
 
                     const botName = botData.userNames[this.userId] || (this.sock.user && this.sock.user.name) || this.userId;
-                    const starterPackGranted = grantStarterPack(botNumber);
-                    if (starterPackGranted) {
-                        const starterEvent = { type: 'coins', player: publicPlayer(botNumber), amount: 1000, source: 'pack inicial', timestamp: new Date().toISOString() };
-                        publicRewardEvents.push(starterEvent);
-                        while (publicRewardEvents.length > 100) publicRewardEvents.shift();
-                        io.emit('public-leaderboard', publicLeaderboardSnapshot());
-                    }
 
                     if (this.tgChatId && tgBot) {
                         const successMsg =
@@ -1851,7 +1862,7 @@ class BotSession {
                             `🎁 *PACK INICIAL PARA PRINCIPIANTES:*\n` +
                             `🪙 1.000 Neko Coins\n` +
                             `⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n` +
-                            `${starterPackGranted ? '✅ Pack entregado en tu economía.' : 'ℹ️ Tu pack inicial ya había sido entregado.'}\n\n` +
+                            `🔐 Regístrate con *.registrarse Tu Nombre* para recibirlo.\n\n` +
                             `Escribe *.menu* para explorar todas las funciones.\n\n` +
                             `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
 
