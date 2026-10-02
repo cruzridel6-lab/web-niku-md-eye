@@ -1326,7 +1326,25 @@ class BotSession {
                             const registrationJid = normalizePremiumJid(sender) || sender;
                             const registeredProfile = botData.profiles?.[sender] || botData.profiles?.[registrationJid];
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
-                                await this.sock.sendMessage(from, { text: '📝 Usted debe registrarse primero para usar el bot.\n\nEscribe *.registrarse Tu Nombre* para crear tu perfil.' }, { quoted: msg });
+                                await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
+┃
+┃ 👋 *¡Hola! Aún no tienes un perfil activo.*
+┃
+┃ Para usar el menú, la economía RPG,
+┃ los clanes y todos los comandos del bot,
+┃ primero debes registrarte.
+┃
+┃ ✨ *Es muy fácil:*
+┃ Escribe:
+┃ ➜ *.registrarse Tu Nombre*
+┃
+┃ 📌 *Ejemplo:*
+┃ ➜ *.registrarse Carlos*
+┃
+┃ 🏆 Tu nombre aparecerá en los rankings
+┃ de logros y Neko Coins.
+┃
+╰━━━〔 🪙 *NIKU MD · RPG* 〕━━━╯` }, { quoted: msg });
                                 return;
                             }
                             if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {

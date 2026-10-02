@@ -73,11 +73,11 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     const save = () => saveBotData();
     if (canonical === 'register') {
         const name = String(q || '').trim().replace(/\s+/g, ' ');
-        if (name.length < 2 || name.length > 32) return reply(sock, chatId, msg, `📝 Para registrarte usa: *${prefix}registrarse Tu Nombre*\n\nTu nombre debe tener entre 2 y 32 caracteres.`);
+        if (name.length < 2 || name.length > 32) return reply(sock, chatId, msg, `╭━━〔 ⚠️ *NOMBRE NO VÁLIDO* 〕━━╮\n┃\n┃ Usa un nombre de 2 a 32 caracteres.\n┃\n┃ 📌 Ejemplo:\n┃ ➜ *${prefix}registrarse Valentina*\n┃\n╰━━〔 🪙 NIKU MD 〕━━╯`);
         ownProfile.name = name;
         ownProfile.registered = true;
         save();
-        return reply(sock, chatId, msg, `✅ *Registro completado*\n\nTu nombre público ahora es: *${name}*\nYa puedes usar *.menu* y todas las funciones del bot.`);
+        return reply(sock, chatId, msg, `╭━━━〔 ✅ *REGISTRO COMPLETADO* 〕━━━╮\n┃\n┃ 🎉 Bienvenido a *NIKU MD*, *${name}*\n┃\n┃ Tu perfil ya está activo y tu nombre\n┃ aparecerá en los rankings públicos.\n┃\n┃ 🪙 Economía: *Neko Coins*\n┃ 🏆 Sistema: *RPG · clanes · logros*\n┃\n┃ Escribe *.menu* para comenzar.\n┃\n╰━━━〔 🤖 *NIKU MD BOT* 〕━━━╯`);
     }
     if (canonical === 'profile' && !q && !contextTarget(msg)) return showProfile(sock, chatId, msg, own, ownProfile, botData);
     if (canonical === 'profile') {
