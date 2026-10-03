@@ -9,6 +9,7 @@ El archivo `bot_data.json` se genera automáticamente y contiene, entre otros:
 - perfiles, clases, experiencia, logros, inventarios y raids;
 - mercado, clanes, recompensas, tokens y reportes del panel;
 - configuraciones persistentes del bot y datos mostrados en la web.
+- contadores diarios y alertas de protección de la economía.
 
 También se crean `bot_data.json.bak`, `auth_info/` y `uploads/`.
 

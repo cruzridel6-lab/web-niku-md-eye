@@ -2,6 +2,15 @@ const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
 const COIN = '🪙 Niku Coins';
 const MIN_BET = 200;
+const TRANSFER_TAX_RATE = 0.05;
+const MIN_TRANSFER_TAX = 25;
+const ECONOMY_LIMITS = {
+    transferCoins: 50000,
+    transferCount: 10,
+    duelStake: 20000,
+    gamblingStake: 10000,
+    sameRecipient: 8
+};
 const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
 const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
 const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
@@ -343,6 +352,30 @@ function amount(value) {
     const parsed = Number(clean);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
+function dailyGuard(user) {
+    const today = new Date().toISOString().slice(0, 10);
+    user.economyGuard ||= { day: today, transferCoins: 0, transferCount: 0, duelStake: 0, gamblingStake: 0, recipients: {} };
+    if (user.economyGuard.day !== today) user.economyGuard = { day: today, transferCoins: 0, transferCount: 0, duelStake: 0, gamblingStake: 0, recipients: {} };
+    user.economyGuard.recipients ||= {};
+    return user.economyGuard;
+}
+function economyAlert(botData, type, jid, details = {}) {
+    botData.economyAbuseAlerts ||= [];
+    botData.economyStats ||= { transferTaxes: 0, transferCount: 0 };
+    botData.economyStats.abuseBlocked = (Number(botData.economyStats.abuseBlocked) || 0) + 1;
+    botData.economyAbuseAlerts.unshift({ id: `eco-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, jid, details, createdAt: new Date().toISOString() });
+    if (botData.economyAbuseAlerts.length > 300) botData.economyAbuseAlerts.length = 300;
+}
+function consumeDailyLimit(botData, user, jid, field, amountValue, limit, type, details = {}) {
+    const guard = dailyGuard(user);
+    const current = Number(guard[field]) || 0;
+    if (current + amountValue > limit) {
+        economyAlert(botData, type, jid, { ...details, attempted: amountValue, used: current, limit });
+        return false;
+    }
+    guard[field] = current + amountValue;
+    return true;
+}
 function menu(prefix = '.') {
     return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 🧭 ${prefix}tutorial · Guía del aventurero\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
@@ -420,6 +453,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             const stake = Number(pending.stake) || 0;
             if (!challenger || stake < MIN_BET) { delete duels[pending.id]; save(); return reply(sock, chatId, msg, '❌ Ese duelo ya no es válido porque falta la cuenta del retador.'); }
             if (user.coins < stake) return reply(sock, chatId, msg, `❌ Necesitas *${fmt(stake)} ${COIN}* para aceptar el duelo. Tienes *${fmt(user.coins)}*.`);
+            if (!consumeDailyLimit(botData, user, jid, 'duelStake', stake, ECONOMY_LIMITS.duelStake, 'duel_limit', { stake, challenger: pending.challenger })) {
+                save();
+                return reply(sock, chatId, msg, `🛡️ Alcanzaste el límite diario de apuestas PvP (*${fmt(ECONOMY_LIMITS.duelStake)} ${COIN}*). Vuelve mañana.`);
+            }
             user.coins -= stake;
             const winner = Math.random() < 0.5 ? { key: pending.challenger, account: challenger.user } : { key: jid, account: user };
             const loser = winner.key === jid ? pending.challenger : jid;
@@ -456,6 +493,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (target.key === jid) return reply(sock, chatId, msg, '❌ No puedes retarte a ti mismo.');
         if (user.coins < stake) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}. Necesitas *${fmt(stake)}* y tienes *${fmt(user.coins)}*.`);
         if (Object.values(duels).some(duel => duel.status === 'pending' && (duel.challenger === jid || duel.target === jid))) return reply(sock, chatId, msg, '⚔️ Tú o ese jugador ya tienen un duelo pendiente.');
+        if (!consumeDailyLimit(botData, user, jid, 'duelStake', stake, ECONOMY_LIMITS.duelStake, 'duel_limit', { stake, target: target.key })) {
+            save();
+            return reply(sock, chatId, msg, `🛡️ Alcanzaste el límite diario de apuestas PvP (*${fmt(ECONOMY_LIMITS.duelStake)} ${COIN}*). Vuelve mañana.`);
+        }
         const id = `duel-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         user.coins -= stake;
         duels[id] = { id, challenger: jid, target: target.key, stake, status: 'pending', createdAt: now };
@@ -935,6 +976,23 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (!target || !value || value === 'all') return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP.pay}*`);
         if (target.key === jid) return reply(sock, chatId, msg, '❌ No puedes transferirte a ti mismo.');
         if (value < 1000 || user.bank < value) return reply(sock, chatId, msg, `❌ Necesitas al menos 1.000 ${COIN} en el banco para transferir.`);
+        const guard = dailyGuard(user);
+        const recipientCount = Number(guard.recipients[target.key]) || 0;
+        if (recipientCount >= ECONOMY_LIMITS.sameRecipient) {
+            economyAlert(botData, 'recipient_limit', jid, { target: target.key, count: recipientCount });
+            save();
+            return reply(sock, chatId, msg, `🛡️ Alcanzaste el límite diario de transferencias al mismo jugador (*${ECONOMY_LIMITS.sameRecipient} envíos*). Vuelve mañana.`);
+        }
+        if (!consumeDailyLimit(botData, user, jid, 'transferCoins', value, ECONOMY_LIMITS.transferCoins, 'transfer_limit', { target: target.key })) {
+            save();
+            return reply(sock, chatId, msg, `🛡️ Alcanzaste el límite diario de transferencias (*${fmt(ECONOMY_LIMITS.transferCoins)} ${COIN}*). Vuelve mañana.`);
+        }
+        if (!consumeDailyLimit(botData, user, jid, 'transferCount', 1, ECONOMY_LIMITS.transferCount, 'transfer_count_limit', { target: target.key })) {
+            guard.transferCoins = Math.max(0, (Number(guard.transferCoins) || 0) - value);
+            save();
+            return reply(sock, chatId, msg, `🛡️ Alcanzaste el máximo de *${ECONOMY_LIMITS.transferCount} transferencias diarias*. Vuelve mañana.`);
+        }
+        guard.recipients[target.key] = recipientCount + 1;
         const tax = Math.max(MIN_TRANSFER_TAX, Math.ceil(value * TRANSFER_TAX_RATE));
         const received = value - tax;
         user.bank -= value;
@@ -956,6 +1014,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             if (!['rojo', 'red', 'negro', 'black'].includes(color)) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP.roulette}* (rojo/negro)`);
             const result = Math.random() < .5 ? 'rojo' : 'negro';
             won = (color === 'rojo' || color === 'red') === (result === 'rojo');
+        }
+        if (!consumeDailyLimit(botData, user, jid, 'gamblingStake', value, ECONOMY_LIMITS.gamblingStake, 'gambling_limit', { game: canonical, stake: value })) {
+            save();
+            return reply(sock, chatId, msg, `🛡️ Alcanzaste el límite diario de apuestas de taberna (*${fmt(ECONOMY_LIMITS.gamblingStake)} ${COIN}*). Vuelve mañana.`);
         }
         if (won) user.coins += value; else user.coins -= value;
         save(); return reply(sock, chatId, msg, won ? `🎉 ¡El destino favoreció tu tirada! Ganaste *${fmt(value)} ${COIN}*.` : `💥 La suerte te abandonó en la taberna. Perdiste *${fmt(value)} ${COIN}*.`);

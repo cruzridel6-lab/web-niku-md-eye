@@ -737,7 +737,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0 }, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -750,6 +750,8 @@ function loadBotDataFromDisk() {
     if (!Array.isArray(botData.comments)) botData.comments = [];
     if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
     if (!botData.economyStats || typeof botData.economyStats !== 'object') botData.economyStats = { transferTaxes: 0, transferCount: 0 };
+    botData.economyStats.abuseBlocked = Number(botData.economyStats.abuseBlocked) || 0;
+    if (!Array.isArray(botData.economyAbuseAlerts)) botData.economyAbuseAlerts = [];
     if (!botData.pvpDuels || typeof botData.pvpDuels !== 'object' || Array.isArray(botData.pvpDuels)) botData.pvpDuels = {};
     if (!botData.pvpDuelHistory || typeof botData.pvpDuelHistory !== 'object' || Array.isArray(botData.pvpDuelHistory)) botData.pvpDuelHistory = {};
     if (!Array.isArray(botData.adminReports)) botData.adminReports = [];

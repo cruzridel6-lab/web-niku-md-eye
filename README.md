@@ -93,6 +93,18 @@ El bot centraliza en `data/` la economía, perfiles, duelos PvP, RPG, Premium, t
 
 En un hosting con sistema de archivos temporal, crear `data/` dentro del repositorio por sí solo no garantiza la conservación después de un deploy: debes usar un volumen persistente o activar el respaldo cifrado de GitHub descrito abajo.
 
+### Protección contra abuso económico
+
+El bot aplica límites diarios moderados para proteger la economía sin impedir el progreso normal:
+
+- hasta `50.000` Niku Coins transferidos por jugador;
+- hasta `10` transferencias diarias;
+- hasta `8` transferencias al mismo destinatario;
+- hasta `20.000` Niku Coins apostados en duelos PvP;
+- hasta `10.000` Niku Coins apostados en coinflip/ruleta.
+
+Los intentos bloqueados se guardan en `economyAbuseAlerts` dentro de `bot_data.json`, junto con el contador `economyStats.abuseBlocked`, para que administración pueda revisarlos sin exponerlos al chat público.
+
 Si configuras las variables de GitHub anteriores, el bot restaura al arrancar y actualiza cada 30 segundos un archivo `bot/state.enc` cifrado con AES-256-GCM. El respaldo contiene la economía, perfiles, tokens, Premium y sesiones, pero GitHub solo recibe el texto cifrado. El token de GitHub y la clave de cifrado deben existir únicamente en Railway Variables.
 
 > Importante: nunca subas `bot/` en texto plano ni guardes la clave de cifrado dentro del repositorio. El archivo seguro es únicamente `bot/state.enc`, generado por el bot mediante la API de GitHub.
