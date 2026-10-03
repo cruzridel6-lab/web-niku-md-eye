@@ -1,6 +1,6 @@
 const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles } = require('../lib/rpgExpansion');
-const COIN = '🪙 Neko Coins';
+const COIN = '🪙 Niku Coins';
 const MIN_BET = 200;
 const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
 const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
@@ -94,7 +94,7 @@ const ALIASES = {
     mission: ['mission', 'mision', 'misiones'],
     achievements: ['achievement', 'achievements', 'logro', 'logros'],
     clan: ['clan', 'clanes'],
-    coinTop: ['nekotop', 'topcoins', 'coinstop', 'goldtop', 'orotop', 'toporo', 'riqueza'],
+    coinTop: ['nekotop', 'nikutop', 'topcoins', 'coinstop', 'goldtop', 'orotop', 'toporo', 'riqueza'],
     slut: ['slut'],
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
@@ -105,7 +105,7 @@ const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'r
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario',
     withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
@@ -243,7 +243,7 @@ function unlockAchievements(user) {
         if (!user.rpg.achievements[achievement.id] && achievement.test(user.rpg.stats, user)) {
             user.rpg.achievements[achievement.id] = { unlockedAt: new Date().toISOString(), reward: achievement.reward };
             user.coins = (Number(user.coins) || 0) + achievement.reward;
-            unlocked.push(`🏆 ${achievement.title} (+${fmt(achievement.reward)} Neko Coins)`);
+            unlocked.push(`🏆 ${achievement.title} (+${fmt(achievement.reward)} Niku Coins)`);
         }
     }
     return unlocked;
@@ -342,7 +342,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ ⚔️ ${prefix}raid · Raid cooperativa contra jefes\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nikutop · Top global de Niku Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ ⚔️ ${prefix}raid · Raid cooperativa contra jefes\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -865,9 +865,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             }
         }
         const rows = [...wealth.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]);
-        if (!rows.length) return reply(sock, chatId, msg, '🏆 Todavía no hay jugadores con Neko Coins registrados.');
+        if (!rows.length) return reply(sock, chatId, msg, '🏆 Todavía no hay jugadores con Niku Coins registrados.');
         const text = rows.slice(0, 10).map(([number, total], index) => `${index + 1}. @${number} — *${fmt(total)} ${COIN}*`).join('\n');
-        return reply(sock, chatId, msg, `🏆 *SALÓN DE LA FAMA DEL REINO*\n\n👥 Jugadores con Neko Coins: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
+        return reply(sock, chatId, msg, `🏆 *SALÓN DE LA FAMA DEL REINO*\n\n👥 Jugadores con Niku Coins: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
     }
 
     if (canonical === 'balance') {

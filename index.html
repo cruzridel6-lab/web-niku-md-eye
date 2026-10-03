@@ -561,7 +561,7 @@
       <div id="adminUserModalStats" class="quick-strip"></div><div class="rpg-divider"></div>
       <div class="rpg-admin-grid">
         <div class="rpg-control-card"><h4><i class="fas fa-id-card"></i> Identidad</h4><form id="adminProfileForm"><input id="adminProfileName" type="text" minlength="2" maxlength="32" placeholder="Nombre del personaje" required><button class="btn" type="submit">Guardar nombre</button></form></div>
-        <div class="rpg-control-card"><h4><i class="fas fa-coins"></i> Economía</h4><form id="adminBalanceForm"><select id="adminBalanceWallet"><option value="coins">Neko Coins</option><option value="bank">Banco</option></select><select id="adminBalanceAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><input id="adminBalanceAmount" type="number" min="1" step="1" placeholder="Cantidad" required><button class="btn" type="submit">Aplicar saldo</button></form></div>
+        <div class="rpg-control-card"><h4><i class="fas fa-coins"></i> Economía</h4><form id="adminBalanceForm"><select id="adminBalanceWallet"><option value="coins">Niku Coins</option><option value="bank">Banco</option></select><select id="adminBalanceAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><input id="adminBalanceAmount" type="number" min="1" step="1" placeholder="Cantidad" required><button class="btn" type="submit">Aplicar saldo</button></form></div>
         <div class="rpg-control-card"><h4><i class="fas fa-box-open"></i> Objetos</h4><form id="adminItemForm"><select id="adminItemId"></select><select id="adminItemAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><button class="btn" type="submit">Aplicar objeto</button></form><div id="adminItemsCollection" class="rpg-collection"></div></div>
       </div>
       <div class="rpg-control-card" style="margin-top:12px"><h4><i class="fas fa-trophy"></i> Logros específicos</h4><div id="adminAchievementsCollection" class="rpg-collection"></div></div>
@@ -598,7 +598,7 @@
   </div>
   <div class="quick-strip" aria-label="Ventajas principales">
     <div class="quick-item"><i class="fas fa-bolt"></i>Bot NIKU MD activo</div>
-    <div class="quick-item"><i class="fas fa-coins"></i>Economía Neko Coins</div>
+    <div class="quick-item"><i class="fas fa-coins"></i>Economía Niku Coins</div>
     <div class="quick-item"><i class="fas fa-swords"></i>Duelos PvP en vivo</div>
   </div>
 
@@ -612,13 +612,13 @@
   </div>
   <div class="leaderboard-tabs" role="tablist" aria-label="Categorías de rankings">
     <button class="leaderboard-tab active" type="button" role="tab" aria-selected="true" data-board-tab="achievements"><i class="fas fa-trophy"></i> Logros</button>
-    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="coins"><i class="fas fa-coins"></i> Neko Coins</button>
+    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="coins"><i class="fas fa-coins"></i> Niku Coins</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="pvp"><i class="fas fa-swords"></i> PvP</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="history"><i class="fas fa-clock-rotate-left"></i> Historial</button>
   </div>
   <div class="public-board-grid compact-leaderboards" id="leaderboards">
     <div class="public-board-card active" data-board-panel="achievements"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
-    <div class="public-board-card" data-board-panel="coins"><h3><i class="fas fa-coins"></i> Top de Neko Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
+    <div class="public-board-card" data-board-panel="coins"><h3><i class="fas fa-coins"></i> Top de Niku Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="pvp"><h3><i class="fas fa-swords"></i> Ranking PvP</h3><p>Los mejores duelistas.</p><div id="publicPvpBoard" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="history"><h3><i class="fas fa-clock-rotate-left"></i> Historial PvP</h3><p>Últimos enfrentamientos.</p><div id="publicPvpHistory" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
   </div>
@@ -1047,7 +1047,7 @@ function renderPublicLeaderboard(data={}){
 function rewardEventText(event){
   const player=escapeAdminHtml(event.player||'Jugador');
   if(event.type==='achievement') return `🏆 ${player} desbloqueó el logro *${escapeAdminHtml(event.achievement||'nuevo')}*`;
-  return `🪙 ${player} ganó *${Number(event.amount||0).toLocaleString('es-ES')} Neko Coins* · ${escapeAdminHtml(event.source||'RPG')}`;
+  return `🪙 ${player} ganó *${Number(event.amount||0).toLocaleString('es-ES')} Niku Coins* · ${escapeAdminHtml(event.source||'RPG')}`;
 }
 function renderPublicRewardEvents(events=[]){
   if(!publicRewardEvents) return;
@@ -1289,7 +1289,7 @@ rewardTokenResult?.addEventListener('click',()=>{
 socket.on('admin-reward-token',(result={})=>{
   rewardTokenResult.textContent=result.token || '';
   rewardTokenResult.classList.toggle('show',Boolean(result.token));
-  if(result.token){ const tools=Object.keys(result.tools||{}).join(', '); showToast(`Paquete generado: ${Number(result.coins||0).toLocaleString('es-ES')} Neko Coins${tools ? ` + ${tools}` : ''}`); }
+  if(result.token){ const tools=Object.keys(result.tools||{}).join(', '); showToast(`Paquete generado: ${Number(result.coins||0).toLocaleString('es-ES')} Niku Coins${tools ? ` + ${tools}` : ''}`); }
 });
 socket.on('admin-reward-data',renderRewardData);
 rewardTokensList?.addEventListener('click',(event)=>{

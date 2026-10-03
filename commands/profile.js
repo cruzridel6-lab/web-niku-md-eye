@@ -128,7 +128,7 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
         ownProfile.name = name;
         ownProfile.registered = true;
         save();
-        return reply(sock, chatId, msg, `╭━━━〔 ✅ *REGISTRO COMPLETADO* 〕━━━╮\n┃\n┃ 🎉 Bienvenido a *NIKU MD*, *${name}*\n┃\n┃ Tu perfil ya está activo y tu nombre\n┃ aparecerá en los rankings públicos.\n┃\n┃ 🪙 Economía: *Neko Coins*\n┃ 🏆 Sistema: *RPG · clanes · logros*\n┃\n┃ Escribe *.menu* para comenzar.\n┃\n╰━━━〔 🤖 *NIKU MD BOT* 〕━━━╯`);
+        return reply(sock, chatId, msg, `╭━━━〔 ✅ *REGISTRO COMPLETADO* 〕━━━╮\n┃\n┃ 🎉 Bienvenido a *NIKU MD*, *${name}*\n┃\n┃ Tu perfil ya está activo y tu nombre\n┃ aparecerá en los rankings públicos.\n┃\n┃ 🪙 Economía: *Niku Coins*\n┃ 🏆 Sistema: *RPG · clanes · logros*\n┃\n┃ Escribe *.menu* para comenzar.\n┃\n╰━━━〔 🤖 *NIKU MD BOT* 〕━━━╯`);
     }
     if (canonical === 'profile' && !q && !contextTarget(msg)) return showProfile(sock, chatId, msg, own, ownProfile, botData);
     if (canonical === 'profile') {
