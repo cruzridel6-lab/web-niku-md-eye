@@ -50,6 +50,11 @@ const RAID_BOSSES = {
     titan_abismal: { name: '🗿 Titán Abismal', hp: 30000, reward: 80000, xp: 220, description: 'Un coloso de piedra que no cae ante un solo aventurero.' },
     reina_nigromante: { name: '👑 Reina Nigromante', hp: 27000, reward: 72000, xp: 200, description: 'Señora de los muertos y maestra de las maldiciones.' }
 };
+const RAID_TITLES = {
+    dragon_ancestral: '🐉 Matadragones ancestral',
+    titan_abismal: '🗿 Rompe-titanes del abismo',
+    reina_nigromante: '👑 Caudillo de la muerte'
+};
 
 const ALIASES = {
     rpg: ['rpg', 'rpgmenu', 'economiarpg', 'economyrpg'],
@@ -199,6 +204,13 @@ function raidStatusText(raid, prefix) {
     const boss = RAID_BOSSES[raid.bossId];
     return `⚔️ *RAID: ${boss.name}*\n\n${boss.description}\n❤️ Jefe: *${fmt(Math.max(0, raid.hp))}/${fmt(raid.maxHp)} HP*\n⏳ Tiempo: *${raidTimeLeft(raid)}*\n👥 Participantes: *${Object.keys(raid.participants || {}).length}/8*\n\n${raidParticipantsText(raid)}\n\nÚnete: *${prefix}raid unirse*\nAtaca: *${prefix}raid atacar*`;
 }
+function grantRaidTitle(user, title) {
+    const rpg = ensureRpg(user);
+    rpg.titles ||= [];
+    if (rpg.titles.includes(title)) return false;
+    rpg.titles.push(title);
+    return true;
+}
 function addXp(user, amount = 5) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
     const now = Date.now();
@@ -217,7 +229,10 @@ const ACHIEVEMENTS = [
     { id: 'hunter', title: '🏹 Cazador experto', test: s => s.hunted >= 10, reward: 1800 },
     { id: 'dungeon', title: '🏰 Explorador de mazmorras', test: s => s.dungeonKills >= 50, reward: 3000 },
     { id: 'mission', title: '📜 Cumplidor de misiones', test: s => s.missionsCompleted >= 1, reward: 2500 },
-    { id: 'clan', title: '⚔️ Fundador de clan', test: s => s.clansCreated >= 1, reward: 2000 }
+    { id: 'clan', title: '⚔️ Fundador de clan', test: s => s.clansCreated >= 1, reward: 2000 },
+    { id: 'raid_dragon_ancestral', title: '🐉 Caída del Dragón Ancestral', test: s => Number(s.raidBosses?.dragon_ancestral) >= 1, reward: 10000 },
+    { id: 'raid_titan_abismal', title: '🗿 El Titán se arrodilla', test: s => Number(s.raidBosses?.titan_abismal) >= 1, reward: 12000 },
+    { id: 'raid_reina_nigromante', title: '👑 Silencio de la Reina Nigromante', test: s => Number(s.raidBosses?.reina_nigromante) >= 1, reward: 11000 }
 ];
 function unlockAchievements(user) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
@@ -512,8 +527,16 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
                 memberUser.rpg ||= { xp: 0, level: 1, lastXp: 0 };
                 memberUser.rpg.lastXp = 0;
                 const xp = addXp(memberUser, boss.xp);
-                addStat(memberUser, 'raidsCompleted', 1);
-                rewards.push(`• ${member.name}: *+${fmt(share)} ${COIN}* y *+${fmt(xp.gained || boss.xp)} XP*`);
+                const regularUnlocks = addStat(memberUser, 'raidsCompleted', 1);
+                memberUser.rpg.stats ||= {};
+                memberUser.rpg.stats.raidBosses ||= {};
+                memberUser.rpg.stats.raidBosses[raid.bossId] = (Number(memberUser.rpg.stats.raidBosses[raid.bossId]) || 0) + 1;
+                const raidUnlocks = unlockAchievements(memberUser);
+                const titleGranted = grantRaidTitle(memberUser, RAID_TITLES[raid.bossId]);
+                updateTitles(memberUser);
+                const unlockText = [...regularUnlocks, ...raidUnlocks].length ? `\n🏆 ${[...regularUnlocks, ...raidUnlocks].join('\n🏆 ')}` : '';
+                const titleText = titleGranted ? `\n🏅 *Título desbloqueado:* ${RAID_TITLES[raid.bossId]}` : '';
+                rewards.push(`• ${member.name}: *+${fmt(share)} ${COIN}* y *+${fmt(xp.gained || boss.xp)} XP*${unlockText}${titleText}`);
             }
             state.raids.history ||= [];
             state.raids.history.push({ bossId: raid.bossId, status: 'victory', finishedAt: new Date().toISOString(), participants: members.length, damage: members.reduce((sum, item) => sum + item.damage, 0) });
