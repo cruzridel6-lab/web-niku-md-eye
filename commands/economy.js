@@ -514,7 +514,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         activateWelcomeMission(user);
         save();
         const selected = CHARACTER_CLASSES[requested];
-        return reply(sock, chatId, msg, `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\n✅ *Tutorial desbloqueado*\nUsa *${prefix}tutorial* para ver tus primeros pasos.\n\n🎯 *MISIÓN DE BIENVENIDA*\nCompleta tu primer combate con *${prefix}combate iniciar* y *${prefix}combate atacar*.\n🎁 Recompensa: *500 Niku Coins + 40 XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
+        return reply(sock, chatId, msg, `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
     }
 
     if (canonical === 'raid') {
