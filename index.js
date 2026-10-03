@@ -1659,6 +1659,7 @@ if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandNa
                                         case 'inventario': case 'inventory': case 'mochila': case 'bolsaequipamiento':
                                         case 'fabricar': case 'craft': case 'forjar':
                                         case 'campaña': case 'campana': case 'quest': case 'historia':
+                                        case 'tutorial': case 'guia': case 'guía': case 'guiaaventura':
                                         case 'titulos': case 'títulos': case 'titulo': case 'title':
                                         case 'mercadojugadores': case 'subasta': case 'market':
                                         case 'temporada': case 'season': case 'rankingtemporada':
