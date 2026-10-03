@@ -737,7 +737,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -752,6 +752,7 @@ function loadBotDataFromDisk() {
     if (!botData.economyStats || typeof botData.economyStats !== 'object') botData.economyStats = { transferTaxes: 0, transferCount: 0 };
     botData.economyStats.abuseBlocked = Number(botData.economyStats.abuseBlocked) || 0;
     if (!Array.isArray(botData.economyAbuseAlerts)) botData.economyAbuseAlerts = [];
+    if (!botData.investments || typeof botData.investments !== 'object' || Array.isArray(botData.investments)) botData.investments = {};
     if (!botData.pvpDuels || typeof botData.pvpDuels !== 'object' || Array.isArray(botData.pvpDuels)) botData.pvpDuels = {};
     if (!botData.pvpDuelHistory || typeof botData.pvpDuelHistory !== 'object' || Array.isArray(botData.pvpDuelHistory)) botData.pvpDuelHistory = {};
     if (!Array.isArray(botData.adminReports)) botData.adminReports = [];
@@ -1663,7 +1664,7 @@ class BotSession {
                                         case 'level': case 'nivel': case 'xp': case 'experiencia':
                                         case 'mine': case 'minar': case 'mineria': case 'fish': case 'pescar': case 'pesca': case 'hunt': case 'cazar': case 'caza': case 'mercader': case 'mercado': case 'reparar': case 'repair': case 'explore': case 'explorar': case 'exploracion': case 'gather': case 'recolectar': case 'recoleccion': case 'patrol': case 'patrullar': case 'patrulla': case 'dungeon': case 'mazmorra': case 'mazmorras': case 'raid': case 'raids': case 'incursion': case 'incursiones': case 'mission': case 'mision': case 'misiones': case 'achievement': case 'achievements': case 'logro': case 'logros':
                                         case 'clan': case 'clanes': case 'goldtop': case 'orotop': case 'toporo': case 'riqueza': case 'nekotop': case 'nikutop': case 'topcoins': case 'coinstop':
-                                        case 'work': case 'w':
+                                        case 'work': case 'w': case 'invertir': case 'inversion': case 'inversión':
                                         case 'raid': case 'raids': case 'incursion': case 'incursión': case 'jefemundial':
                                         case 'combate': case 'combat': case 'batalla': case 'arena':
                                         case 'inventario': case 'inventory': case 'mochila': case 'bolsaequipamiento':
@@ -2211,7 +2212,7 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
 
 async function sendRpgInteractiveMenu(sock, jid, msg) {
     await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
-        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Unirse a una raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Ver mochila y equipo'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros']
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Unirse a una raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Ver mochila y equipo'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['invertir', '📈 Invertir', 'Invertir monedas durante 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros']
     ].map(([command, title, description]) => ({ command, title, description })), msg);
 }
 

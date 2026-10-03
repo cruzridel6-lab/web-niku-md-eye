@@ -2,6 +2,9 @@ const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
 const COIN = '🪙 Niku Coins';
 const MIN_BET = 200;
+const INVESTMENT_DURATION = 5 * 60 * 1000;
+const MIN_INVESTMENT = 500;
+const MAX_INVESTMENT = 20000;
 const TRANSFER_TAX_RATE = 0.05;
 const MIN_TRANSFER_TAX = 25;
 const ECONOMY_LIMITS = {
@@ -109,7 +112,8 @@ const ALIASES = {
     slut: ['slut'],
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
-    work: ['work', 'w']
+    work: ['work', 'w'],
+    investment: ['invertir', 'inversion', 'inversión']
 };
 const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'registro', 'profile', 'perfil', 'user', 'marry', 'casar', 'divorce', 'divorciar', 'history', 'historial', 'historialmatrimonial', 'marryhistory', 'pfp', 'getpfp', 'foto', 'avatar', 'setbio', 'setdescription', 'setdescperfil', 'setbirth', 'setcumple', 'setbirthday', 'setgenre', 'setgenero']);
 
@@ -117,7 +121,7 @@ const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
     roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario',
-    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -377,7 +381,7 @@ function consumeDailyLimit(botData, user, jid, field, amountValue, limit, type, 
     return true;
 }
 function menu(prefix = '.') {
-    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 🧭 ${prefix}tutorial · Guía del aventurero\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 🧭 ${prefix}tutorial · Guía del aventurero\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 📈 ${prefix}invertir · Inversión de 5 minutos\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 function tutorialText(user, prefix = '.') {
     const mission = user.rpg?.welcomeMission;
@@ -385,6 +389,70 @@ function tutorialText(user, prefix = '.') {
         ? `${mission.claimed ? '✅' : '📍'} ${mission.title}: *${Math.min(Number(mission.progress) || 0, Number(mission.target) || 1)}/${mission.target}*${mission.claimed ? ' — completada' : `\n   ${mission.objective}`}`
         : '📍 Misión de bienvenida: elige una clase para activarla.';
     return `🧭 *TUTORIAL DEL AVENTURERO*\n\n1️⃣ *Completa tu personaje*\nUsa *${prefix}perfil* y elige tu clase con *${prefix}clase*.\n\n2️⃣ *Haz tu primer combate*\nUsa *${prefix}combate iniciar* y después *${prefix}combate atacar*.\n\n3️⃣ *Revisa tu progreso*\nConsulta *${prefix}nivel*, *${prefix}inventario* y *${prefix}logros*.\n\n4️⃣ *Explora el reino*\nPrueba *${prefix}misiones*, *${prefix}raid* y *${prefix}mercado*.\n\n🎯 *MISIÓN DE BIENVENIDA*\n${missionLine}\n🎁 Recompensa: *500 Niku Coins + 40 XP*\n\nEscribe *${prefix}tutorial* cuando necesites volver a esta guía.`;
+}
+
+const investmentTimers = new Map();
+function investmentForUser(botData, chatId, jid) {
+    return Object.values(botData.investments || {}).find(item => item.status === 'pending' && item.chatId === chatId && numberOf(item.jid) === numberOf(jid));
+}
+function clearInvestmentTimer(id) {
+    const timers = investmentTimers.get(id) || [];
+    timers.forEach(timer => clearTimeout(timer));
+    investmentTimers.delete(id);
+}
+async function sendInvestmentMessage(sock, investment, text, messageRef = null) {
+    try {
+        if (messageRef?.key) return await sock.sendMessage(investment.chatId, { text, edit: messageRef.key });
+        return await sock.sendMessage(investment.chatId, { text });
+    } catch (error) {
+        try { return await sock.sendMessage(investment.chatId, { text }); } catch (ignored) { return messageRef; }
+    }
+}
+async function resolveInvestment(sock, investment, botData, saveBotData, messageRef = null) {
+    if (!investment || investment.status !== 'pending') return;
+    clearInvestmentTimer(investment.id);
+    const state = botData.economy?.[investment.chatId];
+    const found = state ? findUser(state, investment.jid) : null;
+    const wallet = found?.user;
+    const stake = Math.max(0, Number(investment.amount) || 0);
+    const won = Math.random() < 0.5;
+    const profit = won ? Math.floor(stake * 0.5) : 0;
+    if (wallet && won) wallet.coins = Math.max(0, Number(wallet.coins) || 0) + stake + profit;
+    investment.status = won ? 'won' : 'lost';
+    investment.result = won ? profit : -stake;
+    investment.returned = won ? stake + profit : 0;
+    investment.resolvedAt = new Date().toISOString();
+    saveBotData();
+    const text = won
+        ? `✅ *INVERSIÓN COMPLETADA*\n\n📈 Resultado: *GANANDO DINERO*\n🪙 Inversión devuelta: *${fmt(stake)} ${COIN}*\n💰 Ganancia: *+${fmt(profit)} ${COIN}*\n💼 Saldo actual: *${fmt(wallet?.coins || 0)} ${COIN}*`
+        : `📉 *INVERSIÓN COMPLETADA*\n\n💸 Resultado: *PERDIENDO*\n🪙 Perdiste: *${fmt(stake)} ${COIN}*\n💼 Saldo actual: *${fmt(wallet?.coins || 0)} ${COIN}*`;
+    await sendInvestmentMessage(sock, investment, text, messageRef);
+}
+function scheduleInvestment(sock, investment, botData, saveBotData, messageRef = null) {
+    if (!investment || investment.status !== 'pending' || investmentTimers.has(investment.id)) return;
+    const remaining = Math.max(0, Number(investment.resolvesAt) - Date.now());
+    const frames = [
+        [60e3, '📈 *INVERSIÓN EN CURSO*\n\n💹 El mercado está *GANANDO DINERO*...\n⏳ Faltan aproximadamente 4 minutos.'],
+        [120e3, '📉 *INVERSIÓN EN CURSO*\n\n⚠️ El mercado está *PERDIENDO*...\n⏳ La operación todavía puede recuperarse.'],
+        [180e3, '📈 *INVERSIÓN EN CURSO*\n\n💰 Las cotizaciones están *GANANDO* fuerza...\n⏳ Falta aproximadamente 2 minutos.'],
+        [240e3, '📊 *INVERSIÓN EN CURSO*\n\n🔄 Última revisión del mercado...\n⏳ El resultado llegará en aproximadamente 1 minuto.']
+    ];
+    let currentMessage = messageRef;
+    const timers = [];
+    for (const [offset, text] of frames) {
+        const delay = Math.max(0, remaining - (INVESTMENT_DURATION - offset));
+        timers.push(setTimeout(async () => { currentMessage = await sendInvestmentMessage(sock, investment, text, currentMessage); }, delay));
+    }
+    timers.push(setTimeout(() => resolveInvestment(sock, investment, botData, saveBotData, currentMessage), remaining));
+    investmentTimers.set(investment.id, timers);
+}
+async function resumeInvestmentsForChat(sock, chatId, botData, saveBotData) {
+    botData.investments ||= {};
+    const pending = Object.values(botData.investments).filter(item => item.status === 'pending' && item.chatId === chatId);
+    for (const investment of pending) {
+        if (Number(investment.resolvesAt) <= Date.now()) await resolveInvestment(sock, investment, botData, saveBotData);
+        else scheduleInvestment(sock, investment, botData, saveBotData);
+    }
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -396,6 +464,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const { state, user, jid } = ensureState(botData, chatId, sender);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
+    await resumeInvestmentsForChat(sock, chatId, botData, saveBotData);
     if (canonical === 'tutorial') return reply(sock, chatId, msg, tutorialText(user, prefix));
     const expansionCanonical = canonical === 'merchant' && ['ver', 'listado', 'publicar', 'comprar'].includes(String(args[0] || '').toLowerCase()) ? 'market' : canonical;
     const expansionResult = await handleExpansion({ sock, chatId, msg, canonical: expansionCanonical, args, user, jid, botData, save, prefix });
@@ -404,6 +473,24 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const commandAchievements = addStat(user, 'commandsUsed', 1);
     const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
     if (xpEvent.gained || commandAchievements.length) save();
+
+    if (canonical === 'investment') {
+        botData.investments ||= {};
+        const active = investmentForUser(botData, chatId, jid);
+        if (active) return reply(sock, chatId, msg, `📈 Ya tienes una inversión en curso por *${fmt(active.amount)} ${COIN}*.\n⏳ Termina en aproximadamente *${timeLeft(Math.max(0, Number(active.resolvesAt) - Date.now()))}*.`);
+        const requested = amount(args[0]);
+        if (requested === 'all' || !requested) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP.investment}*\nMínimo: *${fmt(MIN_INVESTMENT)} ${COIN}* · Máximo: *${fmt(MAX_INVESTMENT)} ${COIN}*.`);
+        if (requested < MIN_INVESTMENT || requested > MAX_INVESTMENT) return reply(sock, chatId, msg, `❌ La inversión debe estar entre *${fmt(MIN_INVESTMENT)}* y *${fmt(MAX_INVESTMENT)} ${COIN}*.`);
+        if (requested > user.coins) return reply(sock, chatId, msg, `❌ No tienes suficiente oro.\nNecesitas: *${fmt(requested)} ${COIN}*\nTienes: *${fmt(user.coins)} ${COIN}*.`);
+        const now = Date.now();
+        const investment = { id: `investment-${now}-${Math.random().toString(36).slice(2, 8)}`, chatId, jid, amount: requested, status: 'pending', createdAt: new Date(now).toISOString(), resolvesAt: now + INVESTMENT_DURATION };
+        user.coins -= requested;
+        botData.investments[investment.id] = investment;
+        save();
+        const sent = await reply(sock, chatId, msg, `📈 *INVERSIÓN INICIADA*\n\n🪙 Capital invertido: *${fmt(requested)} ${COIN}*\n⏱️ Duración: *5 minutos*\n\n📊 El mercado está *GANANDO DINERO*...\n📉 Puede terminar ganando o perdiendo.\n\n⚠️ No puedes retirar este capital hasta que termine la inversión.`);
+        scheduleInvestment(sock, investment, botData, saveBotData, sent);
+        return;
+    }
 
     if (canonical === 'duel') {
         botData.pvpDuels ||= {};
