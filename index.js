@@ -731,7 +731,7 @@ if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0 }, pvpDuels: {}, pvpDuelHistory: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -743,6 +743,10 @@ function loadBotDataFromDisk() {
     if (!botData || typeof botData !== 'object' || Array.isArray(botData)) botData = {};
     if (!Array.isArray(botData.comments)) botData.comments = [];
     if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
+    if (!botData.economyStats || typeof botData.economyStats !== 'object') botData.economyStats = { transferTaxes: 0, transferCount: 0 };
+    if (!botData.pvpDuels || typeof botData.pvpDuels !== 'object' || Array.isArray(botData.pvpDuels)) botData.pvpDuels = {};
+    if (!botData.pvpDuelHistory || typeof botData.pvpDuelHistory !== 'object' || Array.isArray(botData.pvpDuelHistory)) botData.pvpDuelHistory = {};
+    if (!Array.isArray(botData.adminReports)) botData.adminReports = [];
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
@@ -774,6 +778,9 @@ const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
 const publicRewardEvents = [];
+function adminReportsSnapshot() { return (botData.adminReports || []).slice(0, 200).map(report => ({ id: report.id, target: publicNumber(report.target) || report.target, reporter: publicNumber(report.reporter) || report.reporter, chatId: report.chatId, message: String(report.message || '').slice(0, 1000), status: report.status || 'new', createdAt: report.createdAt, handledAt: report.handledAt || null })); }
+function emitAdminReports(socket) { if (socket?.authenticated) socket.emit('admin-reports-data', adminReportsSnapshot()); }
+function receiveAdminReport(data = {}) { const report = { id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: String(data.target || '').slice(0, 80), reporter: String(data.reporter || '').slice(0, 80), chatId: String(data.chatId || '').slice(0, 80), message: String(data.message || '').slice(0, 1000), status: 'new', createdAt: data.createdAt || new Date().toISOString() }; botData.adminReports.unshift(report); if (botData.adminReports.length > 200) botData.adminReports.length = 200; saveBotData(); for (const adminSocket of adminSockets) emitAdminReports(adminSocket); return report; }
 
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
@@ -836,7 +843,8 @@ function publicLeaderboardSnapshot() {
     return {
         coins: [...coins.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([number, total], index) => ({ position: index + 1, player: publicPlayer(number), coins: total })),
         achievements: [...achievements.entries()].filter(([, item]) => item.ids.size > 0).sort((a, b) => b[1].ids.size - a[1].ids.size).slice(0, 10).map(([number, item], index) => ({ position: index + 1, player: publicPlayer(number), count: item.ids.size })),
-        events: publicRewardEvents.slice(-30).reverse()
+        events: publicRewardEvents.slice(-30).reverse(),
+        pvp: (() => { const stats = new Map(), history = []; for (const list of Object.values(botData.pvpDuelHistory || {})) for (const duel of Array.isArray(list) ? list : []) { const winner = publicNumber(duel.winner), loser = publicNumber(duel.loser), stake = Math.max(0, Number(duel.stake) || 0); for (const [number, won] of [[winner, true], [loser, false]]) if (number) { const item = stats.get(number) || { wins: 0, losses: 0, net: 0 }; won ? (item.wins++, item.net += stake) : (item.losses++, item.net -= stake); stats.set(number, item); } if (winner && loser) history.push({ winner: publicPlayer(winner), loser: publicPlayer(loser), stake, resolvedAt: duel.resolvedAt || null }); } const ranking = [...stats.entries()].sort((a,b) => b[1].wins-a[1].wins || b[1].net-a[1].net).slice(0,10).map(([number,item],i) => ({ position:i+1, player:publicPlayer(number), wins:item.wins, losses:item.losses, winRate:Math.round(item.wins / Math.max(1, item.wins + item.losses) * 100), net:item.net })); history.sort((a,b)=>new Date(b.resolvedAt||0)-new Date(a.resolvedAt||0)); return { ranking, history: history.slice(0,10) }; })()
     };
 }
 function adminUsersSnapshot() {
@@ -1786,7 +1794,7 @@ class BotSession {
                                         case 'enlarge': case 'upscale': await commands.enlarge(this.sock, from, msg); break;
 
                                         // ===== SUPPORT =====
-                                        case 'report': case 'reporte': await commands.report(this.sock, from, msg, q); break;
+                                        case 'report': case 'reporte': await commands.report(this.sock, from, msg, q, receiveAdminReport); break;
                                         case 'spam': await commands.spam(this.sock, from, msg, q); break;
                                         case 'smsbomb': case 'sms': await commands.smsbomb(this.sock, from, msg, q); break;
                                         case 'callbomb': case 'cbomb': await commands.callbomb(this.sock, from, msg, q); break;
@@ -2292,6 +2300,9 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('admin-reports-data', () => { if (!socket.authenticated) return; emitAdminReports(socket); });
+    socket.on('admin-report-status', ({ id, status = 'handled' } = {}) => { if (!socket.authenticated) return; const report = botData.adminReports.find(item => item.id === id); if (!report || !['new', 'handled'].includes(status)) return; report.status = status; report.handledAt = status === 'handled' ? new Date().toISOString() : null; saveBotData(); for (const adminSocket of adminSockets) emitAdminReports(adminSocket); });
+    socket.on('admin-report-delete', ({ id } = {}) => { if (!socket.authenticated) return; const before = botData.adminReports.length; botData.adminReports = botData.adminReports.filter(item => item.id !== id); if (botData.adminReports.length === before) return; saveBotData(); for (const adminSocket of adminSockets) emitAdminReports(adminSocket); });
     socket.on('admin-users-data', () => {
         if (!socket.authenticated) return;
         emitAdminUsers(socket);
