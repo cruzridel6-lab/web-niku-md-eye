@@ -396,11 +396,11 @@
   .admin-status{min-height:20px;color:var(--amber);font-size:.75rem;}
   #adminConsole{display:none;}
   #adminNavLink,#admin.panel,#moderation.panel,a[href="/moderacion"]{display:none!important;}
-  body.admin-route #adminNavLink{display:inline-flex;}
+  body.admin-route #adminNavLink{display:inline-flex!important;}
   #admin.panel{display:none;}
-  body.admin-route #admin.panel{display:block;}
+  body.admin-route #admin.panel{display:block!important;}
   #moderation.panel{display:none;}
-  body.moderation-route #moderation.panel{display:block;}
+  body.moderation-route #moderation.panel{display:block!important;}
   body.moderation-route #moderatorConsole{display:none;}
   body.moderation-route #boot,body.moderation-route .hero-banner,body.moderation-route .banner-nav,body.moderation-route header,body.moderation-route main>section:not(#moderation),body.moderation-route footer,body.moderation-route #audioHint,body.moderation-route #channelModal{display:none!important;}
   body.moderation-route nav{position:relative;}
@@ -718,7 +718,7 @@
     <div id="adminLoginBox">
       <p class="sample-note"><i class="fas fa-lock"></i> Acceso privado · Inicia sesión para abrir la consola administrativa.</p>
       <form id="adminLoginForm" class="admin-login">
-        <input id="adminUsername" type="text" autocomplete="username" placeholder="Usuario" required>
+        <input id="adminUsername" type="text" autocomplete="username" placeholder="Usuario o número ADMIN configurado" required>
         <input id="adminPassword" type="password" autocomplete="current-password" placeholder="Contraseña" required>
         <button class="btn" type="submit"><i class="fas fa-lock"></i> Entrar al panel</button>
         <div id="adminStatus" class="admin-status" aria-live="polite"></div>
@@ -810,8 +810,8 @@
     <h2><i class="fas fa-hashtag"></i> Moderación</h2>
     <div class="admin-head"><div><span class="admin-kicker">NIKU MD · MODERACIÓN</span><h3>Panel de Moderación</h3><p>Usa únicamente las funciones habilitadas por el administrador.</p></div><div class="admin-head-actions"><span id="moderationPermissionState" class="admin-live-pill"><i class="fas fa-circle"></i> ACCESO PROTEGIDO</span></div></div>
     <div id="moderatorLoginBox">
-      <p class="sample-note"><i class="fas fa-lock"></i> Introduce las credenciales entregadas por el administrador.</p>
-      <form id="moderatorLoginForm" class="admin-login"><input id="moderatorUsername" type="text" autocomplete="username" placeholder="Usuario de moderación" required><input id="moderatorPassword" type="password" autocomplete="current-password" placeholder="Contraseña" required><button class="btn" type="submit"><i class="fas fa-right-to-bracket"></i> Entrar a Moderación</button><div id="moderatorLoginStatus" class="admin-status" aria-live="polite"></div></form>
+      <p class="sample-note"><i class="fas fa-lock"></i> Usa el usuario y la contraseña generados desde ADMIN. El número solo funciona si fue configurado como credencial ADMIN.</p>
+      <form id="moderatorLoginForm" class="admin-login"><input id="moderatorUsername" type="text" autocomplete="username" placeholder="Usuario generado (mod_...)" required><input id="moderatorPassword" type="password" autocomplete="current-password" placeholder="Contraseña generada" required><button class="btn" type="submit"><i class="fas fa-right-to-bracket"></i> Entrar a Moderación</button><div id="moderatorLoginStatus" class="admin-status" aria-live="polite"></div></form>
     </div>
     <div id="moderatorConsole">
       <div class="admin-card"><div class="admin-card-head"><div><h3>Permisos asignados</h3><p id="moderatorPermissionList">Cargando...</p></div></div></div>

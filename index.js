@@ -369,6 +369,10 @@ function hashModeratorSecret(value) {
     return crypto.createHash('sha256').update(String(value || '')).digest('hex');
 }
 
+function normalizeWebLogin(value) {
+    return String(value ?? '').trim().replace(/^\+/, '').replace(/[\s()-]/g, '');
+}
+
 function moderatorSnapshot() {
     return Object.entries(botData.moderators || {}).map(([id, moderator]) => ({
         id,
@@ -2386,9 +2390,11 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-fail');
             return;
         }
-        const adminUser = process.env.ADMIN_USERNAME || 'admin*';
-        const adminPass = process.env.ADMIN_PASSWORD || 'admin*1';
-        if (username === adminUser && password === adminPass) {
+        const submittedUser = normalizeWebLogin(username);
+        const configuredUsers = [process.env.ADMIN_USERNAME || 'admin*', process.env.ADMIN_NUMBER, process.env.ADMIN_PHONE]
+            .filter(Boolean).map(normalizeWebLogin);
+        const adminPass = String(process.env.ADMIN_PASSWORD || 'admin*1').trim();
+        if (configuredUsers.includes(submittedUser) && String(password || '').trim() === adminPass) {
             socket.authenticated = true;
             socket.adminAttempts = 0;
             adminSockets.add(socket);
@@ -2438,7 +2444,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('moderator-auth', ({ username, password } = {}) => {
-        const moderator = Object.values(botData.moderators || {}).find(item => item.active !== false && item.username === String(username || '').trim() && item.passwordHash === hashModeratorSecret(password));
+        const submittedUser = normalizeWebLogin(username);
+        const moderator = Object.values(botData.moderators || {}).find(item => item.active !== false && normalizeWebLogin(item.username) === submittedUser && item.passwordHash === hashModeratorSecret(String(password || '').trim()));
         if (!moderator) return socket.emit('moderator-auth-fail');
         socket.moderatorAuthenticated = true;
         socket.moderatorPermissions = moderator.permissions || [];
