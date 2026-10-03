@@ -507,6 +507,19 @@
   }
 .admin-reports-list{display:grid;gap:8px;max-height:360px;overflow:auto}.admin-report-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px;border:1px solid rgba(130,155,255,.16);border-radius:10px;background:rgba(0,0,0,.16);font-size:.7rem}.admin-report-row.handled{opacity:.68}.admin-report-meta{color:var(--muted);font-size:.64rem}.admin-report-message{margin-top:4px;overflow-wrap:anywhere}.admin-report-actions{display:flex;gap:5px;align-items:center}.admin-report-actions button{border:1px solid rgba(99,245,209,.35);background:transparent;color:var(--green);border-radius:6px;padding:5px 7px;font:inherit;font-size:.6rem;cursor:pointer}.admin-report-actions button[data-delete-report]{color:var(--danger);border-color:rgba(255,113,149,.45)}
 .admin-fold{margin-top:12px;border:1px solid var(--border);border-radius:14px;background:rgba(7,10,22,.42);overflow:hidden}.admin-fold>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 16px;color:var(--text);font-size:.78rem;font-weight:800;cursor:pointer;list-style:none}.admin-fold>summary::-webkit-details-marker{display:none}.admin-fold>summary::after{content:'+';color:var(--green);font-size:1.1rem}.admin-fold[open]>summary::after{content:'−'}.admin-fold>summary:hover{background:rgba(99,245,209,.06)}.admin-fold-body{padding:0 0 14px}.admin-fold-body>.admin-card,.admin-fold-body>.admin-console-grid{margin-top:0;border-radius:0;border-left:0;border-right:0;border-bottom:0;box-shadow:none}.admin-fold-body>.admin-card+ .admin-card{margin-top:10px}.admin-fold-body>.admin-console-grid{padding:0 14px}.admin-fold-body>.admin-card{padding:16px 14px}
+  .leaderboard-tabs{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 0;padding:5px;border:1px solid rgba(244,200,102,.2);border-radius:13px;background:rgba(5,8,17,.6);}
+  .leaderboard-tab{flex:1 1 140px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--muted);padding:8px 10px;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer;transition:.2s;}
+  .leaderboard-tab:hover,.leaderboard-tab.active{color:#160d0d;background:linear-gradient(135deg,#f4c866,#ffe7a1);box-shadow:0 5px 16px rgba(244,200,102,.18);}
+  .public-board-grid.compact-leaderboards{display:block;margin-top:8px;}
+  .compact-leaderboards .public-board-card{display:none;padding:11px 12px;}
+  .compact-leaderboards .public-board-card.active{display:block;}
+  .compact-leaderboards .public-board-card h3{display:inline-block;margin-bottom:3px;}
+  .compact-leaderboards .public-board-card p{display:inline-block;margin:0 0 0 8px;}
+  .compact-leaderboards .public-board-list{max-height:190px;overflow:auto;padding-right:3px;}
+  .compact-leaderboards .public-board-row{padding:5px 7px;font-size:.68rem;}
+  .compact-public-events{margin-top:8px!important;}
+  .compact-public-events .public-events-output{height:72px;padding:8px;font-size:.66rem;}
+  @media(max-width:620px){.leaderboard-tab{flex-basis:calc(50% - 7px);}.compact-leaderboards .public-board-card p{display:block;margin:2px 0 6px;}}
 </style>
 </head>
 <body>
@@ -597,11 +610,17 @@
     <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
     <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
   </div>
-  <div class="public-board-grid" id="leaderboards">
-    <div class="public-board-card"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
-    <div class="public-board-card"><h3><i class="fas fa-coins"></i> Top de Neko Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
-    <div class="public-board-card"><h3><i class="fas fa-swords"></i> Ranking PvP</h3><p>Los mejores duelistas.</p><div id="publicPvpBoard" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
-    <div class="public-board-card"><h3><i class="fas fa-clock-rotate-left"></i> Historial PvP</h3><p>Últimos enfrentamientos.</p><div id="publicPvpHistory" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
+  <div class="leaderboard-tabs" role="tablist" aria-label="Categorías de rankings">
+    <button class="leaderboard-tab active" type="button" role="tab" aria-selected="true" data-board-tab="achievements"><i class="fas fa-trophy"></i> Logros</button>
+    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="coins"><i class="fas fa-coins"></i> Neko Coins</button>
+    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="pvp"><i class="fas fa-swords"></i> PvP</button>
+    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="history"><i class="fas fa-clock-rotate-left"></i> Historial</button>
+  </div>
+  <div class="public-board-grid compact-leaderboards" id="leaderboards">
+    <div class="public-board-card active" data-board-panel="achievements"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
+    <div class="public-board-card" data-board-panel="coins"><h3><i class="fas fa-coins"></i> Top de Neko Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
+    <div class="public-board-card" data-board-panel="pvp"><h3><i class="fas fa-swords"></i> Ranking PvP</h3><p>Los mejores duelistas.</p><div id="publicPvpBoard" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
+    <div class="public-board-card" data-board-panel="history"><h3><i class="fas fa-clock-rotate-left"></i> Historial PvP</h3><p>Últimos enfrentamientos.</p><div id="publicPvpHistory" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
   </div>
   <div class="public-events-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-bolt"></i> Recompensas en vivo</h3><p>Últimas recompensas y logros desbloqueados.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicRewardEvents" class="public-events-output"><div class="console-empty">Esperando nuevas recompensas...</div></div></div>
 </header>
@@ -998,6 +1017,11 @@ const adminReportsList = document.getElementById('adminReportsList');
   const navLinks = document.getElementById('navLinks');
   navToggle?.addEventListener('click',()=>navLinks?.classList.toggle('active'));
   navLinks?.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>navLinks.classList.remove('active')));
+  document.querySelectorAll('[data-board-tab]').forEach(tab=>tab.addEventListener('click',()=>{
+    const target=tab.dataset.boardTab;
+    document.querySelectorAll('[data-board-tab]').forEach(item=>{const active=item===tab;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active));});
+    document.querySelectorAll('[data-board-panel]').forEach(panel=>panel.classList.toggle('active',panel.dataset.boardPanel===target));
+  }));
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
   document.body.classList.toggle('admin-route', isAdminRoute);
