@@ -1,4 +1,5 @@
 const profileCommand = require('./profile');
+const { handleExpansion, ensureRpg, updateTitles } = require('../lib/rpgExpansion');
 const COIN = '🪙 Neko Coins';
 const MIN_BET = 200;
 const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
@@ -51,6 +52,17 @@ const ALIASES = {
     balance: ['balance', 'bal', 'coins'],
     baltop: ['baltop', 'eboard', 'economytop'],
     coinflip: ['coinflip', 'cf', 'flip'],
+    duel: ['duel', 'duelo', 'pvp', 'desafio', 'desafío'],
+    combat: ['combat', 'combate', 'batalla', 'arena'],
+    inventory: ['inventory', 'inventario', 'mochila', 'bolsaequipamiento'],
+    craft: ['craft', 'fabricar', 'forjar'],
+    quest: ['quest', 'campaña', 'campana', 'historia'],
+    title: ['title', 'titulo', 'título', 'titulos', 'títulos'],
+    market: ['market', 'mercadojugadores', 'subasta'],
+    season: ['season', 'temporada', 'rankingtemporada'],
+    skills: ['skills', 'habilidades', 'talentos'],
+    potion: ['potion', 'pocion', 'poción', 'curar'],
+    rpgstatus: ['rpgstatus', 'estadisticas', 'estadística', 'poder'],
     crime: ['crime'],
     daily: ['daily'],
     deposit: ['deposit', 'dep', 'd'],
@@ -83,7 +95,7 @@ const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
     roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
-    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>'
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -297,7 +309,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -309,6 +321,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const { state, user, jid } = ensureState(botData, chatId, sender);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
+    const expansionCanonical = canonical === 'merchant' && ['ver', 'listado', 'publicar', 'comprar'].includes(String(args[0] || '').toLowerCase()) ? 'market' : canonical;
+    const expansionResult = await handleExpansion({ sock, chatId, msg, canonical: expansionCanonical, args, user, jid, botData, save, prefix });
+    if (expansionResult) return expansionResult;
     const mention = [jid];
     const commandAchievements = addStat(user, 'commandsUsed', 1);
     const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
@@ -366,11 +381,18 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             const winner = Math.random() < 0.5 ? { key: pending.challenger, account: challenger.user } : { key: jid, account: user };
             const loser = winner.key === jid ? pending.challenger : jid;
             winner.account.coins += stake * 2;
-            history.unshift({ id: pending.id, challenger: pending.challenger, target: pending.target, winner: winner.key, loser, stake, resolvedAt: new Date().toISOString() });
+            const winnerRpg = ensureRpg(winner.account);
+            const loserRpg = ensureRpg(winner.key === jid ? challenger.user : user);
+            const expected = 1 / (1 + Math.pow(10, (Number(loserRpg.pvp.elo) - Number(winnerRpg.pvp.elo)) / 400));
+            const eloGain = Math.max(12, Math.round(32 * (1 - expected)));
+            winnerRpg.pvp.wins += 1; winnerRpg.pvp.streak += 1; winnerRpg.pvp.elo = Math.min(3000, winnerRpg.pvp.elo + eloGain);
+            loserRpg.pvp.losses += 1; loserRpg.pvp.streak = 0; loserRpg.pvp.elo = Math.max(400, loserRpg.pvp.elo - eloGain);
+            updateTitles(winner.account); updateTitles(winner.key === jid ? challenger.user : user);
+            history.unshift({ id: pending.id, challenger: pending.challenger, target: pending.target, winner: winner.key, loser, stake, eloGain, resolvedAt: new Date().toISOString() });
             if (history.length > 100) history.length = 100;
             delete duels[pending.id];
             save();
-            return reply(sock, chatId, msg, `⚔️ *DUELO PvP RESUELTO*\n\n🏆 Ganador: @${numberOf(winner.key)}\n💥 Derrotado: @${numberOf(loser)}\n🪙 Pozo ganado: *${fmt(stake * 2)} ${COIN}*\n\n💰 Saldo del ganador: *${fmt(winner.account.coins)} ${COIN}*`, { mentions: [winner.key, loser] });
+            return reply(sock, chatId, msg, `⚔️ *DUELO PvP RESUELTO*\n\n🏆 Ganador: @${numberOf(winner.key)}\n💥 Derrotado: @${numberOf(loser)}\n🪙 Pozo ganado: *${fmt(stake * 2)} ${COIN}*\n📈 ELO del ganador: *${winnerRpg.pvp.elo}* (+${eloGain})\n🔥 Racha: *${winnerRpg.pvp.streak}*\n\n💰 Saldo del ganador: *${fmt(winner.account.coins)} ${COIN}*`, { mentions: [winner.key, loser] });
         }
         if (['cancelar', 'cancel', 'rechazar', 'reject'].includes(action)) {
             const pending = Object.values(duels).find(duel => duel.status === 'pending' && duel.challenger === jid);
