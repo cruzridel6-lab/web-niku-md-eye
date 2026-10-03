@@ -21,6 +21,12 @@
 <meta name="twitter:description" content="Novedades, actualizaciones y herramientas para tu WhatsApp.">
 <meta name="twitter:image" content="__NIKU_OG_IMAGE__">
 <link rel="canonical" href="__NIKU_OG_URL__">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NIKU MD">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1405,6 +1411,9 @@ socket.on('stats', (data)=>{
 });
 
 document.getElementById('year').innerText = new Date().getFullYear();
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{}));
+}
 </script>
 </body>
 </html>
