@@ -1500,6 +1500,14 @@ if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandNa
 ╰━━━〔 🪙 *NIKU MD · RPG* 〕━━━╯` }, { quoted: msg });
                                 return;
                             }
+                            if (commandName === 'ayuda' || commandName === 'help') {
+                                await this.sock.sendMessage(from, { text: smartHelpText(q.trim().toLowerCase() || 'comando', settings.prefix || '.') }, { quoted: msg });
+                                return;
+                            }
+                            if (!isKnownCommand(commandName)) {
+                                await this.sock.sendMessage(from, { text: smartHelpText(commandName, settings.prefix || '.') }, { quoted: msg });
+                                return;
+                            }
                             if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
                                 await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
@@ -1612,7 +1620,7 @@ if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandNa
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
-                                        case 'economymenu': case 'gamemenu': case 'rpg': case 'rpgmenu': case 'economiarpg': case 'economyrpg': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'economymenu': case 'gamemenu': case 'rpg': case 'rpgmenu': case 'economiarpg': case 'economyrpg': await sendRpgInteractiveMenu(this.sock, from, msg); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'roll', 'riddle', 'wouldyourather']); break;
@@ -2177,48 +2185,66 @@ const TOOL_DISPLAY_NAMES = {
     define: 'definir', google: 'buscar', wiki: 'wiki', yts: 'buscarvideo', playstore: 'playstore', npm: 'paquete'
 };
 
+async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
+    const menuButton = {
+        name: 'single_select',
+        buttonParamsJson: JSON.stringify({
+            title: '📋 ELEGIR COMANDO',
+            sections: [{
+                title: title.replace(/[\*_]/g, '').slice(0, 24),
+                rows: rows.slice(0, 30).map(row => ({
+                    title: String(row.title).slice(0, 24),
+                    description: String(row.description || 'Ejecutar comando').slice(0, 72),
+                    id: `cmd_${row.command}`
+                }))
+            }]
+        })
+    };
+    const channelButton = { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Ver canal', url: settings.whatsappChannel, merchant_url: settings.whatsappChannel }) };
+    const content = { interactiveMessage: { body: { text: `${title}\n\nSelecciona una opción para ejecutarla directamente:` }, footer: { text: 'NIKU MD • Menú interactivo' }, nativeFlowMessage: { buttons: [menuButton, channelButton], messageVersion: 1 } } };
+    const userJid = sock.user?.id;
+    const fullMessage = generateWAMessageFromContent(jid, content, { logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date() });
+    const additionalNodes = [{ tag: 'biz', attrs: {}, content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }] }];
+    if (!isJidGroup(jid)) additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
+    await sock.relayMessage(jid, fullMessage.message, { messageId: fullMessage.key.id, additionalNodes });
+}
+
+async function sendRpgInteractiveMenu(sock, jid, msg) {
+    await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Unirse a una raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Ver mochila y equipo'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros']
+    ].map(([command, title, description]) => ({ command, title, description })), msg);
+}
+
 async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
     const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
-    if (!available.length) {
-        await sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
-        return;
-    }
-    const width = 41;
-    const charWidth = (char) => {
-        const code = char.codePointAt(0);
-        if (code === 0x200d || (code >= 0xfe00 && code <= 0xfe0f) || (code >= 0x0300 && code <= 0x036f)) return 0;
-        if ((code >= 0x1f000 && code <= 0x1faff) || (code >= 0x2600 && code <= 0x27bf)) return 2;
-        return 1;
-    };
-    const visualWidth = (value) => [...String(value)].reduce((total, char) => total + charWidth(char), 0);
-    const fit = (value) => {
-        let result = '';
-        let used = 0;
-        for (const char of [...String(value)]) {
-            const next = charWidth(char);
-            if (used + next > width) break;
-            result += char;
-            used += next;
-        }
-        return result;
-    };
-    const center = (value) => {
-        const text = fit(value);
-        return `${' '.repeat(Math.max(0, Math.floor((width - visualWidth(text)) / 2)))}${text}`;
-    };
-    const lines = [
-        center(`『 ${title} 』`),
-        center('· · · ✦ · · ·'),
-        '',
-        ...available.map(name => center(`• .${TOOL_DISPLAY_NAMES[name] || name}`)),
-        '',
-        center('· · · ✦ · · ·'),
-        center(`✦ ${available.length} comando(s) disponibles ✦`)
-    ];
-    await sendSubmenuWithChannel(sock, from, ['```', lines.join('\n'), '```'].join('\n'), msg);
+    if (!available.length) return sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
+    const rows = available.map(name => ({ command: name, title: `.${TOOL_DISPLAY_NAMES[name] || name}`, description: `Ejecutar ${TOOL_DISPLAY_NAMES[name] || name}` }));
+    return sendInteractiveCommandMenu(sock, from, title, rows, msg);
+}
+
+function levenshtein(a, b) {
+    const row = [...Array(b.length + 1).keys()];
+    for (let i = 1; i <= a.length; i++) { let prev = row[0]; row[0] = i; for (let j = 1; j <= b.length; j++) { const saved = row[j]; row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = saved; } }
+    return row[b.length];
+}
+function smartHelpText(unknown, prefix = '.') {
+    const aliases = [];
+    for (const [name, command] of Object.entries(commands || {})) { aliases.push(name); if (Array.isArray(command?.aliases)) aliases.push(...command.aliases); }
+    aliases.push('menu', 'economia', 'rpg', 'tutorial', 'duelo', 'raid', 'logros', 'misiones');
+    const unique = [...new Set(aliases.filter(Boolean).map(value => String(value).toLowerCase()))];
+    const suggestions = unique.map(value => ({ value, score: levenshtein(unknown, value) })).sort((a, b) => a.score - b.score || a.value.length - b.value.length).slice(0, 3).filter(item => item.score <= Math.max(2, Math.ceil(unknown.length * .45)));
+    const lines = suggestions.length ? suggestions.map(item => `• *${prefix}${item.value}*`).join('\n') : `• *${prefix}menu*\n• *${prefix}rpg*\n• *${prefix}tutorial*`;
+    return `🤔 No reconozco *${prefix}${unknown}*.\n\n¿Quizás quisiste usar?\n${lines}\n\nTambién puedes escribir *${prefix}menu* para abrir el menú interactivo o *${prefix}ayuda <comando>* para ver una guía.`;
+}
+function isKnownCommand(name) {
+    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help']);
+    if (common.has(name) || Object.prototype.hasOwnProperty.call(commands, name)) return true;
+    for (const command of Object.values(commands || {})) if (Array.isArray(command?.aliases) && command.aliases.includes(name)) return true;
+    const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
+    return economyAliases.includes(name);
 }
 
 async function sendSubmenuWithChannel(sock, jid, text, quoted) {
