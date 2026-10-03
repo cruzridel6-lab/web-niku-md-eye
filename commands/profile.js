@@ -199,8 +199,11 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
 
 async function showProfile(sock, chatId, msg, jid, profile, botData) {
     const economy = economyFor(botData, chatId, jid);
+    const rpg = economy.rpg || { level: 1, xp: 0, class: '' };
+    const classes = { guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador' };
+    const characterClass = classes[rpg.class] || '🧭 Sin clase — usa .clase para elegir';
     const partner = profile.partner ? `💍 ${spouseWord(profile.genre)} con *${targetName(botData, profile.partner)}*` : '💍 Sin pareja';
-    const text = `👤 *PERFIL DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🎂 Cumpleaños: *${formatBirth(profile.birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n💰 Efectivo: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Banco: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
+    const text = `👤 *PERFIL RPG DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🛡️ Clase: *${characterClass}*\n⭐ Nivel: *${Number(rpg.level) || 1}*\n✨ Experiencia: *${Number(rpg.xp) || 0} XP*\n🎂 Cumpleaños: *${formatBirth(profile.birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n🪙 Bolsa: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Cofre: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
     try {
         const image = await sock.profilePictureUrl(jid, 'image');
         return sock.sendMessage(chatId, { image: { url: image }, caption: text, mentions: profile.partner ? [jid, profile.partner] : [jid] }, { quoted: msg });

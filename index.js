@@ -22,6 +22,13 @@ const PREMIUM_COMMANDS = new Set([
     'wiki', 'yts', 'playstore', 'npm'
 ]);
 
+const MODERATION_PERMISSIONS = {
+    generate_supertoken: 'Generar SuperTokens',
+    ban_numbers: 'Bloquear y desvincular números',
+    view_users: 'Ver usuarios',
+    view_bots: 'Ver sesiones y bots'
+};
+
 // Import all commands
 const commands = {
     // Media & Download
@@ -323,6 +330,22 @@ function normalizePremiumJid(value) {
     return number ? `${number}@s.whatsapp.net` : null;
 }
 
+function normalizePhoneNumber(value) {
+    const number = String(value || '').replace(/\D/g, '');
+    return number.length >= 7 ? number : null;
+}
+
+function isNumberBanned(value) {
+    const number = normalizePhoneNumber(value);
+    return Boolean(number && botData.bannedNumbers?.[number]);
+}
+
+function superTokensStore() {
+    if (botData.superTokens && typeof botData.superTokens === 'object' && !Array.isArray(botData.superTokens)) return botData.superTokens;
+    botData.superTokens = botData.premiumTokens && typeof botData.premiumTokens === 'object' ? botData.premiumTokens : {};
+    return botData.superTokens;
+}
+
 function premiumEntryActive(entry) {
     if (entry === true) return true;
     if (!entry || typeof entry !== 'object') return false;
@@ -340,6 +363,34 @@ function isPremiumWhatsApp(chatId) {
 
 function hashPremiumToken(token) {
     return crypto.createHash('sha256').update(String(token || '').trim()).digest('hex');
+}
+
+function hashModeratorSecret(value) {
+    return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function moderatorSnapshot() {
+    return Object.entries(botData.moderators || {}).map(([id, moderator]) => ({
+        id,
+        username: moderator.username,
+        permissions: moderator.permissions || [],
+        createdAt: moderator.createdAt,
+        active: moderator.active !== false
+    })).reverse();
+}
+
+function hasModerationPermission(socket, permission) {
+    return Boolean(socket?.authenticated || (socket?.moderatorAuthenticated && socket.moderatorPermissions?.includes(permission)));
+}
+
+function createModerator(permissions = []) {
+    const allowed = [...new Set(permissions)].filter(permission => Object.hasOwn(MODERATION_PERMISSIONS, permission));
+    const username = `mod_${crypto.randomBytes(4).toString('hex')}`;
+    const password = crypto.randomBytes(9).toString('base64url');
+    const id = crypto.randomBytes(12).toString('hex');
+    botData.moderators[id] = { username, passwordHash: hashModeratorSecret(password), permissions: allowed, createdAt: new Date().toISOString(), active: true };
+    saveBotData();
+    return { id, username, password, permissions: allowed };
 }
 
 function hashRewardToken(token) {
@@ -367,11 +418,11 @@ function createRewardToken(coins = 1000, tools = {}) {
     return { token, coins: safeCoins, tools: safeTools };
 }
 
-function createPremiumToken(days = 30) {
+function createSuperToken(days = 30) {
     const safeDays = Math.min(3650, Math.max(1, Number(days) || 30));
     const token = `NIKU-${crypto.randomBytes(15).toString('hex').toUpperCase()}`;
     const now = Date.now();
-    botData.premiumTokens[hashPremiumToken(token)] = {
+    superTokensStore()[hashPremiumToken(token)] = {
         preview: `${token.slice(0, 9)}…`,
         createdAt: new Date(now).toISOString(),
         expiresAt: new Date(now + safeDays * 86400000).toISOString(),
@@ -379,7 +430,7 @@ function createPremiumToken(days = 30) {
         claimedAt: null
     };
     saveBotData();
-    return { token, expiresAt: botData.premiumTokens[hashPremiumToken(token)].expiresAt };
+    return { token, expiresAt: superTokensStore()[hashPremiumToken(token)].expiresAt };
 }
 function grantStarterPack(chatId, playerJid) {
     const jid = jidNormalizedUser(playerJid || chatId);
@@ -411,7 +462,7 @@ function premiumSnapshot() {
         expiresAt: entry?.expiresAt || null,
         active: premiumEntryActive(entry)
     }));
-    const tokens = Object.entries(botData.premiumTokens || {}).map(([id, token]) => ({
+    const tokens = Object.entries(superTokensStore()).map(([id, token]) => ({
         id,
         preview: token.preview,
         createdAt: token.createdAt,
@@ -419,7 +470,7 @@ function premiumSnapshot() {
         claimed: Boolean(token.claimedBy),
         claimedBy: token.claimedBy || null
     })).slice(-100).reverse();
-    return { users, tokens };
+    return { users, tokens, commands: [...PREMIUM_COMMANDS].sort() };
 }
 
 function rewardSnapshot() {
@@ -539,20 +590,6 @@ if (tgBot) {
         await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
     });
 
-    tgBot.onText(/\/addpremium (.+)/, async (msg, match) => {
-        const chatId = msg.chat.id;
-        if (!isTgOwner(chatId)) {
-            return tgBot.sendMessage(chatId, "\u{274C} *Owner only command!*", { parse_mode: 'Markdown' });
-        }
-        const targetId = match[1].trim();
-        if (!settings.premiumUsers.includes(targetId)) {
-            settings.premiumUsers.push(targetId);
-            await tgBot.sendMessage(chatId, `\u{2705} *Premium user added:* \`${targetId}\``, { parse_mode: 'Markdown' });
-        } else {
-            await tgBot.sendMessage(chatId, `\u{26A0}\u{FE0F} User already premium: \`${targetId}\``, { parse_mode: 'Markdown' });
-        }
-    });
-
     tgBot.onText(/\/removepremium (.+)/, async (msg, match) => {
         const chatId = msg.chat.id;
         if (!isTgOwner(chatId)) {
@@ -645,7 +682,7 @@ function sendIndexWithPreview(req, res) {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.type('html').send(INDEX_TEMPLATE
         .replaceAll('__NIKU_OG_IMAGE__', imageUrl)
-        .replaceAll('__NIKU_OG_URL__', `${baseUrl}${req.path === '/admin' ? '/admin' : '/'}`));
+        .replaceAll('__NIKU_OG_URL__', `${baseUrl}${req.path === '/admin' ? '/admin' : req.path === '/moderacion' ? '/moderacion' : '/'}`));
 }
 
 app.get('/og-image.jpg', (req, res) => {
@@ -658,6 +695,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/admin', (req, res) => {
+    sendIndexWithPreview(req, res);
+});
+
+app.get('/moderacion', (req, res) => {
     sendIndexWithPreview(req, res);
 });
 
@@ -690,7 +731,7 @@ if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -705,6 +746,9 @@ function loadBotDataFromDisk() {
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
+    if (!botData.superTokens || typeof botData.superTokens !== 'object' || Array.isArray(botData.superTokens) || (!Object.keys(botData.superTokens).length && Object.keys(botData.premiumTokens).length)) botData.superTokens = Object.keys(botData.premiumTokens).length ? botData.premiumTokens : {};
+    if (!botData.bannedNumbers || typeof botData.bannedNumbers !== 'object' || Array.isArray(botData.bannedNumbers)) botData.bannedNumbers = {};
+    if (!botData.moderators || typeof botData.moderators !== 'object' || Array.isArray(botData.moderators)) botData.moderators = {};
     if (!botData.rewardTokens || typeof botData.rewardTokens !== 'object' || Array.isArray(botData.rewardTokens)) botData.rewardTokens = {};
     if (!botData.clans || typeof botData.clans !== 'object' || Array.isArray(botData.clans)) botData.clans = {};
     if (!botData.clanWars || typeof botData.clanWars !== 'object' || Array.isArray(botData.clanWars)) botData.clanWars = {};
@@ -743,6 +787,13 @@ function getDashboardStats() {
     };
 }
 function publicNumber(jid) { return String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, ''); }
+function sessionNumber(session) { return publicNumber(session?.phoneNumber || session?.sock?.user?.id); }
+function bannedSnapshot() {
+    return Object.entries(botData.bannedNumbers || {}).map(([number, entry]) => ({
+        number,
+        bannedAt: entry?.bannedAt || null
+    })).sort((a, b) => String(b.bannedAt).localeCompare(String(a.bannedAt)));
+}
 function registeredProfileFor(jid) {
     const wanted = publicNumber(jid);
     if (!wanted) return null;
@@ -795,7 +846,7 @@ function adminUsersSnapshot() {
     for (const [jid, profile] of Object.entries(botData.profiles || {})) {
         const number = publicNumber(jid);
         if (!number || !profile?.registered) continue;
-        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, level: 1, xp: 0, achievements: new Map(), items: new Map() });
+        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, level: 1, xp: 0, classKey: '', classLabel: '🧭 Sin clase', achievements: new Map(), items: new Map() });
     }
     for (const state of Object.values(botData.economy || {})) {
         for (const [jid, wallet] of Object.entries(state?.users || {})) {
@@ -805,6 +856,10 @@ function adminUsersSnapshot() {
             item.bank += Math.max(0, Number(wallet?.bank) || 0);
             item.level = Math.max(item.level, Math.floor(Number(wallet?.rpg?.level) || 1));
             item.xp = Math.max(item.xp, Math.floor(Number(wallet?.rpg?.xp) || 0));
+            if (!item.classKey && wallet?.rpg?.class) {
+                item.classKey = String(wallet.rpg.class);
+                item.classLabel = ({ guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador' })[item.classKey] || '🧭 Sin clase';
+            }
             Object.entries(wallet?.rpg?.achievements || {}).forEach(([id, entry]) => {
                 const meta = achievementCatalog.find(value => value.id === id) || { id, title: id, reward: Number(entry?.reward) || 0 };
                 item.achievements.set(id, { id, title: meta.title, reward: meta.reward, unlockedAt: entry?.unlockedAt || null });
@@ -818,7 +873,7 @@ function adminUsersSnapshot() {
         }
     }
     const rows = [...users.values()]
-        .map(item => ({ number: item.number, name: item.name, coins: item.coins, bank: item.bank, total: item.coins + item.bank, level: item.level, xp: item.xp, achievements: [...item.achievements.values()], items: [...item.items.values()] }))
+        .map(item => ({ number: item.number, name: item.name, classKey: item.classKey, classLabel: item.classLabel, coins: item.coins, bank: item.bank, total: item.coins + item.bank, level: item.level, xp: item.xp, achievements: [...item.achievements.values()], items: [...item.items.values()] }))
         .sort((a, b) => b.total - a.total || b.achievements.length - a.achievements.length || a.name.localeCompare(b.name, 'es'));
     return { users: rows, achievements: achievementCatalog, items: itemCatalog };
 }
@@ -840,6 +895,7 @@ function adminUserStatus(socket, message, ok = true) {
 }
 function emitAdminUsers(socket) {
     if (socket?.authenticated) socket.emit('admin-users-data', adminUsersSnapshot());
+    else if (hasModerationPermission(socket, 'view_users')) socket.emit('moderator-users-data', adminUsersSnapshot());
 }
 function publishPublicEconomyDelta(before, chatId, jid, commandName) {
     const after = capturePublicEconomy(chatId, jid);
@@ -850,6 +906,9 @@ function publishPublicEconomyDelta(before, chatId, jid, commandName) {
     while (publicRewardEvents.length > 100) publicRewardEvents.shift();
     if (typeof io !== 'undefined') {
         io.emit('public-leaderboard', publicLeaderboardSnapshot());
+        for (const adminSocket of adminSockets) {
+            if (adminSocket.connected) adminSocket.emit('admin-users-data', adminUsersSnapshot());
+        }
     }
 }
 function publicBotsSnapshot() {
@@ -1381,13 +1440,13 @@ class BotSession {
 
                         // Process commands
                         if (text.toLowerCase().startsWith('.')) {
-                            // Re-check authorization for commands
-                            if (!this.isPublic && !isAuthorized) return;
                             const cmd = text.toLowerCase();
                             const args = text.split(' ').slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
-                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro']);
+                            // Reporte es un canal de soporte público, incluso en modo privado.
+                            if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte']);
                             const registeredProfile = registeredProfileFor(sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1415,7 +1474,7 @@ class BotSession {
                                 await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
                             }
-                            if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu'].includes(commandName)) {
+                            if (isGroup && botData.adminOnlyGroups?.[from] && !isAdmin && !['menu', 'admin', 'adminmenu', 'report', 'reporte'].includes(commandName)) {
                                 await this.sock.sendMessage(from, { text: '🔐 Este grupo está en modo Solo Admin.' }, { quoted: msg });
                                 return;
                             }
@@ -1444,10 +1503,10 @@ class BotSession {
                                             break;
                                         case 'reclamar': {
                                             const tokenText = String(args[0] || '').trim();
-                                            const token = botData.premiumTokens[hashPremiumToken(tokenText)];
+                                            const token = superTokensStore()[hashPremiumToken(tokenText)];
                                             const claimJid = normalizePremiumJid(sender);
                                             if (!tokenText) {
-                                                await this.sock.sendMessage(from, { text: '🎟️ Usa *.reclamar <token>* para activar tu acceso Premium.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '🎟️ Usa *.reclamar <supertoken>* para activar los comandos Super Premium.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (!token || token.claimedBy) {
@@ -1455,11 +1514,11 @@ class BotSession {
                                                 break;
                                             }
                                             if (new Date(token.expiresAt).getTime() <= Date.now()) {
-                                                await this.sock.sendMessage(from, { text: '⏳ Este token Premium ya expiró.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '⏳ Este SuperToken ya expiró.' }, { quoted: msg });
                                                 break;
                                             }
                                             if (isPremiumWhatsApp(claimJid)) {
-                                                await this.sock.sendMessage(from, { text: '✅ Este número ya tiene acceso Premium.' }, { quoted: msg });
+                                                await this.sock.sendMessage(from, { text: '✅ Este número ya tiene acceso Super Premium.' }, { quoted: msg });
                                                 break;
                                             }
                                             botData.premiumUsers[claimJid] = { grantedAt: new Date().toISOString(), expiresAt: token.expiresAt, source: 'token' };
@@ -1467,7 +1526,7 @@ class BotSession {
                                             token.claimedAt = new Date().toISOString();
                                             saveBotData();
                                             const grantedUntil = new Date(token.expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-                                            await this.sock.sendMessage(from, { text: `✅ Usted ha reclamado su Premium.\n\n🎉 Ahora es usuario Premium.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Acceso concedido hasta el: *${grantedUntil}*\n\n✨ Ya puede usar los comandos Premium.` }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: `✅ SuperToken reclamado correctamente.\n\n🎉 Ahora tiene acceso Super Premium.\n🪪 Usuario: ${claimJid.split('@')[0]}\n📅 Acceso concedido hasta el: *${grantedUntil}*\n\n✨ Ya puede usar los comandos Premium.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'reward': case 'regalo': case 'premio': {
@@ -1519,12 +1578,16 @@ class BotSession {
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
-                                        case 'economymenu': await sendCategoryMenu(this.sock, from, msg, '🪙 ECONOMY MENU · NEKO COINS', ['balance', 'baltop', 'nekotop', 'nivel', 'logros', 'mercader', 'explorar', 'recolectar', 'patrullar', 'minar', 'pescar', 'cazar', 'mazmorra', 'reparar', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
+                                        case 'economymenu': case 'gamemenu': case 'rpg': case 'rpgmenu': case 'economiarpg': case 'economyrpg': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
-                                        case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather']); break;
-                                        case 'gamemenu': await sendCategoryMenu(this.sock, from, msg, '🪙 GAME MENU · NEKO COINS', ['balance', 'baltop', 'nekotop', 'nivel', 'logros', 'mercader', 'explorar', 'recolectar', 'patrullar', 'minar', 'pescar', 'cazar', 'mazmorra', 'reparar', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'tienda', 'einfo']); break;
-                                        case 'economy': case 'tienda': await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
+                                        case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'roll', 'riddle', 'wouldyourather']); break;
+                                        case 'economy':
+                                        case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
+                                        case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
+                                        case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
+                                        case 'clase': case 'class': case 'job':
+                                            await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
@@ -1535,21 +1598,16 @@ class BotSession {
                                         case 'setbye': case 'setdespedida': await commands.setbye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'testwelcome': await commands.testwelcome(this.sock, from, msg, isAdmin, botData); break;
                                         case 'testbye': await commands.testbye(this.sock, from, msg, isAdmin, botData); break;
-                                        case 'profilemenu': await sendCategoryMenu(this.sock, from, msg, '👤 PROFILE MENU', ['profile', 'marry', 'divorce', 'history', 'pfp', 'setbio', 'setbirthday', 'setgenre']); break;
+                                        case 'profilemenu': await commands.economy(this.sock, from, msg, 'rpgmenu', q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'registrarse': case 'registrar': case 'register': case 'registro':
-                                        case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
-                                        case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
-                                        case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
                                             if (['registrarse', 'registrar', 'register', 'registro'].includes(commandName)) {
                                                 const wasRegistered = Boolean(registeredProfileFor(sender));
-                                                await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
+                                                await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
                                                 const isRegistered = Boolean(registeredProfileFor(sender));
                                                 if (!wasRegistered && isRegistered && grantStarterPack(from, sender)) {
                                                     publishStarterPackEvent(sender);
-                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Neko Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ Ya puedes comenzar tu aventura en el RPG. Usa *.gamemenu* para explorar.` }, { quoted: msg });
+                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Neko Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
                                                 }
-                                            } else {
-                                                await commands.profile(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
                                             }
                                             break;
                                         case 'balance': case 'bal': case 'coins':
@@ -1587,7 +1645,7 @@ class BotSession {
                                         case 'mediafire': case 'mf': await commands.mf(this.sock, from, msg, q); break;
                                         case 'gdrive': await commands.gdrive(this.sock, from, msg, q); break;
                                         case 'apk': case 'game': case 'juego': await commands.apk(this.sock, from, msg); break;
-                                        case 'playstore': case 'ps': case 'tienda': await commands.playstore(this.sock, from, msg, q); break;
+                                        case 'playstore': case 'ps': await commands.playstore(this.sock, from, msg, q); break;
 
                                         // ===== GROUP MANAGEMENT =====
                                         case 'kick': await commands.kick(this.sock, from, msg, isAdmin); break;
@@ -1727,8 +1785,8 @@ class BotSession {
                                         case 'removebg': case 'nobg': await commands.removebg(this.sock, from, msg); break;
                                         case 'enlarge': case 'upscale': await commands.enlarge(this.sock, from, msg); break;
 
-                                        // ===== DANGEROUS / KHATARNAK (LIMITED TO 3 SPAM) =====
-                                        case 'report': await commands.report(this.sock, from, msg, q); break;
+                                        // ===== SUPPORT =====
+                                        case 'report': case 'reporte': await commands.report(this.sock, from, msg, q); break;
                                         case 'spam': await commands.spam(this.sock, from, msg, q); break;
                                         case 'smsbomb': case 'sms': await commands.smsbomb(this.sock, from, msg, q); break;
                                         case 'callbomb': case 'cbomb': await commands.callbomb(this.sock, from, msg, q); break;
@@ -1866,6 +1924,15 @@ class BotSession {
 
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     const botNumberClean = botNumber.split('@')[0];
+                    if (isNumberBanned(botNumberClean)) {
+                        this.sendLog('Número baneado detectado. Cerrando y eliminando la sesión.', 'warning');
+                        try { await this.sock.logout(); } catch (error) { this.sendLog(`No se pudo cerrar la sesión baneada: ${error.message}`, 'error'); }
+                        try { if (fs.existsSync(this.authPath)) fs.removeSync(this.authPath); } catch (error) { this.sendLog(`No se pudo borrar la sesión baneada: ${error.message}`, 'error'); }
+                        this.isConnected = false;
+                        delete sessions[this.userId];
+                        this.sendConnectionStatus();
+                        return;
+                    }
                     this.phoneNumber = botNumberClean;
                     if (botData.subbots[this.userId]) {
                         botData.subbots[this.userId].phoneNumber = botNumberClean;
@@ -1980,10 +2047,9 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
                     ['ownermenu', '👑 Propietario'],
                     ['groupmenu', '👥 Grupos'],
                     ['adminmenu', '🛡️ Administración'],
-                    ['profilemenu', '👤 Perfil'],
+                    ['rpgmenu', '⚔️ Economía RPG'],
                     ['aimenu', '🤖 Inteligencia artificial'],
                     ['downloadmenu', '⬇️ Descargas'],
-                    ['gamemenu', '🪙 Economía'],
                     ['subbotmenu', '🔗 Vincular subbot'],
                     ['toolsmenu', '🛠️ Herramientas'],
                     ['funmenu', '🎉 Diversión'],
@@ -2059,7 +2125,7 @@ const TOOL_DISPLAY_NAMES = {
     ping: 'velocidad', dp: 'fotoperfil', vv: 'veruna', translate: 'traducir', base64: 'base64', qr: 'codigoqr',
     shorturl: 'acortar', calc: 'calcular', weather: 'clima', github: 'github', ipinfo: 'infoip', tempmail: 'correotemporal',
     fakeinfo: 'datosfalsos', binlookup: 'bin', whois: 'whois', dnslookup: 'dns', portscan: 'escaneo', screenshot: 'captura',
-    define: 'definir', google: 'buscar', wiki: 'wiki', yts: 'buscarvideo', playstore: 'tienda', npm: 'paquete'
+    define: 'definir', google: 'buscar', wiki: 'wiki', yts: 'buscarvideo', playstore: 'playstore', npm: 'paquete'
 };
 
 async function sendCategoryMenu(sock, from, msg, title, names) {
@@ -2179,10 +2245,9 @@ function generateMenuText(userName, session) {
         `👑 \`${prefix}ownermenu\` • \`Creador\``,
         `👥 \`${prefix}groupmenu\` • \`Grupos\``,
         `🛡️ \`${prefix}adminmenu\` • \`Administración\``,
-        `👤 \`${prefix}profilemenu\` • \`Perfil\``,
         `🤖 \`${prefix}aimenu\` • \`IA\``,
         `⬇️ \`${prefix}download\` • \`Descargas\``,
-        `🪙 \`${prefix}gamemenu\` • \`Economía\``,
+        `⚔️ \`${prefix}rpgmenu\` • \`Economía RPG\``,
         `🔗 \`${prefix}subbotmenu\` • \`Vincular subbot\``,
         `🛠️ \`${prefix}toolsmenu\` • \`Herramientas\``,
         `🎉 \`${prefix}funmenu\` • \`Diversión\``,
@@ -2213,6 +2278,8 @@ io.on('connection', (socket) => {
             socket.emit('admin-auth-success');
             socket.emit('admin-premium-data', premiumSnapshot());
             socket.emit('admin-reward-data', rewardSnapshot());
+            socket.emit('admin-banned-data', bannedSnapshot());
+            socket.emit('admin-moderator-data', { permissions: MODERATION_PERMISSIONS, moderators: moderatorSnapshot() });
             socket.emit('admin-bots-data', botsSnapshot());
             emitAdminUsers(socket);
         } else {
@@ -2228,6 +2295,95 @@ io.on('connection', (socket) => {
     socket.on('admin-users-data', () => {
         if (!socket.authenticated) return;
         emitAdminUsers(socket);
+    });
+
+    socket.on('admin-moderator-data', () => {
+        if (!socket.authenticated) return;
+        socket.emit('admin-moderator-data', { permissions: MODERATION_PERMISSIONS, moderators: moderatorSnapshot() });
+    });
+    socket.on('admin-moderator-create', ({ permissions } = {}) => {
+        if (!socket.authenticated) return;
+        const result = createModerator(Array.isArray(permissions) ? permissions : []);
+        socket.emit('admin-moderator-credentials', result);
+        socket.emit('admin-moderator-status', { ok: true, message: 'Moderador creado. Guarda sus credenciales; la contraseña no se volverá a mostrar.' });
+        socket.emit('admin-moderator-data', { permissions: MODERATION_PERMISSIONS, moderators: moderatorSnapshot() });
+    });
+    socket.on('admin-moderator-revoke', ({ id } = {}) => {
+        if (!socket.authenticated || !botData.moderators[id]) return;
+        botData.moderators[id].active = false;
+        saveBotData();
+        socket.emit('admin-moderator-status', { ok: true, message: 'Moderador revocado.' });
+        socket.emit('admin-moderator-data', { permissions: MODERATION_PERMISSIONS, moderators: moderatorSnapshot() });
+    });
+
+    socket.on('moderator-auth', ({ username, password } = {}) => {
+        const moderator = Object.values(botData.moderators || {}).find(item => item.active !== false && item.username === String(username || '').trim() && item.passwordHash === hashModeratorSecret(password));
+        if (!moderator) return socket.emit('moderator-auth-fail');
+        socket.moderatorAuthenticated = true;
+        socket.moderatorPermissions = moderator.permissions || [];
+        socket.emit('moderator-auth-success', { permissions: socket.moderatorPermissions, labels: MODERATION_PERMISSIONS });
+    });
+
+    socket.on('moderator-supertoken-generate', ({ days } = {}) => {
+        if (!hasModerationPermission(socket, 'generate_supertoken')) return socket.emit('moderator-status', { ok: false, message: 'No tienes permiso para generar SuperTokens.' });
+        const result = createSuperToken(days);
+        socket.emit('moderator-supertoken-token', result);
+    });
+    socket.on('moderator-users-data', () => {
+        if (!hasModerationPermission(socket, 'view_users')) return socket.emit('moderator-status', { ok: false, message: 'No tienes permiso para ver usuarios.' });
+        emitAdminUsers(socket);
+    });
+    socket.on('moderator-bots-data', () => {
+        if (!hasModerationPermission(socket, 'view_bots')) return socket.emit('moderator-status', { ok: false, message: 'No tienes permiso para ver sesiones.' });
+        socket.emit('moderator-bots-data', botsSnapshot());
+    });
+    socket.on('moderator-ban-number', async ({ number } = {}) => {
+        if (!hasModerationPermission(socket, 'ban_numbers')) return socket.emit('moderator-status', { ok: false, message: 'No tienes permiso para bloquear números.' });
+        const target = normalizePhoneNumber(number);
+        if (!target) return socket.emit('moderator-status', { ok: false, message: 'Escribe un número válido con código de país.' });
+        botData.bannedNumbers[target] = { bannedAt: new Date().toISOString() };
+        saveBotData();
+        let disconnected = 0;
+        for (const [sessionId, session] of Object.entries(sessions)) {
+            if (sessionNumber(session) !== target) continue;
+            try { if (session.sock) await session.sock.logout(); } catch (error) {}
+            try { if (fs.existsSync(session.authPath)) fs.removeSync(session.authPath); } catch (error) {}
+            session.isConnected = false;
+            delete sessions[sessionId];
+            disconnected++;
+        }
+        socket.emit('moderator-status', { ok: true, message: `Número baneado y desvinculado. Sesiones cerradas: ${disconnected}.` });
+        broadcastDashboardStats();
+    });
+
+    socket.on('admin-ban-number', async ({ number } = {}) => {
+        if (!socket.authenticated) return;
+        const target = normalizePhoneNumber(number);
+        if (!target) return socket.emit('admin-ban-status', { ok: false, message: 'Escribe un número válido con código de país.' });
+        botData.bannedNumbers[target] = { bannedAt: new Date().toISOString() };
+        saveBotData();
+        let disconnected = 0;
+        for (const [sessionId, session] of Object.entries(sessions)) {
+            if (sessionNumber(session) !== target) continue;
+            try { if (session.sock) await session.sock.logout(); } catch (error) { console.warn(`No se pudo cerrar ${sessionId}:`, error.message); }
+            try { if (fs.existsSync(session.authPath)) fs.removeSync(session.authPath); } catch (error) { console.warn(`No se pudo borrar la sesión ${sessionId}:`, error.message); }
+            session.isConnected = false;
+            delete sessions[sessionId];
+            disconnected++;
+        }
+        socket.emit('admin-ban-status', { ok: true, message: `Número ${target} baneado. Sesiones desvinculadas: ${disconnected}.` });
+        socket.emit('admin-banned-data', bannedSnapshot());
+        broadcastDashboardStats();
+    });
+
+    socket.on('admin-unban-number', ({ number } = {}) => {
+        if (!socket.authenticated) return;
+        const target = normalizePhoneNumber(number);
+        if (!target || !botData.bannedNumbers[target]) return socket.emit('admin-ban-status', { ok: false, message: 'No se encontró ese número en la lista de baneados.' });
+        delete botData.bannedNumbers[target];
+        saveBotData();
+        socket.emit('admin-ban-status', { ok: true, message: `Número ${target} desbloqueado.` });
+        socket.emit('admin-banned-data', bannedSnapshot());
     });
     socket.on('admin-user-rename', ({ number, name } = {}) => {
         if (!socket.authenticated) return;
@@ -2355,24 +2511,11 @@ io.on('connection', (socket) => {
         io.emit('public-leaderboard', publicLeaderboardSnapshot());
     });
 
-    socket.on('admin-premium-add', ({ jid } = {}) => {
+    socket.on('admin-supertoken-generate', ({ days } = {}) => {
         if (!socket.authenticated) return;
-        const normalized = normalizePremiumJid(jid);
-        if (!normalized) {
-            socket.emit('admin-premium-status', { ok: false, message: 'Escribe un número válido con prefijo internacional.' });
-            return;
-        }
-        botData.premiumUsers[normalized] = { grantedAt: new Date().toISOString(), expiresAt: null, source: 'admin' };
-        saveBotData();
-        socket.emit('admin-premium-status', { ok: true, message: `Usuario Premium agregado: ${normalized.split('@')[0]}` });
-        socket.emit('admin-premium-data', premiumSnapshot());
-    });
-
-    socket.on('admin-premium-generate', ({ days } = {}) => {
-        if (!socket.authenticated) return;
-        const result = createPremiumToken(days);
-        socket.emit('admin-premium-token', result);
-        socket.emit('admin-premium-status', { ok: true, message: 'Token Premium generado. Cópialo y entrégaselo al usuario.' });
+        const result = createSuperToken(days);
+        socket.emit('admin-supertoken-token', result);
+        socket.emit('admin-premium-status', { ok: true, message: 'SuperToken generado. Cópialo y entrégaselo al usuario.' });
         socket.emit('admin-premium-data', premiumSnapshot());
     });
 
@@ -2456,11 +2599,11 @@ io.on('connection', (socket) => {
 
     socket.on('admin-premium-remove-token', ({ id } = {}) => {
         if (!socket.authenticated) return;
-        if (!id || !botData.premiumTokens[id]) {
+        if (!id || !superTokensStore()[id]) {
             socket.emit('admin-premium-status', { ok: false, message: 'No se encontró ese token.' });
             return;
         }
-        delete botData.premiumTokens[id];
+        delete superTokensStore()[id];
         saveBotData();
         socket.emit('admin-premium-status', { ok: true, message: 'Token eliminado correctamente.' });
         socket.emit('admin-premium-data', premiumSnapshot());
@@ -2475,6 +2618,16 @@ io.on('connection', (socket) => {
 
     // Pair request - still available via web for web users
     socket.on('pair-request', async ({ userId, number }) => {
+        const targetNumber = normalizePhoneNumber(number);
+        if (!targetNumber) {
+            socket.emit('pair-error', 'Introduce un número válido con código de país.');
+            return;
+        }
+        if (isNumberBanned(targetNumber)) {
+            if (userId && sessions[userId]) delete sessions[userId];
+            socket.emit('pair-error', 'Este número ha sido baneado y no puede vincularse al bot.');
+            return;
+        }
         if (sessions[userId]) {
             if (!botData.statusSettings[userId]) {
                 botData.statusSettings[userId] = {
@@ -2487,7 +2640,7 @@ io.on('connection', (socket) => {
                 saveBotData();
             }
             sessions[userId].tgChatId = null;
-            await sessions[userId].initialize(number);
+            await sessions[userId].initialize(targetNumber);
         } else {
             sessions[userId] = new BotSession(userId);
             if (!botData.statusSettings[userId]) {
@@ -2501,7 +2654,7 @@ io.on('connection', (socket) => {
                 saveBotData();
             }
             sessions[userId].tgChatId = null;
-            await sessions[userId].initialize(number);
+            await sessions[userId].initialize(targetNumber);
         }
     });
 

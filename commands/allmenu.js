@@ -7,13 +7,14 @@ async function allMenu(sock, from, msg, session, commands) {
         '👥 GROUP': ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo', 'join', 'leave', 'setdesc', 'setppgc', 'getbio', 'getdp', 'accept', 'poll', 'everyonemsg', 'listonline', 'tagme', 'mention', 'kickoffline', 'snipe', 'editmsg', 'react', 'send', 'forward', 'save'],
         '🤖 AI': ['ai', 'chatbot', 'gali'],
         '⬇️ DOWNLOAD': ['song', 'video', 'insta', 'tiktok', 'facebook', 'youtube', 'pinterest', 'twitter', 'reddit', 'spotify', 'mf', 'apk', 'gdrive'],
-        '🛠️ TOOLS': ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm', 'sticker', 'toimg', 'tomp3', 'tts', 'blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'runtime', 'uptime', 'serverinfo', 'speedtest', 'device'],
-        '🎉 FUN': ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'coinflip', 'roll', 'riddle', 'wouldyourather'],
+        '🛠️ TOOLS': ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm', 'sticker', 'toimg', 'tomp3', 'tts', 'blur', 'invert', 'crop', 'flip', 'grayscale', 'removebg', 'enlarge', 'runtime', 'uptime', 'serverinfo', 'speedtest', 'device', 'report', 'reporte'],
+        '⚔️ ECONOMÍA RPG': ['rpgmenu', 'registrarse', 'perfil', 'clase', 'marry', 'divorce', 'historial', 'pfp', 'setbirth', 'setbio', 'setgenre', 'balance', 'baltop', 'nekotop', 'nivel', 'logros', 'mercader', 'explorar', 'recolectar', 'patrullar', 'minar', 'pescar', 'cazar', 'mazmorra', 'reparar', 'misiones', 'clan', 'daily', 'work', 'deposit', 'withdraw', 'pay', 'coinflip', 'roulette', 'crime', 'rob', 'slut', 'premio', 'einfo'],
+        '🎉 FUN': ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'roll', 'riddle', 'wouldyourather'],
         '🕌 ISLAMIC': ['quran', 'hadith', 'prayer', 'qibla', 'asmaulhusna'],
         '🎌 ANIME': ['anime', 'manga'],
-        '⚠️ OWNER-ONLY DEMOS': ['hack', 'report']
+        '⚠️ OWNER-ONLY DEMOS': ['hack']
     };
-    const available = new Set(Object.keys(commands));
+    const available = new Set([...Object.keys(commands), ...Object.values(commands).flatMap(command => command?.aliases || [])]);
     for (const [category, list] of Object.entries(categories)) {
         categories[category] = list.filter(command => available.has(command));
     }

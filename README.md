@@ -27,6 +27,15 @@ Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automa
 - **Descargas y herramientas:** YouTube, TikTok, Instagram, APK, búsqueda, traducción, portscan y utilidades.
 - **Anime y diversión:** reacciones, juegos y comandos interactivos.
 - **Panel web:** dashboard oscuro, estadísticas en tiempo real, comentarios y consola ADMIN privada.
+- **Reportes:** cualquier usuario puede usar `.reporte Descripción del problema`; el bot envía el nombre, número, hora y descripción al canal de WhatsApp configurado.
+- **Moderación administrativa:** desde el panel se puede banear un número, impedir que vuelva a vincularse y desvincular su sesión activa.
+- **SuperToken:** el panel muestra los comandos Premium incluidos y permite generar un SuperToken temporal para habilitarlos mediante `.reclamar <supertoken>`.
+- **Moderación:** la ruta `/moderacion` tiene login independiente, permisos limitados por casillas y herramientas para SuperTokens, bloqueos, usuarios y sesiones.
+- **Premium:** se eliminó la compra mediante `.tienda`; el acceso Premium solo se concede mediante SuperToken o desde Administración.
+- **Economía RPG:** `rpgmenu`, `economymenu` y `economiarpg` abren el mismo sistema RPG. Perfiles, vínculos, niveles, clanes, misiones, herramientas, combates y economía comparten esta categoría y sus respuestas usan narrativa de aventurero.
+- **Clases y progresión:** cada perfil muestra nivel y XP; el jugador puede elegir una sola clase con `.clase guerrero`, `.clase mago`, `.clase picaro` o `.clase tirador`. Las clases disponibles son Guerrero, Mago, Pícaro y Tirador.
+- **Selección posterior al registro:** después de `.registrarse`, el bot muestra las descripciones y ventajas de Guerrero, Mago, Pícaro y Tirador. El panel de usuarios RPG actualiza en vivo el nombre, la clase, el nivel y la experiencia.
+- **Equipamiento y botín:** el Mercader vende armas y armaduras caras específicas para cada clase. Las mazmorras pueden entregar gemas, runas, colmillos, corazones y pergaminos como drops; consulta `.mercader vender` y véndelos con `.mercader vender <id> todo`. El equipo comprado mejora las recompensas de las actividades indicadas.
 
 ## Instalación rápida
 
@@ -52,6 +61,9 @@ OWNER_TELEGRAM_ID=tu_id_de_telegram
 TELEGRAM_BOT_TOKEN=token_opcional
 OPENAI_API_KEY=clave_opcional
 PORT=3000
+# Reportes: opcionalmente fija el JID interno del canal y la zona horaria mostrada
+REPORT_CHANNEL_JID=120363xxxxxxxxxx@newsletter
+REPORT_TIMEZONE=America/New_York
 # En Railway: ruta donde estará montado el volumen persistente
 PERSISTENT_DATA_DIR=/data/bot
 GITHUB_BACKUP_TOKEN=token_privado_con_contents_write

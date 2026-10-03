@@ -393,6 +393,13 @@
   body.admin-route #adminNavLink{display:inline-flex;}
   #admin.panel{display:none;}
   body.admin-route #admin.panel{display:block;}
+  #moderation.panel{display:none;}
+  body.moderation-route #moderation.panel{display:block;}
+  body.moderation-route #moderatorConsole{display:none;}
+  body.moderation-route #boot,body.moderation-route .hero-banner,body.moderation-route .banner-nav,body.moderation-route header,body.moderation-route main>section:not(#moderation),body.moderation-route footer,body.moderation-route #audioHint,body.moderation-route #channelModal{display:none!important;}
+  body.moderation-route nav{position:relative;}
+  body.moderation-route main{max-width:1100px;min-height:calc(100vh - 74px);padding-top:38px;}
+  body.moderation-route #moderation.panel{margin-top:0;min-height:calc(100vh - 130px);}
   body.admin-route #boot,body.admin-route .hero-banner,body.admin-route .banner-nav,body.admin-route header,body.admin-route main>section:not(#admin),body.admin-route footer,body.admin-route #audioHint,body.admin-route #channelModal{display:none!important;}
   body.admin-route nav{position:relative;}
   body.admin-route main{max-width:1100px;min-height:calc(100vh - 74px);padding-top:38px;}
@@ -554,7 +561,7 @@
       <div class="tag">automatización de WhatsApp</div>
     </div>
   </div>
-  <div class="nav-links" id="navLinks"><a href="#features"><i class="fas fa-scroll"></i> Aventuras</a><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
+  <div class="nav-links" id="navLinks"><a href="#features"><i class="fas fa-scroll"></i> Aventuras</a><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a><a href="/moderacion"><i class="fas fa-hashtag"></i> Moderación</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
   <button class="nav-toggle" id="navToggle" type="button" aria-label="Abrir navegación"><i class="fas fa-bars"></i></button>
 </nav>
 <div class="hero-banner" role="img" aria-label="Banner oficial de NIKU MD">
@@ -690,23 +697,18 @@
       <div class="admin-promo-card"><div><h4><i class="fas fa-bullhorn"></i> Promoción del canal</h4><p>Envía el aviso a todos los grupos donde los bots puedan escribir. Solo se ejecuta desde esta sesión ADMIN.</p></div><button id="adminPromoButton" class="btn" type="button"><i class="fas fa-paper-plane"></i> Enviar promoción</button></div>
       <div class="admin-console-grid">
         <div class="admin-card">
-          <div class="admin-card-head"><div><h3>Acceso Premium</h3><p>Usuarios y tokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
+          <div class="admin-card-head"><div><h3>Acceso Super Premium</h3><p>Usuarios y SuperTokens de acceso</p></div><span class="admin-section-tag">CONTROL</span></div>
           <div class="premium-admin">
         <div class="premium-grid">
-          <form id="premiumUserForm" class="premium-card">
-            <label for="premiumUserNumber">Agregar usuario por número</label>
-            <input id="premiumUserNumber" type="text" inputmode="tel" placeholder="Ej.: 18090000000" required>
-            <button class="btn" type="submit"><i class="fas fa-user-plus"></i> Agregar Premium</button>
-          </form>
           <form id="premiumTokenForm" class="premium-card">
-            <label for="premiumTokenDays">Generar token de reclamación</label>
+            <label for="premiumTokenDays">Generar SuperToken de reclamación</label>
             <select id="premiumTokenDays">
               <option value="7">7 días</option>
               <option value="30" selected>30 días</option>
               <option value="90">90 días</option>
               <option value="365">365 días</option>
             </select>
-            <button class="btn" type="submit"><i class="fas fa-key"></i> Generar token</button>
+            <button class="btn" type="submit"><i class="fas fa-key"></i> Generar SuperToken</button>
             <div id="premiumTokenResult" class="premium-token" title="Pulsa para copiar"></div>
           </form>
           <form id="rewardTokenForm" class="premium-card">
@@ -722,18 +724,57 @@
           <div id="premiumUsersList" class="premium-list"><strong>Usuarios Premium</strong>Sin datos todavía.</div>
           <div id="premiumTokensList" class="premium-list"><strong>Tokens generados</strong>Sin datos todavía.</div>
           <div id="rewardTokensList" class="premium-list"><strong>Tokens de regalo</strong>Sin datos todavía.</div>
+          <div id="superCommandsList" class="premium-list"><strong>Comandos incluidos en Super Premium</strong> Cargando...</div>
         </div>
           </div>
         </div>
+      </div>
+      <div class="admin-card admin-users-card">
+        <div class="admin-card-head"><div><h3>Bloqueo de vinculación</h3><p>Banea un número, impide futuras vinculaciones y desvincula su sesión activa.</p></div><span class="admin-section-tag">MODERACIÓN</span></div>
+        <form id="banNumberForm" class="premium-card">
+          <label for="banNumber">Número de WhatsApp a banear</label>
+          <input id="banNumber" type="text" inputmode="tel" placeholder="Ej.: 18090000000" required>
+          <button class="btn" type="submit"><i class="fas fa-user-slash"></i> Banear y desvincular</button>
+        </form>
+        <div id="banStatus" class="premium-status" aria-live="polite"></div>
+        <div id="bannedNumbersList" class="premium-list"><strong>Números baneados</strong>Sin datos todavía.</div>
+      </div>
+      <div class="admin-card admin-users-card">
+        <div class="admin-card-head"><div><h3>Cuentas de Moderación</h3><p>Crea credenciales aleatorias y marca exactamente los permisos de cada moderador.</p></div><span class="admin-section-tag">PERMISOS</span></div>
+        <form id="moderatorForm" class="premium-card">
+          <label>Permisos del nuevo moderador</label>
+          <div id="moderatorPermissionOptions" class="reward-tools"></div>
+          <button class="btn" type="submit"><i class="fas fa-user-shield"></i> Generar usuario y contraseña</button>
+        </form>
+        <div id="moderatorAdminStatus" class="premium-status" aria-live="polite"></div>
+        <div id="moderatorCredentials" class="premium-token" title="Pulsa para copiar"></div>
+        <div id="moderatorList" class="premium-list"><strong>Moderadores creados</strong>Sin datos todavía.</div>
       </div>
       <div class="admin-card admin-bots-card">
         <div class="admin-card-head"><div><h3>Sesiones y subbots</h3><p>Control centralizado de todas las conexiones</p></div><span class="admin-section-tag">INVENTARIO</span></div>
         <div id="adminBotsList" class="admin-bots-list"><div class="console-empty">Cargando sesiones...</div></div>
       </div>
       <div class="admin-card admin-users-card">
-        <div class="admin-card-head"><div><h3>Usuarios registrados y rankings</h3><p>Administra saldo, banco, logros, objetos y perfiles desde un único gestor RPG.</p></div><span class="admin-section-tag">MODERACIÓN</span></div>
+        <div class="admin-card-head"><div><h3>Usuarios RPG en vivo</h3><p>Nombre, clase, nivel, experiencia, saldo, logros y objetos del personaje.</p></div><span class="admin-section-tag">EN VIVO</span></div>
         <div id="adminUsersList" class="admin-users-list"><div class="console-empty">Cargando usuarios...</div></div>
       </div>
+    </div>
+  </section>
+  <section id="moderation" class="panel" data-label="./moderacion">
+    <h2><i class="fas fa-hashtag"></i> Moderación</h2>
+    <div class="admin-head"><div><span class="admin-kicker">NIKU MD · MODERACIÓN</span><h3>Panel de Moderación</h3><p>Usa únicamente las funciones habilitadas por el administrador.</p></div><div class="admin-head-actions"><span id="moderationPermissionState" class="admin-live-pill"><i class="fas fa-circle"></i> ACCESO PROTEGIDO</span></div></div>
+    <div id="moderatorLoginBox">
+      <p class="sample-note"><i class="fas fa-lock"></i> Introduce las credenciales entregadas por el administrador.</p>
+      <form id="moderatorLoginForm" class="admin-login"><input id="moderatorUsername" type="text" autocomplete="username" placeholder="Usuario de moderación" required><input id="moderatorPassword" type="password" autocomplete="current-password" placeholder="Contraseña" required><button class="btn" type="submit"><i class="fas fa-right-to-bracket"></i> Entrar a Moderación</button><div id="moderatorLoginStatus" class="admin-status" aria-live="polite"></div></form>
+    </div>
+    <div id="moderatorConsole">
+      <div class="admin-card"><div class="admin-card-head"><div><h3>Permisos asignados</h3><p id="moderatorPermissionList">Cargando...</p></div></div></div>
+      <div class="premium-grid">
+        <form id="moderatorTokenForm" class="premium-card moderator-permission-card" data-permission="generate_supertoken"><label>Generar SuperToken</label><select id="moderatorTokenDays"><option value="7">7 días</option><option value="30" selected>30 días</option><option value="90">90 días</option><option value="365">365 días</option></select><button class="btn" type="submit">Generar SuperToken</button><div id="moderatorTokenResult" class="premium-token"></div></form>
+        <form id="moderatorBanForm" class="premium-card moderator-permission-card" data-permission="ban_numbers"><label>Bloquear y desvincular número</label><input id="moderatorBanNumber" type="text" inputmode="tel" placeholder="Número con código de país" required><button class="btn" type="submit">Bloquear número</button></form>
+      </div>
+      <div class="premium-grid"><div id="moderatorUsersCard" class="premium-card moderator-permission-card" data-permission="view_users"><h3>Usuarios</h3><div id="moderatorUsersList" class="premium-list">Pulsa actualizar.</div><button id="moderatorUsersRefresh" class="btn" type="button">Ver usuarios</button></div><div id="moderatorBotsCard" class="premium-card moderator-permission-card" data-permission="view_bots"><h3>Sesiones y bots</h3><div id="moderatorBotsList" class="premium-list">Pulsa actualizar.</div><button id="moderatorBotsRefresh" class="btn" type="button">Ver sesiones</button></div></div>
+      <div id="moderatorStatus" class="premium-status" aria-live="polite"></div>
     </div>
   </section>
 </main>
@@ -872,8 +913,6 @@ const adminConsole = document.getElementById('adminConsole');
 const adminUsername = document.getElementById('adminUsername');
 const adminPassword = document.getElementById('adminPassword');
 const adminStatus = document.getElementById('adminStatus');
-const premiumUserForm = document.getElementById('premiumUserForm');
-const premiumUserNumber = document.getElementById('premiumUserNumber');
 const premiumTokenForm = document.getElementById('premiumTokenForm');
 const premiumTokenDays = document.getElementById('premiumTokenDays');
 const premiumTokenResult = document.getElementById('premiumTokenResult');
@@ -884,6 +923,33 @@ const premiumStatus = document.getElementById('premiumStatus');
 const premiumUsersList = document.getElementById('premiumUsersList');
 const premiumTokensList = document.getElementById('premiumTokensList');
 const rewardTokensList = document.getElementById('rewardTokensList');
+const superCommandsList = document.getElementById('superCommandsList');
+const banNumberForm = document.getElementById('banNumberForm');
+const banNumber = document.getElementById('banNumber');
+const banStatus = document.getElementById('banStatus');
+const bannedNumbersList = document.getElementById('bannedNumbersList');
+const moderatorForm = document.getElementById('moderatorForm');
+const moderatorPermissionOptions = document.getElementById('moderatorPermissionOptions');
+const moderatorAdminStatus = document.getElementById('moderatorAdminStatus');
+const moderatorStatus = document.getElementById('moderatorStatus');
+const moderatorCredentials = document.getElementById('moderatorCredentials');
+const moderatorList = document.getElementById('moderatorList');
+const moderatorLoginForm = document.getElementById('moderatorLoginForm');
+const moderatorLoginBox = document.getElementById('moderatorLoginBox');
+const moderatorConsole = document.getElementById('moderatorConsole');
+const moderatorLoginStatus = document.getElementById('moderatorLoginStatus');
+const moderatorUsername = document.getElementById('moderatorUsername');
+const moderatorPassword = document.getElementById('moderatorPassword');
+const moderatorPermissionList = document.getElementById('moderatorPermissionList');
+const moderatorTokenForm = document.getElementById('moderatorTokenForm');
+const moderatorTokenDays = document.getElementById('moderatorTokenDays');
+const moderatorTokenResult = document.getElementById('moderatorTokenResult');
+const moderatorBanForm = document.getElementById('moderatorBanForm');
+const moderatorBanNumber = document.getElementById('moderatorBanNumber');
+const moderatorUsersList = document.getElementById('moderatorUsersList');
+const moderatorBotsList = document.getElementById('moderatorBotsList');
+const moderatorUsersRefresh = document.getElementById('moderatorUsersRefresh');
+const moderatorBotsRefresh = document.getElementById('moderatorBotsRefresh');
 const publicBotsList = document.getElementById('publicBotsList');
 const publicBotsLive = document.getElementById('publicBotsLive');
 const publicAchievementsBoard = document.getElementById('publicAchievementsBoard');
@@ -919,6 +985,8 @@ const adminPendingUsers = document.getElementById('adminPendingUsers');
 function updateAdminRoute(){
   const isAdminRoute = window.location.hash.toLowerCase() === '#admin' || window.location.pathname.toLowerCase() === '/admin';
   document.body.classList.toggle('admin-route', isAdminRoute);
+  const isModerationRoute = window.location.hash.toLowerCase() === '#moderacion' || window.location.pathname.toLowerCase() === '/moderacion';
+  document.body.classList.toggle('moderation-route', isModerationRoute);
   if(!isAdminRoute){
     adminLoginBox.style.display='block';
     adminConsole.style.display='none';
@@ -971,14 +1039,14 @@ function renderAdminUsers(data={}){
   adminUsersState=data || {users:[],achievements:[],items:{}};
   const users=adminUsersState.users || [];
   if(!users.length){ adminUsersList.innerHTML='<div class="console-empty">No hay usuarios registrados.</div>'; return; }
-  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">🛡️ Nivel ${Number(user.level||1)} · 🪙 ${Number(user.total||0).toLocaleString('es-ES')} total<br>🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
+  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">${escapeAdminHtml(user.classLabel||'🧭 Sin clase')} · 🛡️ Nivel ${Number(user.level||1)} · ✨ ${Number(user.xp||0).toLocaleString('es-ES')} XP<br>🪙 ${Number(user.total||0).toLocaleString('es-ES')} total · 🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
   if(selectedAdminUser && adminUserModal?.classList.contains('active')) openAdminUser(selectedAdminUser.number);
 }
 function openAdminUser(number){
   const user=(adminUsersState.users||[]).find(item=>item.number===number); if(!user||!adminUserModal) return;
   selectedAdminUser=user; adminUserModalTitle.textContent=`Gestionar ${user.name}`; adminUserModalSubtitle.textContent=`Aventurero · +${user.number}`;
   adminProfileName.value=user.name||'';
-  adminUserModalStats.innerHTML=`<div class="quick-item"><i class="fas fa-shield-halved"></i>Nivel ${Number(user.level||1)}</div><div class="quick-item"><i class="fas fa-coins"></i>${Number(user.coins||0).toLocaleString('es-ES')} efectivo</div><div class="quick-item"><i class="fas fa-vault"></i>${Number(user.bank||0).toLocaleString('es-ES')} banco</div><div class="quick-item"><i class="fas fa-trophy"></i>${(user.achievements||[]).length} logros</div>`;
+  adminUserModalStats.innerHTML=`<div class="quick-item"><i class="fas fa-user-shield"></i>${escapeAdminHtml(user.classLabel||'Sin clase')}</div><div class="quick-item"><i class="fas fa-shield-halved"></i>Nivel ${Number(user.level||1)} · ${Number(user.xp||0).toLocaleString('es-ES')} XP</div><div class="quick-item"><i class="fas fa-coins"></i>${Number(user.coins||0).toLocaleString('es-ES')} efectivo</div><div class="quick-item"><i class="fas fa-vault"></i>${Number(user.bank||0).toLocaleString('es-ES')} banco</div><div class="quick-item"><i class="fas fa-trophy"></i>${(user.achievements||[]).length} logros</div>`;
   adminItemId.innerHTML=Object.entries(adminUsersState.items||{}).map(([id,item])=>`<option value="${escapeAdminHtml(id)}">${escapeAdminHtml(item.name)}</option>`).join('');
   const unlocked=new Map((user.achievements||[]).map(item=>[item.id,item]));
   adminAchievementsCollection.innerHTML=(adminUsersState.achievements||[]).map(item=>{const has=unlocked.has(item.id);return `<div class="rpg-collection-row ${has?'':'locked'}"><span><span class="achievement-icon">${has?'🏆':'🔒'}</span>${escapeAdminHtml(item.title)} <small>+${Number(item.reward||0).toLocaleString('es-ES')}</small></span><button class="${has?'remove':''}" type="button" data-achievement-action="${has?'remove':'add'}" data-achievement-id="${escapeAdminHtml(item.id)}">${has?'Quitar':'Agregar'}</button></div>`;}).join('');
@@ -1078,31 +1146,80 @@ function renderPremiumData(data={}){
     const state = token.claimed ? `✅ reclamado por ${token.claimedBy || 'número no disponible'}` : '🟡 disponible';
     return `<div class="premium-list-row"><span>${token.preview} · ${state}</span><button class="premium-remove" data-premium-token="${token.id}" type="button">Eliminar</button></div>`;
   }).join('') : 'Sin tokens generados.');
+  if(superCommandsList) superCommandsList.innerHTML='<strong>Comandos incluidos en Super Premium</strong>' + ((data.commands||[]).length ? `<div class="premium-list-row">${data.commands.map(command=>`<span>.${escapeAdminHtml(command)}</span>`).join(' · ')}</div>` : '<div class="premium-list-row">Sin comandos configurados.</div>');
 }
-premiumUserForm?.addEventListener('submit',(event)=>{
-  event.preventDefault();
-  socket.emit('admin-premium-add',{jid:premiumUserNumber.value.trim()});
-});
 premiumTokenForm?.addEventListener('submit',(event)=>{
   event.preventDefault();
   premiumTokenResult.classList.remove('show');
-  socket.emit('admin-premium-generate',{days:Number(premiumTokenDays.value)});
+  socket.emit('admin-supertoken-generate',{days:Number(premiumTokenDays.value)});
 });
 premiumTokenResult?.addEventListener('click',()=>{
   if(!premiumTokenResult.textContent) return;
   const copy = navigator.clipboard?.writeText(premiumTokenResult.textContent);
   copy?.then(()=>showToast('Token copiado'));
 });
-socket.on('admin-premium-token',(result={})=>{
+socket.on('admin-supertoken-token',(result={})=>{
   premiumTokenResult.textContent=result.token || '';
   premiumTokenResult.classList.toggle('show',Boolean(result.token));
 });
 socket.on('admin-premium-status',(result={})=>{
   premiumStatus.textContent=result.message || '';
   premiumStatus.style.color=result.ok ? 'var(--green)' : 'var(--danger)';
-  if(result.ok) premiumUserNumber.value='';
 });
 socket.on('admin-premium-data',renderPremiumData);
+function renderModeratorAdminData(data={}){
+  const permissions=data.permissions||{};
+  if(moderatorPermissionOptions) moderatorPermissionOptions.innerHTML=Object.entries(permissions).map(([id,label])=>`<label><input type="checkbox" class="moderator-permission" value="${escapeAdminHtml(id)}"> ${escapeAdminHtml(label)}</label>`).join('');
+  if(moderatorList) moderatorList.innerHTML='<strong>Moderadores creados</strong>' + ((data.moderators||[]).length ? data.moderators.map(item=>`<div class="premium-list-row"><span>${escapeAdminHtml(item.username)} · ${(item.permissions||[]).length} permisos · ${item.active?'activo':'revocado'}</span>${item.active?`<button class="premium-remove" data-revoke-moderator="${escapeAdminHtml(item.id)}" type="button">Revocar</button>`:''}</div>`).join('') : '<div class="premium-list-row">No hay moderadores creados.</div>');
+}
+moderatorForm?.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  socket.emit('admin-moderator-create',{permissions:[...document.querySelectorAll('.moderator-permission:checked')].map(input=>input.value)});
+});
+socket.on('admin-moderator-data',renderModeratorAdminData);
+socket.on('admin-moderator-status',(result={})=>{ if(moderatorAdminStatus){ moderatorAdminStatus.textContent=result.message||''; moderatorAdminStatus.style.color=result.ok?'var(--green)':'var(--danger)'; } });
+socket.on('admin-moderator-credentials',(result={})=>{
+  if(!moderatorCredentials) return;
+  moderatorCredentials.textContent=`Usuario: ${result.username}\nContraseña: ${result.password}\nPágina: ${location.origin}/moderacion`;
+  moderatorCredentials.classList.add('show');
+});
+moderatorList?.addEventListener('click',(event)=>{ const button=event.target.closest('[data-revoke-moderator]'); if(button&&confirm('¿Revocar este moderador?')) socket.emit('admin-moderator-revoke',{id:button.dataset.revokeModerator}); });
+moderatorCredentials?.addEventListener('click',()=>navigator.clipboard?.writeText(moderatorCredentials.textContent)?.then(()=>showToast('Credenciales copiadas')));
+moderatorLoginForm?.addEventListener('submit',(event)=>{ event.preventDefault(); moderatorLoginStatus.textContent='Verificando acceso...'; socket.emit('moderator-auth',{username:moderatorUsername.value.trim(),password:moderatorPassword.value}); });
+socket.on('moderator-auth-fail',()=>{ moderatorLoginStatus.textContent='Credenciales incorrectas o moderador revocado.'; moderatorPassword.value=''; });
+socket.on('moderator-auth-success',(data={})=>{
+  moderatorLoginBox.style.display='none'; moderatorConsole.style.display='block';
+  const labels=data.labels||{}; moderatorPermissionList.textContent=(data.permissions||[]).map(permission=>labels[permission]||permission).join(' · ') || 'Sin permisos asignados';
+  document.querySelectorAll('.moderator-permission-card').forEach(card=>{ card.style.display=(data.permissions||[]).includes(card.dataset.permission)?'block':'none'; });
+  document.getElementById('moderationPermissionState').innerHTML='<i class="fas fa-circle"></i> SESIÓN ACTIVA';
+});
+moderatorTokenForm?.addEventListener('submit',(event)=>{ event.preventDefault(); socket.emit('moderator-supertoken-generate',{days:Number(moderatorTokenDays.value)}); });
+socket.on('moderator-supertoken-token',(result={})=>{ moderatorTokenResult.textContent=result.token||''; moderatorTokenResult.classList.toggle('show',Boolean(result.token)); });
+moderatorBanForm?.addEventListener('submit',(event)=>{ event.preventDefault(); socket.emit('moderator-ban-number',{number:moderatorBanNumber.value.replace(/\D/g,'')}); });
+moderatorUsersRefresh?.addEventListener('click',()=>socket.emit('moderator-users-data'));
+moderatorBotsRefresh?.addEventListener('click',()=>socket.emit('moderator-bots-data'));
+socket.on('moderator-status',(result={})=>{ if(moderatorStatus){ moderatorStatus.textContent=result.message||''; moderatorStatus.style.color=result.ok?'var(--green)':'var(--danger)'; } });
+socket.on('moderator-users-data',(data={})=>{ moderatorUsersList.innerHTML=(data.users||[]).map(user=>`<div class="premium-list-row"><span>${escapeAdminHtml(user.name)}</span><span>🪙 ${Number(user.total||0).toLocaleString('es-ES')}</span></div>`).join('')||'No hay usuarios registrados.'; });
+socket.on('moderator-bots-data',(bots=[])=>{ moderatorBotsList.innerHTML=bots.map(bot=>`<div class="premium-list-row"><span>${escapeAdminHtml(bot.sessionId)}</span><span>${escapeAdminHtml(bot.phoneNumber||'pendiente')} · ${bot.connected?'activo':'offline'}</span></div>`).join('')||'No hay sesiones.'; });
+function renderBannedData(numbers=[]){
+  if(!bannedNumbersList) return;
+  bannedNumbersList.innerHTML='<strong>Números baneados</strong>' + (numbers.length ? numbers.map(item=>`<div class="premium-list-row"><span>+${escapeAdminHtml(item.number)}</span><button class="premium-remove" data-unban-number="${escapeAdminHtml(item.number)}" type="button">Desbloquear</button></div>`).join('') : '<div class="premium-list-row">No hay números baneados.</div>');
+}
+banNumberForm?.addEventListener('submit',(event)=>{
+  event.preventDefault();
+  const number=banNumber.value.replace(/\D/g,'');
+  if(!number) return;
+  if(confirm(`¿Banear y desvincular el número ${number}?`)) socket.emit('admin-ban-number',{number});
+});
+socket.on('admin-banned-data',renderBannedData);
+socket.on('admin-ban-status',(result={})=>{
+  if(banStatus){ banStatus.textContent=result.message||''; banStatus.style.color=result.ok?'var(--green)':'var(--danger)'; }
+  if(result.ok && banNumber) banNumber.value='';
+});
+bannedNumbersList?.addEventListener('click',(event)=>{
+  const button=event.target.closest('[data-unban-number]');
+  if(button && confirm(`¿Desbloquear el número ${button.dataset.unbanNumber}?`)) socket.emit('admin-unban-number',{number:button.dataset.unbanNumber});
+});
 function renderRewardData(data={}){
   const tokens = data.tokens || [];
   rewardTokensList.innerHTML='<strong>Tokens de regalo</strong>' + (tokens.length ? tokens.map(token=>{

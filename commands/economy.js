@@ -1,12 +1,6 @@
+const profileCommand = require('./profile');
 const COIN = '🪙 Neko Coins';
 const MIN_BET = 200;
-const PREMIUM_SHOP = {
-    1: { price: 10000, label: '1 día Premium' },
-    2: { price: 18000, label: '2 días Premium' },
-    3: { price: 25000, label: '3 días Premium' },
-    4: { price: 32000, label: '4 días Premium' },
-    5: { price: 38000, label: '5 días Premium' }
-};
 const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
 const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
 const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
@@ -19,8 +13,41 @@ const MERCHANT_ITEMS = {
     espada: { name: '⚔️ Espada', price: 3000, durability: 12, aliases: ['espada', 'sword'] },
     cana: { name: '🎣 Caña de pescar', price: 2200, durability: 15, aliases: ['cana', 'caña', 'vara', 'rod'] }
 };
+const CHARACTER_CLASSES = {
+    guerrero: { label: '⚔️ Guerrero', description: 'Resistente y experto en combate cuerpo a cuerpo.', advantage: 'obtiene +25% de monedas en las misiones de .work.' },
+    mago: { label: '🔮 Mago', description: 'Dominador de hechizos, sabiduría y poder arcano.', advantage: 'recibe +15% de monedas al completar trabajos mágicos.' },
+    picaro: { label: '🗡️ Pícaro', description: 'Ágil, sigiloso y experto en golpes precisos.', advantage: 'obtiene +30% de botín en .crime y +10% en .work.' },
+    tirador: { label: '🏹 Tirador', description: 'Especialista en ataques a distancia, puntería y cacería.', advantage: 'obtiene +30% de recompensa al .cazar y +15% en encargos.' }
+};
+const CLASS_EQUIPMENT = {
+    guerrero: [
+        { id: 'mandoble_dragon', name: '⚔️ Mandoble del Dragón', price: 28000, bonus: 0.10, activities: ['work', 'dungeon'] },
+        { id: 'armadura_coloso', name: '🛡️ Armadura del Coloso', price: 32000, bonus: 0.12, activities: ['work', 'dungeon'] }
+    ],
+    mago: [
+        { id: 'grimorio_arcano', name: '📖 Grimorio Arcano', price: 30000, bonus: 0.12, activities: ['work', 'explore'] },
+        { id: 'tunica_astral', name: '🔮 Túnica Astral', price: 35000, bonus: 0.12, activities: ['work', 'dungeon'] }
+    ],
+    picaro: [
+        { id: 'dagas_sombra', name: '🗡️ Dagas de la Sombra', price: 29000, bonus: 0.12, activities: ['work', 'crime'] },
+        { id: 'capa_niebla', name: '🥷 Capa de la Niebla', price: 34000, bonus: 0.10, activities: ['crime', 'steal'] }
+    ],
+    tirador: [
+        { id: 'arco_fenix', name: '🏹 Arco del Fénix', price: 31000, bonus: 0.12, activities: ['work', 'hunt'] },
+        { id: 'visor_halcon', name: '🦅 Visor del Halcón', price: 36000, bonus: 0.12, activities: ['hunt', 'crime'] }
+    ]
+};
+const DUNGEON_LOOT = [
+    { id: 'gema_lunar', name: '💎 Gema lunar', sellPrice: 4500 },
+    { id: 'colmillo_dragon', name: '🦷 Colmillo de dragón', sellPrice: 6500 },
+    { id: 'runa_antigua', name: '🔯 Runa antigua', sellPrice: 8000 },
+    { id: 'corazon_golem', name: '🪨 Corazón de gólem', sellPrice: 10000 },
+    { id: 'pergamino_perdido', name: '📜 Pergamino perdido', sellPrice: 12000 }
+];
 
 const ALIASES = {
+    rpg: ['rpg', 'rpgmenu', 'economiarpg', 'economyrpg'],
+    characterClass: ['clase', 'class', 'job'],
     balance: ['balance', 'bal', 'coins'],
     baltop: ['baltop', 'eboard', 'economytop'],
     coinflip: ['coinflip', 'cf', 'flip'],
@@ -31,7 +58,6 @@ const ALIASES = {
     pay: ['pay', 'transfer', 'give'],
     roulette: ['roulette', 'rt', 'ruleta', 'rtl'],
     reward: ['reward', 'regalo', 'premio'],
-    shop: ['tienda'],
     level: ['level', 'nivel', 'xp', 'experiencia'],
     mine: ['mine', 'minar', 'mineria'],
     fish: ['fish', 'pescar', 'pesca'],
@@ -51,12 +77,13 @@ const ALIASES = {
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
     work: ['work', 'w']
 };
+const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'registro', 'profile', 'perfil', 'user', 'marry', 'casar', 'divorce', 'divorciar', 'history', 'historial', 'historialmatrimonial', 'marryhistory', 'pfp', 'getpfp', 'foto', 'avatar', 'setbio', 'setdescription', 'setdescperfil', 'setbirth', 'setcumple', 'setbirthday', 'setgenre', 'setgenero']);
 
 const HELP = {
-    balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime',
-    daily: 'daily', deposit: 'deposit <cantidad|all>', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', shop: 'tienda [1-5]', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
-    withdraw: 'with <cantidad|all>', work: 'work'
+    balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
+    daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -113,6 +140,35 @@ function timeLeft(ms) {
     return `${Math.floor(min / 60)} horas ${min % 60} minutos`;
 }
 function random(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function classRewardMultiplier(user, activity) {
+    const classKey = user.rpg?.class;
+    const bonuses = {
+        guerrero: { work: 1.25 },
+        mago: { work: 1.15 },
+        picaro: { work: 1.10, crime: 1.30 },
+        tirador: { work: 1.15, crime: 1.15, hunt: 1.30 }
+    };
+    return bonuses[classKey]?.[activity] || 1;
+}
+function classAdvantageText(user, activity) {
+    const multiplier = classRewardMultiplier(user, activity);
+    if (multiplier <= 1) return '';
+    const percent = Math.round((multiplier - 1) * 100);
+    return `\n🛡️ Ventaja de ${CHARACTER_CLASSES[user.rpg.class].label}: *+${percent}% de recompensa*`;
+}
+function classEquipment(user) { return CLASS_EQUIPMENT[user.rpg?.class] || []; }
+function equipmentForUser(user, id) {
+    return classEquipment(user).find(item => item.id === id) || null;
+}
+function equipmentRewardMultiplier(user, activity) {
+    const owned = user.equipment || {};
+    return classEquipment(user).reduce((total, item) => total + (owned[item.id] && item.activities.includes(activity) ? item.bonus : 0), 1);
+}
+function equipmentAdvantageText(user, activity) {
+    const percent = Math.round((equipmentRewardMultiplier(user, activity) - 1) * 100);
+    return percent > 0 ? `\n⚔️ Equipamiento activo: *+${percent}% de recompensa*` : '';
+}
+function lootById(id) { return DUNGEON_LOOT.find(item => item.id === id); }
 function addXp(user, amount = 5) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
     const now = Date.now();
@@ -211,16 +267,16 @@ async function animate(sock, chatId, msg, frames) {
 }
 const JOB_MESSAGES = {
     work: {
-        gain: ['Trabajaste para el gran sistema capitalista y fuiste recompensado con', 'Cargaste cajas en el mercado toda la tarde y ganaste', 'Repartiste pizzas bajo la lluvia y recibiste', 'Programaste toda la noche y tu jefe te pagó', 'Limpiaste oficinas a escondidas y conseguiste', 'Vendiste limonada en el parque y juntaste', 'Ayudaste a una anciana a cruzar y te dio', 'Ganaste un mini torneo de barrio y te llevaste', 'Hiciste un mandado urgente y te pagaron', 'Tradujiste un texto aburrido y cobraste', 'Paseaste doce perros y todos regresaron con sus dueños', 'Arreglaste el Wi-Fi del vecino y te recompensaron con', 'Vendiste empanadas caseras y juntaste', 'Fuiste extra en una película y cobraste', 'Cuidaste un gato que te juzgó durante ocho horas y recibiste', 'Organizaste el caos de una mudanza y ganaste', 'Probaste colchones profesionalmente y te pagaron', 'Te pusiste casco, chaleco y protección para trabajar seguro y recibiste', 'Rescataste una cometa del árbol y te dieron', 'Encontraste las llaves perdidas del jefe y cobraste', 'Hiciste de fotógrafo en una boda y conseguiste', 'Reparaste una bicicleta con cinta adhesiva y te pagaron', 'Vendiste globos en el parque y regresaste con', 'Lavaste un auto tan bien que el dueño no lo reconoció y te dio', 'Trabajaste en un turno nocturno con toda la protección y ganaste'],
-        loss: ['Intentaste trabajar, pero tu jefe te estafó y perdiste', 'Te robaron la cartera camino al trabajo y perdiste', 'Invertiste en un negocio trucho y perdiste', 'Te multaron por estacionar mal y perdiste', 'Un cliente no te pagó y perdiste', 'Tropezaste y se te cayeron las monedas, perdiste', 'El banco te cobró comisiones y perdiste', 'Te salió mal el trabajo y perdiste', 'El gato que cuidabas te despidió y perdiste', 'Te pusiste todo el equipo de protección, pero olvidaste cobrar y perdiste', 'El repartidor se quedó con tu propina y perdiste', 'Tu invento explotó de forma cómica y perdiste', 'Lavaste un auto y accidentalmente lo dejaste más sucio, perdiste', 'El cliente pidió reembolso porque trabajaste demasiado bien y perdiste', 'Tu primer día fue tan desastroso que pagaste por capacitación']
+        gain: ['Completaste una misión del gremio y recibiste', 'Escoltaste una caravana por el bosque y ganaste', 'Forjaste equipo en la herrería y cobraste', 'Ayudaste al posadero y recibiste', 'Reparaste las murallas de la aldea y ganaste', 'Entregaste un pergamino urgente y juntaste'],
+        loss: ['La misión del gremio fracasó y perdiste', 'Una criatura emboscó la caravana y perdiste', 'La herrería explotó y pagaste', 'El posadero descontó los daños y perdiste', 'Te perdiste en el bosque y perdiste', 'Un duende te cobró peaje y perdiste']
     },
     crime: {
-        gain: ['Robaste una tienda de conveniencia y escapaste con', 'Estafaste a un millonario distraído y conseguiste', 'Hackeaste una cuenta bancaria ficticia y te llevaste', 'Vendiste mercancía robada en el mercado negro y ganaste', 'Asaltaste un banco sin disparos y huiste con', 'Participaste en una pelea clandestina y ganaste', 'Falsificaste documentos y los vendiste por', 'Traficaste con boletos falsos y juntaste', 'Vendiste una colección de memes como arte moderno y cobraste', 'Convenciste a un guardia de que eras parte del tour y ganaste', 'Hiciste contrabando de dulces en la escuela y recibiste', 'Encontraste un maletín sospechoso lleno de cupones y ganaste', 'Organizaste una fuga de palomas mensajeras y cobraste', 'Venciste al jefe final del mercado negro y te llevaste', 'Vendiste el mismo secreto tres veces y juntaste', 'Robaste el protagonismo en una reunión y te pagaron', 'Hiciste una entrega secreta con casco y protección y recibiste', 'Negociaste con un villano de caricatura y ganaste', 'Intercambiaste una piedra común por una supuesta joya y cobraste', 'Entraste por la puerta principal con cara de seguridad y te dieron'],
-        loss: ['Te atraparon robando en una tienda y pagaste la fianza de', 'La policía te detuvo y tuviste que sobornar con', 'Un socio te traicionó y te robó', 'Intentaste estafar al equivocado y te hizo pagar', 'Te cayó la policía en plena operación y perdiste', 'Compraste mercancía falsa y perdiste', 'Te hackearon de vuelta y perdiste', 'Tu plan falló y terminaste pagando', 'El guardia te pidió identificación y olvidaste tu propio nombre, perdiste', 'Tu disfraz era tan malo que el villano te reconoció y perdiste', 'La paloma mensajera entregó el plan a la policía y perdiste', 'Intentaste escapar con protección, pero olvidaste las llaves y perdiste', 'Vendiste un secreto que ya era público y perdiste', 'El maletín estaba lleno de recibos y perdiste', 'Te persiguió un perro pequeño y abandonaste todo, perdiste']
+        gain: ['Asaltaste el tesoro de un mercader oscuro y escapaste con', 'Infiltraste la torre del hechicero y encontraste', 'Venciste a los guardias del castillo y tomaste', 'Robaste un cofre del gremio rival y ganaste', 'Engañaste a un dragón y saliste con', 'Completaste un encargo de la hermandad y recibiste'],
+        loss: ['Los guardias del reino te atraparon y pagaste', 'El hechicero activó una trampa y perdiste', 'El gremio rival te descubrió y te quitó', 'Un dragón incendió tu botín y perdiste', 'La misión clandestina salió mal y perdiste', 'El juez del reino te impuso una multa de']
     },
     slut: {
-        gain: ['Atendiste a un cliente vistiendo su cosplay favorito y te dieron', 'Un cliente generoso te pagó una noche completa y recibiste', 'Grabaste contenido exclusivo y lo vendiste por', 'Un extranjero te pagó por una noche en su hotel y ganaste', 'Atendiste a un político famoso y te dejó', 'Hiciste un show privado por webcam y juntaste', 'Un cliente te pagó por acompañarlo a una cena y ganaste', 'Te contrataron para una despedida de soltero y conseguiste', 'Un cliente rico te dio una propina generosa:', 'Triunfaste con tu último cliente y ganaste', 'Trabajaste con discreción, protección y una sonrisa profesional y recibiste', 'Te contrataron para bailar con un disfraz ridículo y te pagaron', 'Acompañaste a alguien a una cena y fingiste entender de vinos, ganaste', 'Vendiste fotos de tus calcetines y juntaste', 'Hiciste un show temático de superhéroes y conseguiste', 'Un cliente pidió un servicio premium y te dejó', 'Te contrataron para una fiesta elegante y recibiste', 'Hiciste una sesión nocturna con todo el equipo de protección y ganaste', 'Consolaste a alguien que solo quería hablar y te dio', 'Te pagaron por enseñar un baile que tú tampoco sabías hacer', 'Te convertiste en la estrella de una despedida y cobraste', 'Un fan del cosplay te dejó una propina enorme y ganaste', 'Trabajaste de forma segura, protegida y profesional y recibiste', 'Un cliente pidió discreción y pagó por adelantado', 'Cerraste la noche con estilo y juntaste'],
-        loss: ['Un cliente se escapó sin pagarte y perdiste', 'Te cayó la policía en plena noche y tuviste que sobornar con', 'Un cliente abusivo te estafó y perdiste', 'La cuenta se te bloqueó y perdiste', 'Un cliente te grabó sin permiso y pagaste para que borrara', 'Te robaron en la habitación del hotel y perdiste', 'Te cancelaron el show y perdiste', 'La plataforma te cobró comisiones y perdiste', 'El cliente pidió reembolso porque bailaste mirando al techo y perdiste', 'Tu disfraz se rompió antes del show y perdiste', 'Llevaste toda la protección, pero olvidaste el pago y perdiste', 'La cámara estaba apagada durante todo el show y perdiste', 'Te contrataron para cenar y solo hablaste de economía, perdiste', 'El cliente confundió tu nombre y la propina, perdiste', 'Tu coreografía fue tan moderna que nadie la entendió y perdiste', 'Te quedaste dormido durante la sesión y perdiste', 'La plataforma cobró una comisión absurda y perdiste', 'El cliente quería discreción, pero tú llegaste con una banda musical y perdiste']
+        gain: ['Actuaste en la taberna del gremio y recibiste', 'Animaste la fiesta de la aldea y ganaste', 'Cantaste una balada de héroes y juntaste', 'Diste un espectáculo de trovador y cobraste', 'Conseguiste una generosa propina en la plaza y recibiste'],
+        loss: ['El público abucheó tu actuación y perdiste', 'El bardo rival te robó la propina y perdiste', 'La taberna canceló el espectáculo y perdiste', 'Tu disfraz de aventurero se rompió y perdiste', 'El posadero cobró los daños del show y perdiste']
     }
 };
 function randomJob(user, command, outcome) {
@@ -241,11 +297,12 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 🪙 ECONOMÍA 〕───╮\n│\n│ 💰 ${prefix}balance · Ver saldo\n│ 🏆 ${prefix}baltop · Ranking\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa diaria\n│ 💼 ${prefix}work · Trabajar\n│ 🏦 ${prefix}deposit · Depositar\n│ 💳 ${prefix}withdraw · Retirar\n│ 💸 ${prefix}pay · Transferir\n│ 🎰 ${prefix}coinflip · Cara o cruz\n│ 🎡 ${prefix}roulette · Ruleta\n│ 🕵️ ${prefix}crime · Cometer crimen\n│ 🦹 ${prefix}rob · Robar a un usuario\n│ 🎭 ${prefix}slut · Trabajo de riesgo\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 🛒 ${prefix}tienda · Canjear Premium\n│ ⏱️ ${prefix}einfo · Cooldowns\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
-    if (command === 'economy' || command === 'economymenu') return reply(sock, chatId, msg, menu(prefix));
+    if (command === 'economy' || command === 'economymenu' || command === 'rpg' || command === 'rpgmenu' || command === 'economiarpg' || command === 'economyrpg') return reply(sock, chatId, msg, menu(prefix));
+    if (PROFILE_RPG_COMMANDS.has(String(command || '').toLowerCase())) return profileCommand(sock, chatId, msg, command, q, botData, saveBotData, prefix);
     const canonical = Object.keys(ALIASES).find(key => ALIASES[key].includes(command)) || command;
     if (!ALIASES[canonical]) return reply(sock, chatId, msg, menu(prefix));
     const sender = getSender(msg, chatId);
@@ -257,36 +314,58 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
     if (xpEvent.gained || commandAchievements.length) save();
 
-    if (canonical === 'shop') {
-        const selected = Number(args[0]);
-        if (!Number.isInteger(selected) || !PREMIUM_SHOP[selected]) {
-            const options = Object.entries(PREMIUM_SHOP).map(([, item]) => `⭐ *${item.label}* — ${fmt(item.price)} ${COIN}`).join('\n');
-            return reply(sock, chatId, msg, `🛒 *TIENDA PREMIUM*\n\n${options}\n\nCanjea con: *${prefix}tienda <días>*\nEjemplo: *${prefix}tienda 3*`);
+    if (canonical === 'characterClass') {
+        const requested = String(args[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (!requested || !CHARACTER_CLASSES[requested]) {
+            const options = Object.entries(CHARACTER_CLASSES).map(([key, value]) => `${value.label} — *${key}*\n${value.description}\n✨ Ventaja: ${value.advantage}`).join('\n\n');
+            return reply(sock, chatId, msg, `🧙 *ELECCIÓN DE CLASE*\n\n${options}\n\nElige una clase con:\n*${prefix}clase guerrero*\n*${prefix}clase mago*\n*${prefix}clase picaro*\n*${prefix}clase tirador*`);
         }
-        const item = PREMIUM_SHOP[selected];
-        if (user.coins < item.price) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}.\nNecesitas: *${fmt(item.price)}*\nTienes: *${fmt(user.coins)}*`);
-        botData.premiumUsers ||= {};
-        const current = botData.premiumUsers[jid];
-        if (current && (!current.expiresAt || new Date(current.expiresAt).getTime() > Date.now())) {
-            if (!current.expiresAt) return reply(sock, chatId, msg, '✅ Ya tienes Premium permanente; no necesitas comprar días.');
-        }
-        const start = current?.expiresAt && new Date(current.expiresAt).getTime() > Date.now() ? new Date(current.expiresAt).getTime() : Date.now();
-        const expiresAt = new Date(start + selected * 86400000).toISOString();
-        user.coins -= item.price;
-        botData.premiumUsers[jid] = { grantedAt: current?.grantedAt || new Date().toISOString(), expiresAt, source: 'tienda' };
+        if (user.rpg.class) return reply(sock, chatId, msg, `🛡️ Tu personaje ya pertenece a la clase *${CHARACTER_CLASSES[user.rpg.class]?.label || user.rpg.class}*. La clase se elige una sola vez.`);
+        user.rpg.class = requested;
         save();
-        return reply(sock, chatId, msg, `✅ *Canje realizado*\n\n⭐ Premium por: *${item.label}*\n🪙 Pagaste: *${fmt(item.price)} ${COIN}*\n💰 Saldo restante: *${fmt(user.coins)} ${COIN}*\n📅 Disponible hasta: *${new Date(expiresAt).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}*`);
+        const selected = CHARACTER_CLASSES[requested];
+        return reply(sock, chatId, msg, `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
     }
 
     if (canonical === 'merchant') {
+        const merchantAction = String(args[0] || '').toLowerCase();
+        if (['vender', 'sell', 'botin', 'botín'].includes(merchantAction)) {
+            user.loot ||= {};
+            const lootRows = Object.entries(user.loot).filter(([, quantity]) => Number(quantity) > 0);
+            if (!args[1]) {
+                const listing = lootRows.length ? lootRows.map(([id, quantity]) => { const loot = lootById(id); return loot ? `📦 *${loot.name}* · ${quantity} unidad(es) · *${fmt(loot.sellPrice)} ${COIN}* c/u\nVender: *${prefix}mercader vender ${id}*` : ''; }).filter(Boolean).join('\n') : 'No tienes botín de mazmorra para vender.';
+                return reply(sock, chatId, msg, `💰 *BOTÍN PARA VENDER*\n\n${listing}`);
+            }
+            const loot = lootById(String(args[1]).toLowerCase());
+            const quantity = Number(user.loot[loot?.id] || 0);
+            if (!loot || quantity < 1) return reply(sock, chatId, msg, '❌ No tienes ese objeto en tu bolsa de botín. Usa *.mercader vender* para ver tus drops.');
+            const amountToSell = args[2] === 'todo' || args[2] === 'all' ? quantity : 1;
+            user.loot[loot.id] -= amountToSell;
+            if (user.loot[loot.id] <= 0) delete user.loot[loot.id];
+            const payout = loot.sellPrice * amountToSell;
+            user.coins += payout;
+            save();
+            return reply(sock, chatId, msg, `✅ El mercader compró *${amountToSell}x ${loot.name}* por *${fmt(payout)} ${COIN}*.\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*`);
+        }
         const selected = toolFor(args[0]);
+        const gear = classEquipment(user).find(item => item.id === String(args[0] || '').toLowerCase());
+        if (gear) {
+            user.equipment ||= {};
+            if (user.equipment[gear.id]) return reply(sock, chatId, msg, `✅ Ya tienes equipado ${gear.name}. Su bonificación está activa.`);
+            if (user.coins < gear.price) return reply(sock, chatId, msg, `❌ ${gear.name} cuesta *${fmt(gear.price)} ${COIN}*.\nTienes: *${fmt(user.coins)} ${COIN}*.`);
+            user.coins -= gear.price;
+            user.equipment[gear.id] = { purchasedAt: new Date().toISOString(), price: gear.price };
+            save();
+            return reply(sock, chatId, msg, `✅ *EQUIPAMIENTO ADQUIRIDO*\n\n${gear.name}\n💸 Precio: *${fmt(gear.price)} ${COIN}*\n⚔️ Bonificación: *+${Math.round(gear.bonus * 100)}%* en ${gear.activities.join(', ')}\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*`);
+        }
         if (!selected) {
             const offers = Object.entries(MERCHANT_ITEMS).map(([key, item]) => {
                 const current = user.tools?.[key];
                 const durability = current?.durability > 0 ? ` · tienes ${current.durability}/${item.durability}` : '';
                 return `🛍️ *${item.name}* — *${fmt(item.price)} ${COIN}* · ${item.durability} usos${durability}`;
             }).join('\n');
-            return reply(sock, chatId, msg, `🧑‍🌾 *MERCADER RPG*\n\n${offers}\n\nComprar: *${prefix}mercader <pico|espada|cana>*\n⛏️ Minar requiere pico\n⚔️ Cazar requiere espada\n🎣 Pescar requiere caña`);
+            const gearOffers = classEquipment(user).map(item => `⚔️ *${item.name}* — *${fmt(item.price)} ${COIN}* · +${Math.round(item.bonus * 100)}% en ${item.activities.join(', ')}\nComprar: *${prefix}mercader ${item.id}*`).join('\n');
+            return reply(sock, chatId, msg, `🧑‍🌾 *MERCADER RPG*\n\n${offers}\n\n👑 *EQUIPAMIENTO DE ${CHARACTER_CLASSES[user.rpg.class]?.label || 'TU CLASE'}*\n${gearOffers || 'Elige una clase para desbloquear armas y armaduras.'}\n\n📦 Vender drops: *${prefix}mercader vender*\n\n⛏️ Minar requiere pico\n⚔️ Cazar requiere espada\n🎣 Pescar requiere caña`);
         }
         const item = MERCHANT_ITEMS[selected];
         if (user.coins < item.price) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}.\nNecesitas: *${fmt(item.price)}*\nTienes: *${fmt(user.coins)}*`);
@@ -384,8 +463,13 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         dungeon.integrity = Math.max(0, dungeon.integrity - 35);
         mission.progress += kills;
         const dungeonAchievements = addStat(user, 'dungeonKills', kills);
-        const reward = random(DUNGEON_REWARDS);
+        const reward = Math.floor(random(DUNGEON_REWARDS) * equipmentRewardMultiplier(user, 'dungeon'));
         user.coins += reward;
+        const droppedLoot = Math.random() < 0.45 ? random(DUNGEON_LOOT) : null;
+        if (droppedLoot) {
+            user.loot ||= {};
+            user.loot[droppedLoot.id] = (Number(user.loot[droppedLoot.id]) || 0) + 1;
+        }
         let completion = '';
         let missionAchievements = [];
         if (mission.progress >= mission.target) {
@@ -403,7 +487,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const unlocked = [...dungeonAchievements, ...missionAchievements];
         save();
         await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
-        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}`);
+        return reply(sock, chatId, msg, `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${equipmentAdvantageText(user, 'dungeon')}\n${droppedLoot ? `📦 *DROP:* ${droppedLoot.name}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot.id}*` : '🔍 No encontraste un drop vendible esta vez.'}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}`);
     }
 
     if (canonical === 'level') {
@@ -427,9 +511,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const tool = toolState(user, toolKey);
         if (!tool) {
             const names = { pico: '⛏️ pico', cana: '🎣 caña de pescar', espada: '⚔️ espada' };
-            return reply(sock, chatId, msg, `❌ Necesitas comprar un ${names[toolKey]} para poder ${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}.\nUsa *${prefix}mercader* para ver los precios.`);
+            return reply(sock, chatId, msg, `❌ Necesitas comprar un ${names[toolKey]} para poder ${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}.\nUsa *${prefix}mercader* para visitar la tienda del gremio.`);
         }
-        const reward = random(isMine ? MINING_REWARDS : isFish ? FISHING_REWARDS : HUNTING_REWARDS);
+        const baseReward = random(isMine ? MINING_REWARDS : isFish ? FISHING_REWARDS : HUNTING_REWARDS);
+        const reward = Math.floor(baseReward * classRewardMultiplier(user, canonical) * equipmentRewardMultiplier(user, canonical));
         const item = isMine ? random(['carbón', 'hierro', 'oro', 'diamante', 'redstone']) : isFish ? random(['bacalao', 'salmón', 'pez globo', 'tesoro', 'libro encantado']) : random(['conejo', 'jabalí', 'ciervo', 'zorro', 'lobo salvaje']);
         const used = consumeTool(user, toolKey);
         user.coins += reward;
@@ -440,7 +525,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             ? [`⛏️ *${numberOf(jid)}* entra a una mina...`, '⛏️ Rompiendo piedra... ▰▱▱▱▱▱▱▱▱▱', '⛏️ Rompiendo piedra... ▰▰▰▰▰▱▱▱▱▱', `💎 ¡Encontraste ${item}!`]
             : isFish ? [`🎣 *${numberOf(jid)}* lanza la caña...`, '🎣 El agua se mueve... ▰▱▱▱▱▱▱▱▱▱', '🎣 ¡Algo mordió el anzuelo! ▰▰▰▰▰▰▱▱▱▱', `🐟 ¡Pescaste ${item}!`] : [`⚔️ *${numberOf(jid)}* se prepara para cazar...`, '⚔️ Siguiendo huellas... ▰▱▱▱▱▱▱▱▱▱', '⚔️ ¡La presa apareció! ▰▰▰▰▰▰▱▱▱▱', `🏹 ¡Cazaste un ${item}!`];
         await animate(sock, chatId, msg, frames);
-        return reply(sock, chatId, msg, `✅ Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}\n⭐ +${xpEvent.gained || 0} XP${achievementText(unlocked)}`);
+        return reply(sock, chatId, msg, `✅ Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}\n⭐ +${xpEvent.gained || 0} XP${achievementText(unlocked)}`);
     }
 
     if (canonical === 'clan') {
@@ -561,13 +646,13 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const rows = [...wealth.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]);
         if (!rows.length) return reply(sock, chatId, msg, '🏆 Todavía no hay jugadores con Neko Coins registrados.');
         const text = rows.slice(0, 10).map(([number, total], index) => `${index + 1}. @${number} — *${fmt(total)} ${COIN}*`).join('\n');
-        return reply(sock, chatId, msg, `🏆 *TOP GLOBAL DE NEKO COINS*\n\n👥 Jugadores con Neko Coins: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
+        return reply(sock, chatId, msg, `🏆 *SALÓN DE LA FAMA DEL REINO*\n\n👥 Jugadores con Neko Coins: *${rows.length}*\n\n${text}`, { mentions: rows.slice(0, 10).map(([number]) => `${number}@s.whatsapp.net`) });
     }
 
     if (canonical === 'balance') {
         const target = getTarget(msg, q, state) || { key: jid, user };
         const total = (target.user.coins || 0) + (target.user.bank || 0);
-        return reply(sock, chatId, msg, `💰 *Economía de @${numberOf(target.key)}*\n\n💵 Efectivo: *${fmt(target.user.coins)} ${COIN}*\n🏦 Banco: *${fmt(target.user.bank)} ${COIN}*\n💎 Total: *${fmt(total)} ${COIN}*`, { mentions: [target.key] });
+        return reply(sock, chatId, msg, `🧙 *FICHA DEL AVENTURERO @${numberOf(target.key)}*\n\n🪙 Bolsa: *${fmt(target.user.coins)} ${COIN}*\n🏦 Cofre del gremio: *${fmt(target.user.bank)} ${COIN}*\n💎 Patrimonio total: *${fmt(total)} ${COIN}*`, { mentions: [target.key] });
     }
     if (canonical === 'baltop') {
         const page = Math.max(1, Number(args[0]) || 1);
@@ -577,15 +662,15 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const rows = entries.slice((page - 1) * 10, page * 10);
         if (!rows.length) return reply(sock, chatId, msg, `❌ Página inválida. Usa una página entre 1 y ${pages}.`);
         const text = rows.map((x, i) => `${(page - 1) * 10 + i + 1}. @${numberOf(x.key)} — *${fmt(x.total)} ${COIN}*`).join('\n');
-        return reply(sock, chatId, msg, `🏆 *RANKING DE ECONOMÍA*\n\n${text}\n\n_Página ${page}/${pages}_`, { mentions: rows.map(x => x.key) });
+        return reply(sock, chatId, msg, `🏆 *RANKING DE AVENTUREROS*\n\n${text}\n\n_Página ${page}/${pages}_`, { mentions: rows.map(x => x.key) });
     }
     if (canonical === 'daily') {
         const wait = cooldown(user, 'lastDaily', 24 * 60 * 60 * 1000);
-        if (wait) return reply(sock, chatId, msg, `⏳ Ya reclamaste tu recompensa. Regresa en *${timeLeft(wait)}*.`);
+        if (wait) return reply(sock, chatId, msg, `⏳ Ya recibiste tu recompensa del gremio. Regresa en *${timeLeft(wait)}*.`);
         const streak = wait ? 0 : (Number(user.streak) || 0) + 1;
         const reward = 30000 + (streak - 1) * 5000;
         Object.assign(user, { coins: user.coins + reward, streak, lastDaily: Date.now() }); save();
-        return reply(sock, chatId, msg, `🎁 Recibiste *${fmt(reward)} ${COIN}* por tu recompensa diaria.\n🔥 Racha actual: *${streak} días*`);
+        return reply(sock, chatId, msg, `🎁 El gremio te entregó *${fmt(reward)} ${COIN}* por completar tu recompensa diaria.\n🔥 Racha actual: *${streak} días*`);
     }
     if (canonical === 'work' || canonical === 'crime' || canonical === 'slut') {
         const config = canonical === 'work' ? { key: 'lastWork', wait: 60e3, gain: [1, 10000], loss: [1000, 5000], chance: .25, label: 'trabajo' } : canonical === 'crime' ? { key: 'lastCrime', wait: 5 * 60e3, gain: [3000, 18000], loss: [3000, 15000], chance: .25, label: 'crimen' } : { key: 'lastSlut', wait: 4 * 60e3, gain: [1000, 11000], loss: [2000, 8000], chance: .30, label: 'trabajo de riesgo' };
@@ -593,21 +678,22 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (wait) return reply(sock, chatId, msg, `⏳ Debes esperar *${timeLeft(wait)}* para volver a usar este comando.`);
         const lost = Math.random() < config.chance;
         const range = config[ lost ? 'loss' : 'gain' ];
-        const value = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+        const baseValue = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+        const value = lost ? baseValue : Math.max(1, Math.floor(baseValue * classRewardMultiplier(user, canonical) * equipmentRewardMultiplier(user, canonical)));
         const real = lost ? Math.min(user.coins, value) : value;
         user.coins += lost ? -real : real;
         user[config.key] = Date.now(); save();
         const activity = randomJob(user, canonical, lost ? 'loss' : 'gain');
-        return reply(sock, chatId, msg, lost ? `💥 ${activity} *${fmt(real)} ${COIN}*.\n💵 Efectivo: *${fmt(user.coins)}*` : `✅ ${activity} *${fmt(real)} ${COIN}*.\n💵 Efectivo: *${fmt(user.coins)}*`);
+        return reply(sock, chatId, msg, lost ? `💥 ${activity} *${fmt(real)} ${COIN}*.\n🪙 Bolsa del aventurero: *${fmt(user.coins)} ${COIN}*` : `✅ ${activity} *${fmt(real)} ${COIN}*.\n🪙 Bolsa del aventurero: *${fmt(user.coins)} ${COIN}*${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}`);
     }
     if (canonical === 'deposit' || canonical === 'withdraw') {
         const input = amount(args[0]);
         if (input === null) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP[canonical]}*`);
         const available = canonical === 'deposit' ? user.coins : user.bank;
         const value = input === 'all' ? available : input;
-        if (!value || value > available) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN} disponibles.`);
+        if (!value || value > available) return reply(sock, chatId, msg, `❌ No tienes suficientes monedas en tu bolsa o cofre.`);
         if (canonical === 'deposit') { user.coins -= value; user.bank += value; } else { user.bank -= value; user.coins += value; }
-        save(); return reply(sock, chatId, msg, `${canonical === 'deposit' ? '🏦 Depositaste' : '💳 Retiraste'} *${fmt(value)} ${COIN}*.\n💵 Efectivo: *${fmt(user.coins)}* · Banco: *${fmt(user.bank)}*`);
+        save(); return reply(sock, chatId, msg, `${canonical === 'deposit' ? '🏦 Guardaste en el cofre' : '💳 Retiraste del cofre'} *${fmt(value)} ${COIN}*.\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}* · Cofre: *${fmt(user.bank)} ${COIN}*`);
     }
     if (canonical === 'pay') {
         const target = getTarget(msg, q, state);
@@ -616,7 +702,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (target.key === jid) return reply(sock, chatId, msg, '❌ No puedes transferirte a ti mismo.');
         if (value < 1000 || user.bank < value) return reply(sock, chatId, msg, `❌ Necesitas al menos 1.000 ${COIN} en el banco para transferir.`);
         user.bank -= value; target.user.bank = (target.user.bank || 0) + value; save();
-        return reply(sock, chatId, msg, `💸 Transferiste *${fmt(value)} ${COIN}* a @${numberOf(target.key)}.`, { mentions: [target.key] });
+        return reply(sock, chatId, msg, `💸 Entregaste *${fmt(value)} ${COIN}* a la bolsa de @${numberOf(target.key)}.`, { mentions: [target.key] });
     }
     if (canonical === 'coinflip' || canonical === 'roulette') {
         const value = amount(args[0]) === 'all' ? user.coins : amount(args[0]);
@@ -631,7 +717,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             won = (color === 'rojo' || color === 'red') === (result === 'rojo');
         }
         if (won) user.coins += value; else user.coins -= value;
-        save(); return reply(sock, chatId, msg, won ? `🎉 Ganaste *${fmt(value)} ${COIN}*!` : `😔 Perdiste *${fmt(value)} ${COIN}*.`);
+        save(); return reply(sock, chatId, msg, won ? `🎉 ¡El destino favoreció tu tirada! Ganaste *${fmt(value)} ${COIN}*.` : `💥 La suerte te abandonó en la taberna. Perdiste *${fmt(value)} ${COIN}*.`);
     }
     if (canonical === 'steal') {
         const target = getTarget(msg, q, state);
@@ -642,12 +728,12 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (!target.user.lastSeen || Date.now() - target.user.lastSeen < 60 * 60e3) return reply(sock, chatId, msg, '🛡️ Solo puedes robar a alguien que lleve más de una hora inactivo.');
         const stolen = Math.min(target.user.coins, Math.max(100, Math.floor(target.user.coins * (.1 + Math.random() * .2))));
         user.lastRob = Date.now();
-        if (Math.random() < .5 && stolen > 0) { target.user.coins -= stolen; user.coins += stolen; save(); return reply(sock, chatId, msg, `🦹 Robaste *${fmt(stolen)} ${COIN}* a @${numberOf(target.key)}.`, { mentions: [target.key] }); }
-        const fine = Math.min(user.coins, Math.floor(Math.random() * 4000) + 1000); user.coins -= fine; save(); return reply(sock, chatId, msg, `🚔 Te atraparon y perdiste *${fmt(fine)} ${COIN}*.`);
+        if (Math.random() < .5 && stolen > 0) { target.user.coins -= stolen; user.coins += stolen; save(); return reply(sock, chatId, msg, `🦹 Como pícaro, robaste *${fmt(stolen)} ${COIN}* a @${numberOf(target.key)}.`, { mentions: [target.key] }); }
+        const fine = Math.min(user.coins, Math.floor(Math.random() * 4000) + 1000); user.coins -= fine; save(); return reply(sock, chatId, msg, `⚖️ Los guardias del reino te atraparon y perdiste *${fmt(fine)} ${COIN}*.`);
     }
     if (canonical === 'einfo') {
         const rows = [['work', 'lastWork', 60e3], ['crime', 'lastCrime', 5 * 60e3], ['rob', 'lastRob', 10 * 60e3], ['daily', 'lastDaily', 24 * 60 * 60e3], ['slut', 'lastSlut', 4 * 60e3]].map(([label, key, ms]) => `${label}: ${cooldown(user, key, ms) ? timeLeft(cooldown(user, key, ms)) : 'disponible'}`).join('\n');
-        return reply(sock, chatId, msg, `⏱️ *TUS COOLDOWNS*\n\n${rows}`);
+        return reply(sock, chatId, msg, `⏱️ *TIEMPOS DE RECARGA DEL AVENTURERO*\n\n${rows}`);
     }
 }
 
