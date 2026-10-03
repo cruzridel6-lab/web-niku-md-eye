@@ -1455,9 +1455,9 @@ class BotSession {
                             // Reporte es un canal de soporte público, incluso en modo privado.
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !['report', 'reporte', 'public'].includes(commandName)) return;
-                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte']);
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'menu', 'menú', 'reclamar']);
                             const registeredProfile = registeredProfileFor(sender);
-                            if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
+                            if (!registrationCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
 ┃
 ┃ 👋 *¡Hola! Aún no tienes un perfil activo.*
