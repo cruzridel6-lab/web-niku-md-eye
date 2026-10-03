@@ -389,7 +389,7 @@
   .admin-login input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(111,247,210,.1);}
   .admin-status{min-height:20px;color:var(--amber);font-size:.75rem;}
   #adminConsole{display:none;}
-  #adminNavLink{display:none;}
+  #adminNavLink,#admin.panel,#moderation.panel,a[href="/moderacion"]{display:none!important;}
   body.admin-route #adminNavLink{display:inline-flex;}
   #admin.panel{display:none;}
   body.admin-route #admin.panel{display:block;}
@@ -950,6 +950,9 @@ const pairingCode = document.getElementById('pairingCode');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const adminLoginBox = document.getElementById('adminLoginBox');
 const adminConsole = document.getElementById('adminConsole');
+const adminPanel = document.getElementById('admin');
+const adminNavLink = document.getElementById('adminNavLink');
+const moderationPanel = document.getElementById('moderation');
 const adminUsername = document.getElementById('adminUsername');
 const adminPassword = document.getElementById('adminPassword');
 const adminStatus = document.getElementById('adminStatus');
@@ -1039,6 +1042,9 @@ function updateAdminRoute(){
   document.body.classList.toggle('admin-route', isAdminRoute);
   const isModerationRoute = window.location.hash.toLowerCase() === '#moderacion' || window.location.pathname.toLowerCase() === '/moderacion';
   document.body.classList.toggle('moderation-route', isModerationRoute);
+  adminPanel?.toggleAttribute('hidden', !isAdminRoute);
+  adminNavLink?.toggleAttribute('hidden', !isAdminRoute);
+  moderationPanel?.toggleAttribute('hidden', !isModerationRoute);
   if(!isAdminRoute){
     adminLoginBox.style.display='block';
     adminConsole.style.display='none';
