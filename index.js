@@ -1470,13 +1470,15 @@ class BotSession {
 
                         // Process commands
                         if (text.toLowerCase().startsWith('.')) {
-                            const cmd = text.toLowerCase();
-                            const args = text.split(' ').slice(1);
+                            // Acepta tanto `.reclamar TOKEN` como `. reclamar TOKEN`.
+                            const commandText = text.replace(/^\.\s+/, '.').trim();
+                            const cmd = commandText.toLowerCase();
+                            const args = commandText.split(/\s+/).slice(1);
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
                             // Reporte es un canal de soporte público, incluso en modo privado.
 if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
-                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte']);
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1504,10 +1506,7 @@ if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandNa
                                 await this.sock.sendMessage(from, { text: smartHelpText(q.trim().toLowerCase() || 'comando', settings.prefix || '.') }, { quoted: msg });
                                 return;
                             }
-                            if (!isKnownCommand(commandName)) {
-                                await this.sock.sendMessage(from, { text: smartHelpText(commandName, settings.prefix || '.') }, { quoted: msg });
-                                return;
-                            }
+                            if (!isKnownCommand(commandName)) return;
                             if (PREMIUM_COMMANDS.has(commandName) && !isPremiumWhatsApp(sender)) {
                                 await this.sock.sendMessage(from, { text: '🔐 Este comando es exclusivo para usuarios Premium.\n\nObtén un token y usa *.reclamar <token>* para activarlo.' }, { quoted: msg });
                                 return;
@@ -2240,7 +2239,7 @@ function smartHelpText(unknown, prefix = '.') {
     return `🤔 No reconozco *${prefix}${unknown}*.\n\n¿Quizás quisiste usar?\n${lines}\n\nTambién puedes escribir *${prefix}menu* para abrir el menú interactivo o *${prefix}ayuda <comando>* para ver una guía.`;
 }
 function isKnownCommand(name) {
-    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help']);
+    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar']);
     if (common.has(name) || Object.prototype.hasOwnProperty.call(commands, name)) return true;
     for (const command of Object.values(commands || {})) if (Array.isArray(command?.aliases) && command.aliases.includes(name)) return true;
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
