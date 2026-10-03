@@ -87,9 +87,11 @@ Railway usa un sistema de archivos temporal si no se configura un volumen. Para 
 2. Monta el volumen en `/data`.
 3. Añade la variable `PERSISTENT_DATA_DIR=/data/bot`.
 4. Usa una sola réplica del servicio para que la sesión de WhatsApp y el volumen no se dividan entre instancias.
-5. Despliega nuevamente y verifica que `bot/auth_info/` y `bot/bot_data.json` estén dentro del volumen.
+5. Despliega nuevamente y verifica que `data/auth_info/` y `data/bot_data.json` estén dentro del volumen local (o `/data/bot/auth_info/` y `/data/bot/bot_data.json` cuando uses la variable).
 
-El bot centraliza en `bot/` la economía, perfiles, Premium, tokens, configuraciones, sesiones de WhatsApp y archivos persistentes de `uploads/`. Escribe `bot_data.json` de forma atómica y conserva una copia `bot_data.json.bak` para recuperarse si un proceso se interrumpe durante una escritura. La carpeta `auth_info/` también se guarda dentro de la ruta persistente, por lo que no debería ser necesario volver a vincular el número después de cada deploy.
+El bot centraliza en `data/` la economía, perfiles, duelos PvP, RPG, Premium, tokens, configuraciones, reportes del panel y archivos persistentes de `uploads/`. Escribe `bot_data.json` de forma atómica y conserva una copia `bot_data.json.bak` para recuperarse si un proceso se interrumpe durante una escritura. La carpeta `auth_info/` también se guarda dentro de la ruta persistente, por lo que no debería ser necesario volver a vincular el número después de cada deploy. Si existe una instalación anterior en `bot/`, el primer arranque la migra automáticamente a `data/`.
+
+En un hosting con sistema de archivos temporal, crear `data/` dentro del repositorio por sí solo no garantiza la conservación después de un deploy: debes usar un volumen persistente o activar el respaldo cifrado de GitHub descrito abajo.
 
 Si configuras las variables de GitHub anteriores, el bot restaura al arrancar y actualiza cada 30 segundos un archivo `bot/state.enc` cifrado con AES-256-GCM. El respaldo contiene la economía, perfiles, tokens, Premium y sesiones, pero GitHub solo recibe el texto cifrado. El token de GitHub y la clave de cifrado deben existir únicamente en Railway Variables.
 

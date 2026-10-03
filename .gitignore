@@ -3,7 +3,9 @@
 !.env.example
 node_modules/
 bot/
-data/
+data/*
+!data/.gitkeep
+!data/README.md
 auth_info/
 tmp/
 temp/

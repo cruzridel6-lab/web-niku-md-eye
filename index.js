@@ -706,9 +706,12 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
-const LEGACY_DATA_DIR = path.resolve(__dirname, 'data');
+const REPO_DATA_DIR = path.resolve(__dirname, 'data');
+const LEGACY_DATA_DIRS = [path.resolve(__dirname, 'bot'), REPO_DATA_DIR];
 const LEGACY_AUTH_DIR = path.resolve(__dirname, 'auth_info');
-const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, 'bot'));
+// data/ is the repository-local default. In production, point PERSISTENT_DATA_DIR
+// to a mounted volume (for example /data/bot) so deploys do not replace the state.
+const PERSISTENT_DIR = path.resolve(process.env.PERSISTENT_DATA_DIR || process.env.RAILWAY_VOLUME_MOUNT_PATH || REPO_DATA_DIR);
 const AUTH_DIR = path.join(PERSISTENT_DIR, 'auth_info');
 const UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
 const DATA_FILE = path.join(PERSISTENT_DIR, 'bot_data.json');
@@ -718,13 +721,16 @@ fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync(UPLOADS_DIR);
 
-// Al activar el volumen por primera vez, conserva los datos locales existentes.
-if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
-    const legacyDataFile = path.join(LEGACY_DATA_DIR, 'bot_data.json');
+// En el primer arranque conserva estados anteriores de bot/, data/ o auth_info/.
+for (const legacyDir of LEGACY_DATA_DIRS) {
+    if (legacyDir === PERSISTENT_DIR) continue;
+    const legacyDataFile = path.join(legacyDir, 'bot_data.json');
     if (!fs.existsSync(DATA_FILE) && fs.existsSync(legacyDataFile)) fs.copyFileSync(legacyDataFile, DATA_FILE);
-    if (fs.existsSync(LEGACY_AUTH_DIR)) {
-        for (const userId of fs.readdirSync(LEGACY_AUTH_DIR)) {
-            const source = path.join(LEGACY_AUTH_DIR, userId);
+    const legacyAuthDir = path.join(legacyDir, 'auth_info');
+    for (const sourceDir of [legacyAuthDir, LEGACY_AUTH_DIR]) {
+        if (!fs.existsSync(sourceDir)) continue;
+        for (const userId of fs.readdirSync(sourceDir)) {
+            const source = path.join(sourceDir, userId);
             const target = path.join(AUTH_DIR, userId);
             if (!fs.existsSync(target)) fs.copySync(source, target);
         }
