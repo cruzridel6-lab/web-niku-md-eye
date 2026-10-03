@@ -731,7 +731,7 @@ if (PERSISTENT_DIR !== LEGACY_DATA_DIR) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0 }, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0 }, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -806,6 +806,20 @@ function registeredProfileFor(jid) {
     if (!wanted) return null;
     const match = Object.entries(botData.profiles || {}).find(([key, profile]) => publicNumber(key) === wanted && profile?.registered && profile?.name);
     return match ? match[1] : null;
+}
+function registeredProfileForMessage(msg, fallbackJid) {
+    const candidates = [
+        fallbackJid,
+        msg?.key?.participant,
+        msg?.key?.participantAlt,
+        msg?.key?.senderPn,
+        msg?.key?.remoteJid
+    ].filter(Boolean);
+    for (const candidate of candidates) {
+        const profile = registeredProfileFor(candidate);
+        if (profile?.registered) return profile;
+    }
+    return null;
 }
 function publicPlayer(jid) {
     const number = publicNumber(jid);
@@ -1455,7 +1469,7 @@ class BotSession {
                             // Reporte es un canal de soporte público, incluso en modo privado.
                             if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte']);
-                            const registeredProfile = registeredProfileFor(sender);
+                            const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
 ┃
@@ -1494,6 +1508,10 @@ class BotSession {
                                     switch (commandName) {
                                         // ===== MENU =====
                                         case 'menu': case 'menú': {
+                                            if (!registeredProfileForMessage(msg, sender)?.registered) {
+                                                await this.sock.sendMessage(from, { text: '🔐 *Registro obligatorio*\n\nAntes de abrir el menú debes crear tu personaje con:\n*.registrarse Tu Nombre*' }, { quoted: msg });
+                                                break;
+                                            }
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = generateMenuText(customName, this);
                                             try {
@@ -1628,6 +1646,7 @@ class BotSession {
                                         case 'mine': case 'minar': case 'mineria': case 'fish': case 'pescar': case 'pesca': case 'hunt': case 'cazar': case 'caza': case 'mercader': case 'mercado': case 'reparar': case 'repair': case 'explore': case 'explorar': case 'exploracion': case 'gather': case 'recolectar': case 'recoleccion': case 'patrol': case 'patrullar': case 'patrulla': case 'dungeon': case 'mazmorra': case 'mazmorras': case 'mission': case 'mision': case 'misiones': case 'achievement': case 'achievements': case 'logro': case 'logros':
                                         case 'clan': case 'clanes': case 'goldtop': case 'orotop': case 'toporo': case 'riqueza': case 'nekotop': case 'topcoins': case 'coinstop':
                                         case 'work': case 'w':
+                                        case 'raid': case 'raids': case 'incursion': case 'incursión': case 'jefemundial':
                                         case 'combate': case 'combat': case 'batalla': case 'arena':
                                         case 'inventario': case 'inventory': case 'mochila': case 'bolsaequipamiento':
                                         case 'fabricar': case 'craft': case 'forjar':
