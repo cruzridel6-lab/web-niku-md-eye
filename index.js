@@ -847,6 +847,42 @@ function capturePublicEconomy(chatId, jid) {
         achievements: new Set(Object.keys(user.rpg?.achievements || {}))
     };
 }
+function publicInvestmentSnapshot() {
+    const now = Date.now();
+    return Object.values(botData.investments || {})
+        .filter(item => item?.status === 'pending')
+        .sort((a, b) => Number(a.resolvesAt) - Number(b.resolvesAt))
+        .slice(0, 20)
+        .map(item => ({
+            id: item.id,
+            player: publicPlayer(item.jid),
+            amount: Math.max(0, Number(item.amount) || 0),
+            resolvesAt: item.resolvesAt,
+            remainingMs: Math.max(0, Number(item.resolvesAt) - now),
+            progress: Math.min(100, Math.max(0, Math.round((1 - Math.max(0, Number(item.resolvesAt) - now) / (5 * 60e3)) * 100)))
+        }));
+}
+function economyDashboardSnapshot() {
+    let coins = 0, bank = 0, users = new Set();
+    for (const state of Object.values(botData.economy || {})) for (const [jid, wallet] of Object.entries(state?.users || {})) {
+        const number = publicNumber(jid); if (!number) continue;
+        users.add(number); coins += Math.max(0, Number(wallet?.coins) || 0); bank += Math.max(0, Number(wallet?.bank) || 0);
+    }
+    const investments = Object.values(botData.investments || {});
+    const completed = investments.filter(item => item.status === 'won' || item.status === 'lost');
+    const active = investments.filter(item => item.status === 'pending');
+    const invested = investments.reduce((sum, item) => sum + Math.max(0, Number(item.amount) || 0), 0);
+    const profit = completed.reduce((sum, item) => sum + Math.max(0, Number(item.result) || 0), 0);
+    const loss = completed.reduce((sum, item) => sum + Math.max(0, -(Number(item.result) || 0)), 0);
+    const byDay = [];
+    for (let offset = 6; offset >= 0; offset--) {
+        const date = new Date(Date.now() - offset * 864e5).toISOString().slice(0, 10);
+        const dayItems = investments.filter(item => String(item.createdAt || '').slice(0, 10) === date);
+        byDay.push({ date, label: date.slice(5), count: dayItems.length, amount: dayItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0) });
+    }
+    return { users: users.size, coins, bank, total: coins + bank, activeInvestments: active.length, activeCapital: active.reduce((sum, item) => sum + (Number(item.amount) || 0), 0), active: publicInvestmentSnapshot(), investments: investments.length, wins: completed.filter(item => item.status === 'won').length, losses: completed.filter(item => item.status === 'lost').length, invested, profit, loss, transferTaxes: Number(botData.economyStats?.transferTaxes) || 0, transferCount: Number(botData.economyStats?.transferCount) || 0, abuseBlocked: Number(botData.economyStats?.abuseBlocked) || 0, byDay };
+}
+
 function publicLeaderboardSnapshot() {
     const coins = new Map();
     const achievements = new Map();
@@ -867,6 +903,8 @@ function publicLeaderboardSnapshot() {
         coins: [...coins.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([number, total], index) => ({ position: index + 1, player: publicPlayer(number), coins: total })),
         achievements: [...achievements.entries()].filter(([, item]) => item.ids.size > 0).sort((a, b) => b[1].ids.size - a[1].ids.size).slice(0, 10).map(([number, item], index) => ({ position: index + 1, player: publicPlayer(number), count: item.ids.size })),
         events: publicRewardEvents.slice(-30).reverse(),
+        investments: publicInvestmentSnapshot(),
+        economy: economyDashboardSnapshot(),
         pvp: (() => { const stats = new Map(), history = []; for (const list of Object.values(botData.pvpDuelHistory || {})) for (const duel of Array.isArray(list) ? list : []) { const winner = publicNumber(duel.winner), loser = publicNumber(duel.loser), stake = Math.max(0, Number(duel.stake) || 0); for (const [number, won] of [[winner, true], [loser, false]]) if (number) { const item = stats.get(number) || { wins: 0, losses: 0, net: 0 }; won ? (item.wins++, item.net += stake) : (item.losses++, item.net -= stake); stats.set(number, item); } if (winner && loser) history.push({ winner: publicPlayer(winner), loser: publicPlayer(loser), stake, resolvedAt: duel.resolvedAt || null }); } const eloFor = number => { for (const state of Object.values(botData.economy || {})) for (const [jid, user] of Object.entries(state?.users || {})) if (publicNumber(jid) === number) return Number(user.rpg?.pvp?.elo) || 1000; return 1000; }; const ranking = [...stats.entries()].sort((a,b) => b[1].wins-a[1].wins || b[1].net-a[1].net).slice(0,10).map(([number,item],i) => ({ position:i+1, player:publicPlayer(number), wins:item.wins, losses:item.losses, elo:eloFor(number), winRate:Math.round(item.wins / Math.max(1, item.wins + item.losses) * 100), net:item.net })); history.sort((a,b)=>new Date(b.resolvedAt||0)-new Date(a.resolvedAt||0)); return { ranking, history: history.slice(0,10) }; })()
     };
 }
@@ -956,10 +994,13 @@ function publicBotsSnapshot() {
         });
 }
 function broadcastDashboardStats() {
-    if (typeof io !== 'undefined') io.emit('stats', getDashboardStats());
+    if (typeof io !== 'undefined') {
+        io.emit('stats', getDashboardStats());
+        io.emit('public-leaderboard', publicLeaderboardSnapshot());
+    }
     if (typeof adminSockets !== 'undefined') {
         for (const adminSocket of adminSockets) {
-            if (adminSocket.authenticated) adminSocket.emit('admin-bots-data', botsSnapshot());
+            if (adminSocket.authenticated) { adminSocket.emit('admin-bots-data', botsSnapshot()); adminSocket.emit('admin-economy-data', economyDashboardSnapshot()); }
         }
     }
 }
@@ -2357,6 +2398,7 @@ io.on('connection', (socket) => {
             socket.emit('admin-banned-data', bannedSnapshot());
             socket.emit('admin-moderator-data', { permissions: MODERATION_PERMISSIONS, moderators: moderatorSnapshot() });
             socket.emit('admin-bots-data', botsSnapshot());
+            socket.emit('admin-economy-data', economyDashboardSnapshot());
             emitAdminUsers(socket);
         } else {
             socket.adminAttempts = (socket.adminAttempts || 0) + 1;
