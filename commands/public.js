@@ -1,8 +1,8 @@
-async function publicCommand(sock, from, msg, isAdmin, session) {
-    if (!isAdmin) return await sock.sendMessage(from, { text: "❌ Only owner can use this command." }, { quoted: msg });
+async function publicCommand(sock, from, msg, canUsePublic, session) {
+    if (!canUsePublic) return await sock.sendMessage(from, { text: "❌ Solo el propietario o un usuario Premium activo puede usar este comando." }, { quoted: msg });
     
     session.isPublic = true;
-    await sock.sendMessage(from, { text: "🌍 Bot is now in PUBLIC mode. Everyone can use it." }, { quoted: msg });
+    await sock.sendMessage(from, { text: "🌍 El bot ahora está en modo PÚBLICO. Todos pueden usarlo." }, { quoted: msg });
 }
 
 module.exports = publicCommand;

@@ -1453,7 +1453,8 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
                             // Reporte es un canal de soporte público, incluso en modo privado.
-                            if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
+                            const hasPremiumAccess = isPremiumWhatsApp(sender);
+                            if (!this.isPublic && !isAuthorized && !['report', 'reporte', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte']);
                             const registeredProfile = registeredProfileFor(sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
@@ -1701,7 +1702,7 @@ class BotSession {
                                             saveBotData();
                                             break;
                                         case 'public':
-                                            await commands.public(this.sock, from, msg, isAdmin, this);
+                                            await commands.public(this.sock, from, msg, isAdmin || hasPremiumAccess, this);
                                             if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
                                             botData.statusSettings[this.userId].isPublic = true;
                                             saveBotData();
