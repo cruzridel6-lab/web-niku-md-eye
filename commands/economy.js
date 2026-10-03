@@ -22,20 +22,20 @@ const CHARACTER_CLASSES = {
 };
 const CLASS_EQUIPMENT = {
     guerrero: [
-        { id: 'mandoble_dragon', name: '⚔️ Mandoble del Dragón', price: 28000, bonus: 0.10, activities: ['work', 'dungeon'] },
-        { id: 'armadura_coloso', name: '🛡️ Armadura del Coloso', price: 32000, bonus: 0.12, activities: ['work', 'dungeon'] }
+        { id: 'mandoble_dragon', name: '⚔️ Mandoble del Dragón', price: 28000, bonus: 0.10, activities: ['work', 'dungeon', 'raid'] },
+        { id: 'armadura_coloso', name: '🛡️ Armadura del Coloso', price: 32000, bonus: 0.12, activities: ['work', 'dungeon', 'raid'] }
     ],
     mago: [
-        { id: 'grimorio_arcano', name: '📖 Grimorio Arcano', price: 30000, bonus: 0.12, activities: ['work', 'explore'] },
-        { id: 'tunica_astral', name: '🔮 Túnica Astral', price: 35000, bonus: 0.12, activities: ['work', 'dungeon'] }
+        { id: 'grimorio_arcano', name: '📖 Grimorio Arcano', price: 30000, bonus: 0.12, activities: ['work', 'explore', 'raid'] },
+        { id: 'tunica_astral', name: '🔮 Túnica Astral', price: 35000, bonus: 0.12, activities: ['work', 'dungeon', 'raid'] }
     ],
     picaro: [
-        { id: 'dagas_sombra', name: '🗡️ Dagas de la Sombra', price: 29000, bonus: 0.12, activities: ['work', 'crime'] },
-        { id: 'capa_niebla', name: '🥷 Capa de la Niebla', price: 34000, bonus: 0.10, activities: ['crime', 'steal'] }
+        { id: 'dagas_sombra', name: '🗡️ Dagas de la Sombra', price: 29000, bonus: 0.12, activities: ['work', 'crime', 'raid'] },
+        { id: 'capa_niebla', name: '🥷 Capa de la Niebla', price: 34000, bonus: 0.10, activities: ['crime', 'steal', 'raid'] }
     ],
     tirador: [
-        { id: 'arco_fenix', name: '🏹 Arco del Fénix', price: 31000, bonus: 0.12, activities: ['work', 'hunt'] },
-        { id: 'visor_halcon', name: '🦅 Visor del Halcón', price: 36000, bonus: 0.12, activities: ['hunt', 'crime'] }
+        { id: 'arco_fenix', name: '🏹 Arco del Fénix', price: 31000, bonus: 0.12, activities: ['work', 'hunt', 'raid'] },
+        { id: 'visor_halcon', name: '🦅 Visor del Halcón', price: 36000, bonus: 0.12, activities: ['hunt', 'crime', 'raid'] }
     ]
 };
 const DUNGEON_LOOT = [
@@ -45,6 +45,11 @@ const DUNGEON_LOOT = [
     { id: 'corazon_golem', name: '🪨 Corazón de gólem', sellPrice: 10000 },
     { id: 'pergamino_perdido', name: '📜 Pergamino perdido', sellPrice: 12000 }
 ];
+const RAID_BOSSES = {
+    dragon_ancestral: { name: '🐉 Dragón Ancestral', hp: 24000, reward: 60000, xp: 180, description: 'Una bestia milenaria que respira fuego sobre todo el grupo.' },
+    titan_abismal: { name: '🗿 Titán Abismal', hp: 30000, reward: 80000, xp: 220, description: 'Un coloso de piedra que no cae ante un solo aventurero.' },
+    reina_nigromante: { name: '👑 Reina Nigromante', hp: 27000, reward: 72000, xp: 200, description: 'Señora de los muertos y maestra de las maldiciones.' }
+};
 
 const ALIASES = {
     rpg: ['rpg', 'rpgmenu', 'economiarpg', 'economyrpg'],
@@ -80,6 +85,7 @@ const ALIASES = {
     gather: ['gather', 'recolectar', 'recoleccion'],
     patrol: ['patrol', 'patrullar', 'patrulla'],
     dungeon: ['dungeon', 'mazmorra', 'mazmorras'],
+    raid: ['raid', 'raids', 'incursion', 'incursiones'],
     mission: ['mission', 'mision', 'misiones'],
     achievements: ['achievement', 'achievements', 'logro', 'logros'],
     clan: ['clan', 'clanes'],
@@ -95,7 +101,7 @@ const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
     roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nekotop', slut: 'slut', steal: 'rob @usuario',
-    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -121,6 +127,7 @@ function ensureState(botData, chatId, sender) {
     botData.economy[chatId] ||= { users: {} };
     const state = botData.economy[chatId];
     state.users ||= {};
+    state.raids ||= { active: null, history: [] };
     const jid = normalizeJid(sender);
     state.users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
     const user = state.users[jid];
@@ -181,6 +188,17 @@ function equipmentAdvantageText(user, activity) {
     return percent > 0 ? `\n⚔️ Equipamiento activo: *+${percent}% de recompensa*` : '';
 }
 function lootById(id) { return DUNGEON_LOOT.find(item => item.id === id); }
+function raidClassMultiplier(user) {
+    return ({ guerrero: 1.25, mago: 1.15, picaro: 1.20, tirador: 1.20 })[user.rpg?.class] || 1;
+}
+function raidTimeLeft(raid) { return timeLeft(Math.max(0, Number(raid.expiresAt) - Date.now())); }
+function raidParticipantsText(raid) {
+    return Object.values(raid.participants || {}).map(item => `• ${item.name || `Jugador ${numberOf(item.jid)}`}: *${fmt(item.damage)} daño*`).join('\n') || '• Nadie se ha unido todavía.';
+}
+function raidStatusText(raid, prefix) {
+    const boss = RAID_BOSSES[raid.bossId];
+    return `⚔️ *RAID: ${boss.name}*\n\n${boss.description}\n❤️ Jefe: *${fmt(Math.max(0, raid.hp))}/${fmt(raid.maxHp)} HP*\n⏳ Tiempo: *${raidTimeLeft(raid)}*\n👥 Participantes: *${Object.keys(raid.participants || {}).length}/8*\n\n${raidParticipantsText(raid)}\n\nÚnete: *${prefix}raid unirse*\nAtaca: *${prefix}raid atacar*`;
+}
 function addXp(user, amount = 5) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
     const now = Date.now();
@@ -309,7 +327,7 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function menu(prefix = '.') {
-    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de Neko Coins\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🛡️ ${prefix}clase · Elegir personaje\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ ⚔️ ${prefix}raid · Raid cooperativa contra jefes\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 📜 ${prefix}historial · Historial del personaje\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
@@ -430,6 +448,81 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         save();
         const selected = CHARACTER_CLASSES[requested];
         return reply(sock, chatId, msg, `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
+    }
+
+    if (canonical === 'raid') {
+        state.raids ||= { active: null, history: [] };
+        let raid = state.raids.active;
+        if (raid && Number(raid.expiresAt) <= Date.now()) {
+            state.raids.history ||= [];
+            state.raids.history.push({ bossId: raid.bossId, status: 'expired', finishedAt: new Date().toISOString(), participants: Object.keys(raid.participants || {}).length });
+            state.raids.history = state.raids.history.slice(-20);
+            state.raids.active = null;
+            raid = null;
+            save();
+        }
+        const action = String(args[0] || 'estado').toLowerCase();
+        if (action === 'jefes' || action === 'bosses' || action === 'boss') {
+            const bosses = Object.entries(RAID_BOSSES).map(([id, boss]) => `👹 *${boss.name}* — *${id}*\n❤️ ${fmt(boss.hp)} HP · 🎁 ${fmt(boss.reward)} ${COIN}\n${boss.description}`).join('\n\n');
+            return reply(sock, chatId, msg, `👑 *JEFES ÉPICOS DISPONIBLES*\n\n${bosses}\n\nCrea una raid aleatoria con *${prefix}raid crear* o elige jefe con *${prefix}raid crear <id>*. `);
+        }
+        if (action === 'crear' || action === 'create') {
+            if (raid) return reply(sock, chatId, msg, `⚠️ Ya hay una raid activa.\n\n${raidStatusText(raid, prefix)}`);
+            const requestedBoss = String(args[1] || '').toLowerCase();
+            const bossId = RAID_BOSSES[requestedBoss] ? requestedBoss : random(Object.keys(RAID_BOSSES));
+            const boss = RAID_BOSSES[bossId];
+            raid = { bossId, hp: boss.hp, maxHp: boss.hp, reward: boss.reward, createdAt: new Date().toISOString(), expiresAt: Date.now() + 10 * 60 * 1000, participants: { [jid]: { jid, name: numberOf(jid), damage: 0, lastAttack: 0 } } };
+            state.raids.active = raid;
+            save();
+            return reply(sock, chatId, msg, `🚨 *RAID CREADA*\n\n${boss.name} ha despertado.\n❤️ Vida: *${fmt(boss.hp)} HP*\n🎁 Botín total: *${fmt(boss.reward)} ${COIN}*\n⏳ Tenéis *10 minutos* para derrotarlo.\n\nLos demás jugadores pueden unirse con *${prefix}raid unirse*.\n${raidStatusText(raid, prefix)}`);
+        }
+        if (!raid) return reply(sock, chatId, msg, `⚔️ No hay una raid activa. Crea una con *${prefix}raid crear*.`);
+        if (action === 'unirse' || action === 'join') {
+            if (raid.participants[jid]) return reply(sock, chatId, msg, `✅ Ya estás dentro de la raid contra *${RAID_BOSSES[raid.bossId].name}*. Usa *${prefix}raid atacar* para golpear.`);
+            if (Object.keys(raid.participants).length >= 8) return reply(sock, chatId, msg, '❌ La raid ya alcanzó el límite de 8 aventureros.');
+            raid.participants[jid] = { jid, name: numberOf(jid), damage: 0, lastAttack: 0 };
+            save();
+            return reply(sock, chatId, msg, `🤝 *${numberOf(jid)} se unió a la raid*\n\n${raidStatusText(raid, prefix)}`);
+        }
+        if (action === 'estado' || action === 'status' || action === 'ver') return reply(sock, chatId, msg, raidStatusText(raid, prefix));
+        if (action === 'atacar' || action === 'ataque' || action === 'attack') {
+            const participant = raid.participants[jid];
+            if (!participant) return reply(sock, chatId, msg, `❌ Primero únete con *${prefix}raid unirse*.`);
+            const wait = cooldown(participant, 'lastAttack', 25e3);
+            if (wait) return reply(sock, chatId, msg, `⏳ Tu ataque se está recargando. Vuelve en *${timeLeft(wait)}*.`);
+            const level = Math.max(1, Number(user.rpg.level) || 1);
+            const baseDamage = 450 + level * 130 + Math.floor(Math.random() * 251);
+            const damage = Math.max(1, Math.floor(baseDamage * raidClassMultiplier(user) * equipmentRewardMultiplier(user, 'raid')));
+            participant.lastAttack = Date.now();
+            participant.damage = (Number(participant.damage) || 0) + damage;
+            raid.hp = Math.max(0, raid.hp - damage);
+            if (raid.hp > 0) {
+                save();
+                return reply(sock, chatId, msg, `💥 *${numberOf(jid)} atacó a ${RAID_BOSSES[raid.bossId].name}*\n⚔️ Daño causado: *${fmt(damage)}*\n❤️ Vida restante: *${fmt(raid.hp)}/${fmt(raid.maxHp)} HP*\n\n${raidStatusText(raid, prefix)}`);
+            }
+            const boss = RAID_BOSSES[raid.bossId];
+            const members = Object.values(raid.participants);
+            const rewards = [];
+            for (const member of members) {
+                const found = findUser(state, member.jid);
+                if (!found) continue;
+                const memberUser = found.user;
+                const share = Math.max(1, Math.floor((raid.reward / members.length) * equipmentRewardMultiplier(memberUser, 'raid')));
+                memberUser.coins = (Number(memberUser.coins) || 0) + share;
+                memberUser.rpg ||= { xp: 0, level: 1, lastXp: 0 };
+                memberUser.rpg.lastXp = 0;
+                const xp = addXp(memberUser, boss.xp);
+                addStat(memberUser, 'raidsCompleted', 1);
+                rewards.push(`• ${member.name}: *+${fmt(share)} ${COIN}* y *+${fmt(xp.gained || boss.xp)} XP*`);
+            }
+            state.raids.history ||= [];
+            state.raids.history.push({ bossId: raid.bossId, status: 'victory', finishedAt: new Date().toISOString(), participants: members.length, damage: members.reduce((sum, item) => sum + item.damage, 0) });
+            state.raids.history = state.raids.history.slice(-20);
+            state.raids.active = null;
+            save();
+            return reply(sock, chatId, msg, `🏆 *¡${boss.name} HA SIDO DERROTADO!*\n\n⚔️ Daño de tu golpe final: *${fmt(damage)}*\n👥 Recompensas compartidas:\n${rewards.join('\n')}\n\nLa raid terminó. Crea otra con *${prefix}raid crear*.`);
+        }
+        return reply(sock, chatId, msg, `⚔️ Usa *${prefix}raid crear*, *${prefix}raid unirse*, *${prefix}raid atacar* o *${prefix}raid estado*.`);
     }
 
     if (canonical === 'merchant') {
