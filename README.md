@@ -36,6 +36,10 @@ Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automa
 - **Clases y progresión:** cada perfil muestra nivel y XP; el jugador puede elegir una sola clase con `.clase guerrero`, `.clase mago`, `.clase picaro` o `.clase tirador`. Las clases disponibles son Guerrero, Mago, Pícaro y Tirador.
 - **Selección posterior al registro:** después de `.registrarse`, el bot muestra las descripciones y ventajas de Guerrero, Mago, Pícaro y Tirador. El panel de usuarios RPG actualiza en vivo el nombre, la clase, el nivel y la experiencia.
 - **Equipamiento y botín:** el Mercader vende armas y armaduras caras específicas para cada clase. Las mazmorras pueden entregar gemas, runas, colmillos, corazones y pergaminos como drops; consulta `.mercader vender` y véndelos con `.mercader vender <id> todo`. El equipo comprado mejora las recompensas de las actividades indicadas.
+- **Raids cooperativas:** en un grupo, un jugador puede consultar los jefes con `.raid jefes`, crear una raid con `.raid crear`, unirse con `.raid unirse` y atacar con `.raid atacar`. Hay tres jefes épicos, máximo 8 participantes, 10 minutos de duración, daño con bonificaciones de clase/equipo y recompensas compartidas de monedas y XP. Usa `.raid estado` para consultar la vida del jefe.
+- **Logros y títulos de raid:** cada jefe tiene un logro único y un título desbloqueable para todos los participantes de la victoria. Las recompensas no se duplican al repetir el jefe y pueden consultarse con `.logros` y `.titulos`.
+- **Rankings públicos compactos:** la web muestra logros, Niku Coins, PvP e historial en una sola tarjeta con pestañas y scroll interno, evitando que la página se alargue innecesariamente.
+- **Moneda del reino:** la moneda visible del bot y la web se llama **Niku Coins**. El ranking se consulta con `.nikutop`; `.nekotop` continúa disponible como alias anterior.
 
 ## Instalación rápida
 

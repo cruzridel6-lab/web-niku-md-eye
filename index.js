@@ -1467,7 +1467,7 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
                             // Reporte es un canal de soporte público, incluso en modo privado.
-                            if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
+if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
@@ -1487,7 +1487,7 @@ class BotSession {
 ┃ ➜ *.registrarse Carlos*
 ┃
 ┃ 🏆 Tu nombre aparecerá en los rankings
-┃ de logros y Neko Coins.
+┃ de logros y Niku Coins.
 ┃
 ╰━━━〔 🪙 *NIKU MD · RPG* 〕━━━╯` }, { quoted: msg });
                                 return;
@@ -1589,7 +1589,7 @@ class BotSession {
                                             reward.claimedAt = new Date().toISOString();
                                             saveBotData();
                                             const toolsText = Object.keys(rewardTools).length ? `\n🧰 Herramientas: *${Object.keys(rewardTools).map(tool => tool === 'pico' ? '⛏️ Pico' : tool === 'espada' ? '⚔️ Espada' : '🎣 Caña').join(', ')}*` : '';
-                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*\n\n🪙 Recibiste: *${coins.toLocaleString('es-ES')} Neko Coins*${toolsText}\n💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Neko Coins*\n\n✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*\n\n🪙 Recibiste: *${coins.toLocaleString('es-ES')} Niku Coins*${toolsText}\n💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Niku Coins*\n\n✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'book':
@@ -1632,7 +1632,7 @@ class BotSession {
                                                 const isRegistered = Boolean(registeredProfileFor(sender));
                                                 if (!wasRegistered && isRegistered && grantStarterPack(from, sender)) {
                                                     publishStarterPackEvent(sender);
-                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Neko Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
+                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Niku Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
                                                 }
                                             }
                                             break;
@@ -1643,8 +1643,8 @@ class BotSession {
                                         case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
                                         case 'slut': case 'rob': case 'steal': case 'robar': case 'with': case 'withdraw': case 'retirar': case 'wd':
                                         case 'level': case 'nivel': case 'xp': case 'experiencia':
-                                        case 'mine': case 'minar': case 'mineria': case 'fish': case 'pescar': case 'pesca': case 'hunt': case 'cazar': case 'caza': case 'mercader': case 'mercado': case 'reparar': case 'repair': case 'explore': case 'explorar': case 'exploracion': case 'gather': case 'recolectar': case 'recoleccion': case 'patrol': case 'patrullar': case 'patrulla': case 'dungeon': case 'mazmorra': case 'mazmorras': case 'mission': case 'mision': case 'misiones': case 'achievement': case 'achievements': case 'logro': case 'logros':
-                                        case 'clan': case 'clanes': case 'goldtop': case 'orotop': case 'toporo': case 'riqueza': case 'nekotop': case 'topcoins': case 'coinstop':
+                                        case 'mine': case 'minar': case 'mineria': case 'fish': case 'pescar': case 'pesca': case 'hunt': case 'cazar': case 'caza': case 'mercader': case 'mercado': case 'reparar': case 'repair': case 'explore': case 'explorar': case 'exploracion': case 'gather': case 'recolectar': case 'recoleccion': case 'patrol': case 'patrullar': case 'patrulla': case 'dungeon': case 'mazmorra': case 'mazmorras': case 'raid': case 'raids': case 'incursion': case 'incursiones': case 'mission': case 'mision': case 'misiones': case 'achievement': case 'achievements': case 'logro': case 'logros':
+                                        case 'clan': case 'clanes': case 'goldtop': case 'orotop': case 'toporo': case 'riqueza': case 'nekotop': case 'nikutop': case 'topcoins': case 'coinstop':
                                         case 'work': case 'w':
                                         case 'raid': case 'raids': case 'incursion': case 'incursión': case 'jefemundial':
                                         case 'combate': case 'combat': case 'batalla': case 'arena':
@@ -1720,7 +1720,7 @@ class BotSession {
                                             saveBotData();
                                             break;
                                         case 'public':
-                                            await commands.public(this.sock, from, msg, isAdmin, this);
+                                            await commands.public(this.sock, from, msg, isAdmin || hasPremiumAccess, this);
                                             if (!botData.statusSettings[this.userId]) botData.statusSettings[this.userId] = {};
                                             botData.statusSettings[this.userId].isPublic = true;
                                             saveBotData();
@@ -2022,7 +2022,7 @@ class BotSession {
                             `*🎵 CANCIÓN ACTUAL:*\n` +
                             `> Sin canción seleccionada\n\n` +
                             `🎁 *PACK INICIAL PARA PRINCIPIANTES:*\n` +
-                            `🪙 1.000 Neko Coins\n` +
+                            `🪙 1.000 Niku Coins\n` +
                             `⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n` +
                             `🔐 Regístrate con *.registrarse Tu Nombre* para recibirlo.\n\n` +
                             `Escribe *.menu* para explorar todas las funciones.\n\n` +
@@ -2460,7 +2460,7 @@ io.on('connection', (socket) => {
             if (remaining === safeAmount) return adminUserStatus(socket, 'Ese usuario no tiene saldo suficiente.', false);
         }
         saveBotData();
-        return adminUserStatus(socket, `${action === 'add' ? 'Agregados' : 'Quitados'} ${safeAmount.toLocaleString('es-ES')} ${wallet === 'bank' ? 'coins del banco' : 'Neko Coins'} a ${target}.`);
+        return adminUserStatus(socket, `${action === 'add' ? 'Agregados' : 'Quitados'} ${safeAmount.toLocaleString('es-ES')} ${wallet === 'bank' ? 'coins del banco' : 'Niku Coins'} a ${target}.`);
     });
     socket.on('admin-user-achievement', ({ number, achievementId, action = 'add' } = {}) => {
         if (!socket.authenticated) return;
@@ -2519,7 +2519,7 @@ io.on('connection', (socket) => {
             return;
         }
         saveBotData();
-        socket.emit('admin-users-status', { ok: true, message: `Se quitaron ${removed.toLocaleString('es-ES')} Neko Coins a ${target}.` });
+        socket.emit('admin-users-status', { ok: true, message: `Se quitaron ${removed.toLocaleString('es-ES')} Niku Coins a ${target}.` });
         emitAdminUsers(socket);
         io.emit('public-leaderboard', publicLeaderboardSnapshot());
     });
@@ -2569,7 +2569,7 @@ io.on('connection', (socket) => {
         if (!socket.authenticated) return;
         const safeCoins = Math.floor(Number(coins) || 0);
         if (!Number.isSafeInteger(safeCoins) || safeCoins < 1 || safeCoins > 1000000000) {
-            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Neko Coins.' });
+            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Niku Coins.' });
             return;
         }
         const result = createRewardToken(safeCoins, tools);
