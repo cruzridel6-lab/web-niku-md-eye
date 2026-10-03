@@ -1627,11 +1627,13 @@ if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandNa
                                         case 'profilemenu': await commands.economy(this.sock, from, msg, 'rpgmenu', q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'registrarse': case 'registrar': case 'register': case 'registro':
                                             if (['registrarse', 'registrar', 'register', 'registro'].includes(commandName)) {
-                                                const wasRegistered = Boolean(registeredProfileFor(sender));
+                                                const wasRegistered = Boolean(registeredProfileForMessage(msg, sender));
                                                 await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.');
-                                                const isRegistered = Boolean(registeredProfileFor(sender));
-                                                if (!wasRegistered && isRegistered && grantStarterPack(from, sender)) {
-                                                    publishStarterPackEvent(sender);
+                                                const isRegistered = Boolean(registeredProfileForMessage(msg, sender));
+                                                const starterGranted = !wasRegistered && isRegistered ? grantStarterPack(from, sender) : false;
+                                                if (starterGranted) publishStarterPackEvent(sender);
+                                                const wallet = Object.entries(botData.economy?.[from]?.users || {}).find(([key]) => publicNumber(key) === publicNumber(sender))?.[1];
+                                                if (!wasRegistered && isRegistered && !wallet?.rpg?.class) {
                                                     await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Niku Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
                                                 }
                                             }
