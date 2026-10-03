@@ -1477,7 +1477,8 @@ class BotSession {
                             const q = args.join(' ');
                             const commandName = cmd.slice(1).split(' ')[0];
                             // Reporte es un canal de soporte público, incluso en modo privado.
-if (!this.isPublic && !isAuthorized && !['report', 'reporte'].includes(commandName)) return;
+                            // Los comandos de soporte y canje deben funcionar en privado para cualquier usuario.
+                            if (!this.isPublic && !isAuthorized && !['report', 'reporte', 'reclamar'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
