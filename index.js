@@ -414,7 +414,8 @@ function webAuctionWallet(number, itemId) {
 }
 function hashWebCode(value) { return crypto.createHash('sha256').update(String(value || '')).digest('hex'); }
 async function deliverWebLoginCode(number, code) {
-    const target = Object.values(sessions).find(session => session?.isConnected && session.sock?.sendMessage);
+    const connected = Object.values(sessions).filter(session => session?.isConnected && session.sock?.sendMessage);
+    const target = connected.find(session => sessionNumber(session) === number) || connected[0];
     if (!target) return false;
     await target.sock.sendMessage(`${number}@s.whatsapp.net`, { text: `🔐 *Código de acceso web NIKU MD*\n\nTu código de un solo uso es: *${code}*\n\nCaduca en 5 minutos. Si no lo solicitaste, ignora este mensaje.` });
     return true;
@@ -2527,7 +2528,6 @@ io.on('connection', (socket) => {
     socket.on('player-login-request', async ({ phone } = {}) => {
         const number = normalizePhoneNumber(phone);
         if (!number) return socket.emit('player-login-status', { ok: false, message: 'Escribe un número válido con código de país.' });
-        if (!webProfileEntry(number)) return socket.emit('player-login-status', { ok: false, message: 'Ese número aún no tiene un perfil registrado. Usa .registrarse <nombre> en WhatsApp.' });
         if (socket.playerCodeSentAt && Date.now() - socket.playerCodeSentAt < 45_000) return socket.emit('player-login-status', { ok: false, message: 'Espera unos segundos antes de solicitar otro código.' });
         const code = String(Math.floor(100000 + Math.random() * 900000));
         try {
@@ -2549,7 +2549,9 @@ io.on('connection', (socket) => {
         socket.playerAuthenticated = true;
         socket.playerNumber = number;
         delete socket.playerLoginChallenge;
-        socket.emit('player-login-success', webPlayerSnapshot(number));
+        const profile = webPlayerSnapshot(number);
+        if (!profile) return socket.emit('player-login-status', { ok: false, needsRegistration: true, message: 'Código correcto, pero este número todavía no tiene perfil RPG. En WhatsApp usa .registrarse TuNombre y luego vuelve a entrar.' });
+        socket.emit('player-login-success', profile);
     });
     socket.on('player-logout', () => { socket.playerAuthenticated = false; socket.playerNumber = null; socket.emit('player-logout-success'); });
     socket.on('player-profile', () => {
