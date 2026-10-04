@@ -381,6 +381,23 @@ function webProfileEntry(number) {
     const alias = botData.phoneAliases?.[number];
     return Object.entries(botData.profiles || {}).find(([key, value]) => (publicNumber(key) === number || key === alias) && value?.registered && value?.name)?.[1] || null;
 }
+function ensureWebProfileForVerifiedNumber(number) {
+    const alias = botData.phoneAliases?.[number];
+    const match = Object.entries(botData.profiles || {}).find(([key]) => publicNumber(key) === number || key === alias);
+    if (match) {
+        const profile = match[1];
+        profile.name ||= `Jugador ${number.slice(-4)}`;
+        profile.registered = true;
+        profile.description ||= '';
+        profile.genre ||= profile.gender || '';
+        profile.birth ||= '';
+        profile.history = Array.isArray(profile.history) ? profile.history : [];
+        return profile;
+    }
+    const key = `${number}@s.whatsapp.net`;
+    botData.profiles[key] = { name: `Jugador ${number.slice(-4)}`, registered: true, description: '', genre: '', birth: '', partner: null, history: [] };
+    return botData.profiles[key];
+}
 function webWalletsFor(number) {
     const result = [];
     const alias = botData.phoneAliases?.[number];
@@ -2549,9 +2566,9 @@ io.on('connection', (socket) => {
         socket.playerAuthenticated = true;
         socket.playerNumber = number;
         delete socket.playerLoginChallenge;
-        const profile = webPlayerSnapshot(number);
-        if (!profile) return socket.emit('player-login-status', { ok: false, needsRegistration: true, message: 'Código correcto, pero este número todavía no tiene perfil RPG. En WhatsApp usa .registrarse TuNombre y luego vuelve a entrar.' });
-        socket.emit('player-login-success', profile);
+        ensureWebProfileForVerifiedNumber(number);
+        saveBotData();
+        socket.emit('player-login-success', webPlayerSnapshot(number));
     });
     socket.on('player-logout', () => { socket.playerAuthenticated = false; socket.playerNumber = null; socket.emit('player-logout-success'); });
     socket.on('player-profile', () => {
