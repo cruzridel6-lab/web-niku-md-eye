@@ -50,6 +50,7 @@ function ensure(botData, jid, name = 'Usuario') {
     profile.description ||= '';
     profile.genre ||= '';
     profile.birth ||= '';
+    profile.phoneNumber ||= numberOf(key);
     profile.history = Array.isArray(profile.history) ? profile.history : [];
     return profile;
 }

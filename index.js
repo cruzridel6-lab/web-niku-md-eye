@@ -377,26 +377,31 @@ function hashModeratorSecret(value) {
 function normalizeWebLogin(value) {
     return String(value ?? '').trim().replace(/^\+/, '').replace(/[\s()-]/g, '');
 }
+function isSyntheticWebProfile(profile, number) {
+    return profile?.name === `Jugador ${number.slice(-4)}` && !profile.phoneNumber && !profile.description && !profile.genre && !profile.birth && !profile.partner && !profile.history?.length;
+}
 function webProfileEntry(number) {
     const alias = botData.phoneAliases?.[number];
-    return Object.entries(botData.profiles || {}).find(([key, value]) => (publicNumber(key) === number || key === alias) && value?.registered && value?.name)?.[1] || null;
+    return Object.entries(botData.profiles || {}).find(([key, value]) => (publicNumber(key) === number || key === alias || publicNumber(value?.phoneNumber) === number) && value?.registered && value?.name && !isSyntheticWebProfile(value, number))?.[1] || null;
 }
-function ensureWebProfileForVerifiedNumber(number) {
-    const alias = botData.phoneAliases?.[number];
-    const match = Object.entries(botData.profiles || {}).find(([key]) => publicNumber(key) === number || key === alias);
-    if (match) {
-        const profile = match[1];
-        profile.name ||= `Jugador ${number.slice(-4)}`;
-        profile.registered = true;
-        profile.description ||= '';
-        profile.genre ||= profile.gender || '';
-        profile.birth ||= '';
-        profile.history = Array.isArray(profile.history) ? profile.history : [];
-        return profile;
+function linkWebProfileFromSession(number, session) {
+    const candidates = [session?.userId, session?.sock?.user?.id].filter(Boolean).map(value => jidNormalizedUser(value));
+    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => profile?.registered && profile?.name && !isSyntheticWebProfile(profile, number) && (publicNumber(key) === number || publicNumber(profile?.phoneNumber) === number || candidates.includes(jidNormalizedUser(key))));
+    if (match && candidates.includes(jidNormalizedUser(match[0]))) {
+        botData.phoneAliases[number] = match[0];
+        return match[1];
     }
-    const key = `${number}@s.whatsapp.net`;
-    botData.profiles[key] = { name: `Jugador ${number.slice(-4)}`, registered: true, description: '', genre: '', birth: '', partner: null, history: [] };
-    return botData.profiles[key];
+    return match?.[1] || null;
+}
+function removeSyntheticWebProfile(number) {
+    let removed = false;
+    for (const [key, profile] of Object.entries(botData.profiles || {})) {
+        if (isSyntheticWebProfile(profile, number) && (publicNumber(key) === number || publicNumber(profile?.phoneNumber) === number)) {
+            delete botData.profiles[key];
+            removed = true;
+        }
+    }
+    return removed;
 }
 function webWalletsFor(number) {
     const result = [];
@@ -2549,6 +2554,7 @@ io.on('connection', (socket) => {
         const code = String(Math.floor(100000 + Math.random() * 900000));
         try {
             if (!await deliverWebLoginCode(number, code)) return socket.emit('player-login-status', { ok: false, message: 'No hay un bot conectado para enviar el código. Conecta primero tu número.' });
+            socket.webDeliverySession = Object.values(sessions).find(session => session?.isConnected && session.sock?.sendMessage && sessionNumber(session) === number) || Object.values(sessions).find(session => session?.isConnected && session.sock?.sendMessage) || null;
             socket.playerLoginChallenge = { number, hash: hashWebCode(code), expiresAt: Date.now() + 5 * 60_000, attempts: 0 };
             socket.playerCodeSentAt = Date.now();
             socket.emit('player-login-status', { ok: true, message: 'Código enviado a tu WhatsApp. Caduca en 5 minutos.' });
@@ -2566,7 +2572,12 @@ io.on('connection', (socket) => {
         socket.playerAuthenticated = true;
         socket.playerNumber = number;
         delete socket.playerLoginChallenge;
-        ensureWebProfileForVerifiedNumber(number);
+        const profile = webProfileEntry(number) || linkWebProfileFromSession(number, socket.webDeliverySession);
+        if (!profile) {
+            const removedSynthetic = removeSyntheticWebProfile(number);
+            if (removedSynthetic) saveBotData();
+            return socket.emit('player-login-status', { ok: false, needsRegistration: true, message: 'Código correcto, pero no encontré el perfil RPG real de este número. En WhatsApp escribe .registrarse TuNombre. No se creó ningún nombre automáticamente.' });
+        }
         saveBotData();
         socket.emit('player-login-success', webPlayerSnapshot(number));
     });
