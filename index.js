@@ -1535,7 +1535,6 @@ class BotSession {
                                 messageContent,
                                 text,
                                 type,
-                                openai,
                                 enabled: true
                             });
                             if (blockedByAntiPorn) return;
