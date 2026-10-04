@@ -1732,7 +1732,7 @@ class BotSession {
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
-                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['open', 'close', 'horario', 'antiporno', 'kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
+                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
                                         case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'antiporno', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
