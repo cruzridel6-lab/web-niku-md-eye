@@ -58,6 +58,7 @@ const commands = {
     mute: require('./commands/mute'),
     unmute: require('./commands/unmute'),
     warn: require('./commands/warn'),
+    antisales: require('./commands/antisales'),
     kickoffline: require('./commands/kickoffline'),
     hidetag: require('./commands/hidetag'),
     tagall: require('./commands/tagall'),
@@ -811,7 +812,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
+let botData = { antilinkGroups: {}, antiSalesGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -834,6 +835,7 @@ function loadBotDataFromDisk() {
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.phoneAliases || typeof botData.phoneAliases !== 'object' || Array.isArray(botData.phoneAliases)) botData.phoneAliases = {};
     if (!botData.groupWarnings || typeof botData.groupWarnings !== 'object' || Array.isArray(botData.groupWarnings)) botData.groupWarnings = {};
+    if (!botData.antiSalesGroups || typeof botData.antiSalesGroups !== 'object' || Array.isArray(botData.antiSalesGroups)) botData.antiSalesGroups = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
     if (!botData.superTokens || typeof botData.superTokens !== 'object' || Array.isArray(botData.superTokens) || (!Object.keys(botData.superTokens).length && Object.keys(botData.premiumTokens).length)) botData.superTokens = Object.keys(botData.premiumTokens).length ? botData.premiumTokens : {};
@@ -1618,6 +1620,18 @@ class BotSession {
                             if (blockedByAntiPorn) return;
                         }
 
+                        if (isGroup && !isAdmin && !isBotSender && botData.antiSalesGroups?.[from] && commands.antisales.isSalesMessage(text || messageContent)) {
+                            try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (error) { this.sendLog(`Antiventas no pudo borrar el mensaje: ${error.message}`, 'warning'); }
+                            try {
+                                await this.sock.groupParticipantsUpdate(from, [normalizedSender], 'remove');
+                                await this.sock.sendMessage(from, { text: `🚫 *Antiventas activado*\n\nSe detectó un posible mensaje de venta y fue eliminado. El remitente fue expulsado del grupo.` });
+                            } catch (error) {
+                                await this.sock.sendMessage(from, { text: '⚠️ Detecté un posible mensaje de venta y lo eliminé, pero no pude expulsar al remitente. Verifica que el bot sea administrador.' });
+                                this.sendLog(`Antiventas no pudo expulsar a ${sender}: ${error.message}`, 'warning');
+                            }
+                            return;
+                        }
+
                         if (isGroup && !isAdmin && botData.mutedUsers?.[from]?.includes(sender)) {
                             try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (e) {}
                             return;
@@ -1684,7 +1698,7 @@ class BotSession {
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'menu', 'menú', 'public']);
-                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
+                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1817,7 +1831,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1921,6 +1935,7 @@ class BotSession {
                                         case 'advertir': case 'advertencia': case 'warn': case 'warning': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'advertencias': case 'warnings': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['lista', ...args]); break;
                                         case 'quitaradvertencia': case 'quitaradvertencias': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['quitar', ...args]); break;
+                                        case 'antiventas': case 'antisales': await commands.antisales(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'mutelist': case 'listmute': case 'silenciados': case 'muteds': await commands.mutelist(this.sock, from, msg, isAdmin, botData); break;
                                         case 'join': await commands.join(this.sock, from, msg, q); break;
                                         case 'leave': await commands.leave(this.sock, from, msg, isAdmin); break;
