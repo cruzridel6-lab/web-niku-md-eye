@@ -112,7 +112,17 @@ function economyFor(botData, chatId, jid) {
     const users = botData.economy?.[chatId]?.users || {};
     const wanted = numberOf(jid);
     const key = Object.keys(users).find(item => numberOf(item) === wanted);
-    return key ? users[key] : {};
+    if (key) {
+        const current = users[key];
+        if (current?.rpg?.class) return current;
+    }
+    const matches = [];
+    for (const state of Object.values(botData.economy || {})) {
+        const stateUsers = state?.users || {};
+        const stateKey = Object.keys(stateUsers).find(item => numberOf(item) === wanted);
+        if (stateKey) matches.push(stateUsers[stateKey]);
+    }
+    return matches.find(user => user?.rpg?.class) || (key ? users[key] : matches[0] || {});
 }
 function profileMenu(prefix = '.') {
     return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
