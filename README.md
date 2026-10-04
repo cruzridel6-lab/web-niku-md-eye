@@ -22,6 +22,7 @@ Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automa
 ## Funciones principales
 
 - **Administración de grupos:** abrir/cerrar, enlaces, kick, promote, demote, tagall, mute, antilink y modo Solo Admin.
+- **Horarios de grupos:** los administradores pueden usar `.horario abrir 08:00` y `.horario cerrar 22:00`; la configuración queda guardada y se ejecuta cada día incluso después de reiniciar.
 - **Economía y perfiles:** saldo, trabajo, diario, pagos, apuestas, matrimonio, biografía y configuración de perfil.
 - **Stickers:** imágenes, videos y stickers con texto: `.sticker Hola NIKU MD`.
 - **Descargas y herramientas:** YouTube, TikTok, Instagram, APK, búsqueda, traducción, portscan y utilidades.
@@ -68,12 +69,14 @@ PORT=3000
 # Reportes: opcionalmente fija el JID interno del canal y la zona horaria mostrada
 REPORT_CHANNEL_JID=120363xxxxxxxxxx@newsletter
 REPORT_TIMEZONE=America/New_York
+# Zona predeterminada de los horarios diarios de grupos
+GROUP_SCHEDULE_TIMEZONE=America/New_York
 # En Railway: ruta donde estará montado el volumen persistente
 PERSISTENT_DATA_DIR=/data/bot
 GITHUB_BACKUP_TOKEN=token_privado_con_contents_write
 GITHUB_BACKUP_REPO=cruzridel6-lab/web-niku-md-eye
 GITHUB_BACKUP_BRANCH=main
-GITHUB_BACKUP_PATH=bot/state.enc
+GITHUB_BACKUP_PATH=data/persistent-state.enc
 BACKUP_ENCRYPTION_KEY=clave_larga_y_unica
 ```
 
@@ -105,9 +108,21 @@ El bot aplica límites diarios moderados para proteger la economía sin impedir 
 
 Los intentos bloqueados se guardan en `economyAbuseAlerts` dentro de `bot_data.json`, junto con el contador `economyStats.abuseBlocked`, para que administración pueda revisarlos sin exponerlos al chat público.
 
-Si configuras las variables de GitHub anteriores, el bot restaura al arrancar y actualiza cada 30 segundos un archivo `bot/state.enc` cifrado con AES-256-GCM. El respaldo contiene la economía, perfiles, tokens, Premium y sesiones, pero GitHub solo recibe el texto cifrado. El token de GitHub y la clave de cifrado deben existir únicamente en Railway Variables.
+Para automatizar un grupo, usa en ese grupo (siendo administrador):
 
-> Importante: nunca subas `bot/` en texto plano ni guardes la clave de cifrado dentro del repositorio. El archivo seguro es únicamente `bot/state.enc`, generado por el bot mediante la API de GitHub.
+```text
+.horario abrir 08:00
+.horario cerrar 22:00
+.horario zona America/New_York
+.horario ver
+.horario off
+```
+
+Las horas usan formato de 24 horas. El horario es diario, se guarda dentro de `bot_data.json` y se restaura junto con el respaldo de GitHub. Cada grupo puede tener su propia zona horaria; si no se indica, se usa `GROUP_SCHEDULE_TIMEZONE` o `America/New_York`.
+
+Si configuras las variables de GitHub anteriores, el bot restaura al arrancar y actualiza cada 30 segundos `data/persistent-state.enc` mediante la API de GitHub. El respaldo está cifrado con AES-256-GCM e incluye perfiles registrados, monedas y economía, logros, Premium y tokens, configuraciones, reportes, vinculaciones/sesiones de WhatsApp y archivos persistentes de `uploads/`. GitHub solo recibe el texto cifrado; no se guardan esos datos en texto plano dentro del repositorio. El token de GitHub y la clave de cifrado deben existir únicamente en Railway Variables.
+
+> Importante: `data/` es la carpeta reservada para el respaldo. Nunca subas `bot_data.json`, `auth_info/`, `uploads/` ni la clave de cifrado en texto plano. El archivo seguro es `data/persistent-state.enc`, generado por el bot mediante la API de GitHub.
 
 ## Actualizaciones recientes
 

@@ -1,0 +1,2 @@
+# El respaldo real se crea aquí mediante la API de GitHub como data/persistent-state.enc.
+# Nunca guardes bot_data.json, auth_info/ ni la clave de cifrado en texto plano.

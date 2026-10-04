@@ -67,6 +67,7 @@ const commands = {
     setdesc: require('./commands/setdesc'),
     open: require('./commands/open'),
     close: require('./commands/close'),
+    groupschedule: require('./commands/groupschedule'),
     onlyadmin: require('./commands/onlyadmin'),
     alertas: require('./commands/alertas'),
     welcome: require('./commands/welcome'),
@@ -742,7 +743,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -773,6 +774,7 @@ function loadBotDataFromDisk() {
     if (!botData.clanWars || typeof botData.clanWars !== 'object' || Array.isArray(botData.clanWars)) botData.clanWars = {};
     if (!botData.subbots || typeof botData.subbots !== 'object' || Array.isArray(botData.subbots)) botData.subbots = {};
     if (!botData.adminOnlyGroups || typeof botData.adminOnlyGroups !== 'object') botData.adminOnlyGroups = {};
+    if (!botData.groupSchedules || typeof botData.groupSchedules !== 'object' || Array.isArray(botData.groupSchedules)) botData.groupSchedules = {};
     for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
         if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
     }
@@ -793,6 +795,44 @@ const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
 const publicRewardEvents = [];
+function groupLocalClock(timeZone, now = new Date()) {
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
+        const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+        return { date: `${values.year}-${values.month}-${values.day}`, time: `${values.hour}:${values.minute}` };
+    } catch (_) {
+        return null;
+    }
+}
+async function runGroupSchedules() {
+    const schedules = botData.groupSchedules || {};
+    let changed = false;
+    for (const [chatId, schedule] of Object.entries(schedules)) {
+        if (!schedule || schedule.enabled === false || !chatId.endsWith('@g.us')) continue;
+        const clock = groupLocalClock(schedule.timeZone || process.env.GROUP_SCHEDULE_TIMEZONE || 'America/New_York');
+        if (!clock) continue;
+        const session = schedule.sessionId
+            ? sessions[schedule.sessionId]
+            : Object.values(sessions).find(item => item.isConnected && item.sock);
+        if (!session?.sock || !session.isConnected) continue;
+        let action = null;
+        if (schedule.closeAt === clock.time && schedule.lastCloseKey !== `${clock.date}:${clock.time}`) action = 'close';
+        if (schedule.openAt === clock.time && schedule.lastOpenKey !== `${clock.date}:${clock.time}`) action = 'open';
+        if (!action) continue;
+        try {
+            await session.sock.groupSettingUpdate(chatId, action === 'close' ? 'announcement' : 'not_announcement');
+            await session.sock.sendMessage(chatId, { text: action === 'close' ? '🔒 Horario automático: el grupo está cerrado.' : '🔓 Horario automático: el grupo está abierto.' });
+            if (action === 'close') schedule.lastCloseKey = `${clock.date}:${clock.time}`;
+            else schedule.lastOpenKey = `${clock.date}:${clock.time}`;
+            changed = true;
+        } catch (error) {
+            console.error(`[Horario] No se pudo ${action === 'close' ? 'cerrar' : 'abrir'} ${chatId}:`, error.message);
+        }
+    }
+    if (changed) saveBotData();
+}
+const groupScheduleInterval = setInterval(() => { runGroupSchedules().catch(error => console.error('[Horario] Error del programador:', error.message)); }, 30000);
+groupScheduleInterval.unref?.();
 function adminReportsSnapshot() { return (botData.adminReports || []).slice(0, 200).map(report => ({ id: report.id, target: publicNumber(report.target) || report.target, reporter: publicNumber(report.reporter) || report.reporter, chatId: report.chatId, message: String(report.message || '').slice(0, 1000), status: report.status || 'new', createdAt: report.createdAt, handledAt: report.handledAt || null })); }
 function emitAdminReports(socket) { if (socket?.authenticated) socket.emit('admin-reports-data', adminReportsSnapshot()); }
 function receiveAdminReport(data = {}) { const report = { id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: String(data.target || '').slice(0, 80), reporter: String(data.reporter || '').slice(0, 80), chatId: String(data.chatId || '').slice(0, 80), message: String(data.message || '').slice(0, 1000), status: 'new', createdAt: data.createdAt || new Date().toISOString() }; botData.adminReports.unshift(report); if (botData.adminReports.length > 200) botData.adminReports.length = 200; saveBotData(); for (const adminSocket of adminSockets) emitAdminReports(adminSocket); return report; }
@@ -1677,7 +1717,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 GROUP MENU', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'grouplink', 'revoke', 'add', 'kick', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1695,6 +1735,7 @@ class BotSession {
                                             await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
                                         case 'close': case 'cerrar': await commands.close(this.sock, from, msg, isAdmin, q); break;
+                                        case 'horario': case 'schedule': case 'groupschedule': await commands.groupschedule(this.sock, from, msg, isAdmin, botData, saveBotData, args, this.userId); break;
                                         case 'onlyadmin': case 'adminonly': await commands.onlyadmin(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'alertas': case 'alerts': case 'avisos': await commands.alertas(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'welcome': case 'bienvenida': await commands.welcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;

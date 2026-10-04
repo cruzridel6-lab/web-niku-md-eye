@@ -6,6 +6,7 @@ bot/
 data/*
 !data/.gitkeep
 !data/README.md
+!data/.gitkeep
 auth_info/
 tmp/
 temp/
