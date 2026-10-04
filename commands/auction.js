@@ -98,24 +98,6 @@ function auctionHelp(prefix) {
     `📦 Objetos de mazmorra: ${Object.entries(LOOT).map(([id, item]) => `*${id}* (${fmt(item.sellPrice)} ${COIN})`).join(', ')}\n` +
     `💸 Comisión de venta: *${Math.round(COMMISSION_RATE * 100)}%*`;
 }
-function createWebAuction(botData, seller, sellerChatId, wallet, itemId, price, durationMinutes = 60) {
-  botData.auctions ||= {};
-  const normalizedItemId = String(itemId || '').toLowerCase();
-  const item = LOOT[normalizedItemId];
-  const safePrice = Math.floor(Number(price));
-  const duration = Math.min(MAX_DURATION_MINUTES, Math.max(5, Math.floor(Number(durationMinutes) || 60)));
-  if (!item) return { ok: false, message: 'Objeto de mazmorra no válido.' };
-  if (!wallet || (Number(wallet.loot?.[normalizedItemId]) || 0) < 1) return { ok: false, message: `No tienes ${item.name} disponible.` };
-  if (!Number.isFinite(safePrice) || safePrice < MIN_PRICE) return { ok: false, message: `El precio inicial mínimo es ${fmt(MIN_PRICE)} ${COIN}.` };
-  const activeMine = activeAuctions(botData).filter(row => row.seller === seller).length;
-  if (activeMine >= 5) return { ok: false, message: 'Solo puedes tener 5 subastas activas al mismo tiempo.' };
-  const now = Date.now();
-  wallet.loot[normalizedItemId] -= 1;
-  if (wallet.loot[normalizedItemId] <= 0) delete wallet.loot[normalizedItemId];
-  const auction = { id: `auc-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, seller, sellerChatId, itemId: normalizedItemId, itemName: item.name, quantity: 1, startingPrice: safePrice, currentBid: 0, bids: [], status: 'active', createdAt: new Date(now).toISOString(), expiresAt: now + duration * 60000 };
-  botData.auctions[auction.id] = auction;
-  return { ok: true, auction };
-}
 function formatListings(items, prefix) {
   if (!items.length) return `🏛️ No hay subastas activas. Publica un drop con *${prefix}subastar gema_lunar 5000*.`;
   return `🏛️ *SUBASTAS ACTIVAS*\n\n${items.slice(0, 15).map((item, i) => `${i + 1}. *${item.id}* · ${item.itemName} x${item.quantity}\n   💰 ${fmt(item.currentBid || item.startingPrice)} ${COIN} · 🔨 ${item.bids?.length || 0} pujas\n   ⏳ ${Math.max(1, Math.ceil((Number(item.expiresAt) - Date.now()) / 60000))} min · Vendedor: Jugador ${numberOf(item.seller).slice(-4)}`).join('\n\n')}`;
@@ -186,4 +168,4 @@ async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, p
   return reply(sock, chatId, msg, auctionHelp(prefix));
 }
 
-module.exports = { runAuction, snapshot, settleExpiredAuctions, createWebAuction, LOOT, COMMISSION_RATE, MIN_PRICE, MAX_DURATION_MINUTES };
+module.exports = { runAuction, snapshot, settleExpiredAuctions, LOOT, COMMISSION_RATE, MIN_PRICE, MAX_DURATION_MINUTES };

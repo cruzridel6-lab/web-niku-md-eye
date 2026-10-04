@@ -539,9 +539,6 @@
   @media(max-width:768px){nav{padding:0 14px;}.nav-links{top:58px;padding:9px;}.nav-links a{padding:10px;width:100%;}.hero-banner{width:calc(100% - 22px);margin-top:68px;max-height:150px;}.hero-banner img{height:150px;}.banner-nav{width:calc(100% - 22px);}.banner-nav a{padding:7px 9px;}header{padding-top:48px;}.quick-strip,.steps-grid{grid-template-columns:1fr;}.feature-grid,.link-grid{grid-template-columns:1fr 1fr;}}
   @media(max-width:460px){.brand .tag{display:none;}.brand .name{font-size:.78rem;}.nav-links a{font-size:.68rem;}.hero-banner{max-height:120px;}.hero-banner img{height:120px;}header h1{font-size:1.85rem;}.feature-grid,.link-grid{grid-template-columns:1fr;}.stats-row{flex-direction:row;}.stat-card{min-width:0;flex:1;padding:9px 10px;}.stat-label{font-size:.55rem;}}
 
-  /* ---------- Player web account ---------- */
-  .player-account-panel{border-color:rgba(244,200,102,.28);background:linear-gradient(145deg,rgba(31,14,22,.9),rgba(7,10,18,.92))}.player-account-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.player-card{padding:16px;border:1px solid rgba(244,200,102,.18);border-radius:14px;background:rgba(255,255,255,.025)}.player-card h3{font-size:.86rem;color:#ffe4a1;margin-bottom:5px}.player-card p,.player-status,.player-card label{font-size:.68rem;color:var(--muted)}.player-form{display:grid;gap:8px;margin-top:10px}.player-form input,.player-form select{width:100%;border:1px solid var(--border);border-radius:9px;background:#0b0a16;color:var(--text);font:inherit;font-size:.72rem;padding:10px}.player-form .btn{width:100%;font-size:.68rem;padding:10px}.player-profile{display:none}.player-profile.show{display:block}.player-profile-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.player-profile-name{font-size:1.1rem;color:#ffe4a1}.player-badge{display:inline-flex;padding:4px 8px;border-radius:99px;background:rgba(244,200,102,.12);color:#ffe4a1;font-size:.62rem}.player-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}.player-stat{padding:9px;border-radius:9px;background:rgba(0,0,0,.2);text-align:center}.player-stat strong{display:block;color:var(--text);font-size:.82rem}.player-stat span{color:var(--muted);font-size:.58rem}.player-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.player-chip{padding:5px 7px;border:1px solid rgba(244,200,102,.18);border-radius:7px;color:var(--muted);font-size:.61rem}.player-logout{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:.65rem}.player-search-result{margin-top:10px}.player-auction-form{display:none;margin-top:12px}.player-auction-form.show{display:block}.player-auction-list{display:grid;gap:7px;margin-top:10px;max-height:230px;overflow:auto}.player-auction-list .auction-row{font-size:.68rem}.player-authenticated-only{display:none}.player-authenticated-only.show{display:block}@media(max-width:620px){.player-account-grid{grid-template-columns:1fr}.player-stats{grid-template-columns:repeat(3,1fr)}}
-
 </style>
 </head>
 <body>
@@ -569,7 +566,7 @@
 </div>
 <div id="adminUserModal" class="modal">
   <div class="modal-content rpg-admin-modal">
-    <div class="rpg-modal-head"><div><h3 id="adminUserModalTitle">Gestionar aventurero</h3><p id="adminUserModalSubtitle">Panel de personaje</p></div><div class="admin-user-actions"><button class="manage-user" id="adminUserDeleteButton" type="button">Eliminar perfil</button><button class="modal-close" id="adminUserModalClose" type="button">&times;</button></div></div>
+    <div class="rpg-modal-head"><div><h3 id="adminUserModalTitle">Gestionar aventurero</h3><p id="adminUserModalSubtitle">Panel de personaje</p></div><div class="admin-user-actions"><button class="modal-close" id="adminUserModalClose" type="button">&times;</button></div></div>
     <div class="rpg-modal-body">
       <div id="adminUserModalStats" class="quick-strip"></div><div class="rpg-divider"></div>
       <div class="rpg-admin-grid">
@@ -589,7 +586,7 @@
       <div class="tag">automatización de WhatsApp</div>
     </div>
   </div>
-  <div class="nav-links" id="navLinks"><a href="#features"><i class="fas fa-scroll"></i> Aventuras</a><a href="#cuenta"><i class="fas fa-user-shield"></i> Mi cuenta</a><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a><a href="/moderacion"><i class="fas fa-hashtag"></i> Moderación</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
+  <div class="nav-links" id="navLinks"><a href="#features"><i class="fas fa-scroll"></i> Aventuras</a><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a><a href="/moderacion"><i class="fas fa-hashtag"></i> Moderación</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
   <button class="nav-toggle" id="navToggle" type="button" aria-label="Abrir navegación"><i class="fas fa-bars"></i></button>
 </nav>
 <div class="hero-banner" role="img" aria-label="Banner oficial de NIKU MD">
@@ -597,7 +594,7 @@
 </div>
 <div class="banner-nav" aria-label="Navegación principal">
   <a href="#features"><i class="fas fa-star"></i> Funciones</a>
-  <a href="#cuenta"><i class="fas fa-user-shield"></i> Mi cuenta</a>
+
   <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
   <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
@@ -659,21 +656,6 @@
       <article class="step-card"><div class="step-number">01</div><h3>Conecta</h3><p>Introduce tu número y vincula el dispositivo desde WhatsApp.</p></article>
       <article class="step-card"><div class="step-number">02</div><h3>Configura</h3><p>Explora las funciones y adapta el bot a tu forma de trabajar.</p></article>
       <article class="step-card"><div class="step-number">03</div><h3>Automatiza</h3><p>Deja que los comandos respondan y gestionen tus tareas diarias.</p></article>
-    </div>
-  </section>
-
-  <section id="cuenta" class="panel player-account-panel" data-label="./cuenta">
-    <h2><i class="fas fa-user-shield"></i> Cuenta del jugador</h2>
-    <p>Inicia sesión con un código enviado a tu WhatsApp para consultar tus datos RPG y publicar botín.</p>
-    <div id="playerLoginView" class="player-account-grid">
-      <div class="player-card"><h3><i class="fas fa-key"></i> Acceso seguro</h3><p>Solo pueden entrar jugadores que ya usaron <strong>.registrarse</strong> en WhatsApp.</p><form id="playerRequestCodeForm" class="player-form"><input id="playerLoginPhone" type="tel" placeholder="Número con código de país" autocomplete="tel" required><button class="btn" type="submit"><i class="fas fa-paper-plane"></i> Enviar código</button></form><form id="playerVerifyCodeForm" class="player-form" hidden><input id="playerLoginCode" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" autocomplete="one-time-code" required><button class="btn" type="submit"><i class="fas fa-unlock"></i> Entrar a mi cuenta</button></form><div id="playerLoginStatus" class="player-status" aria-live="polite"></div></div>
-      <div class="player-card"><h3><i class="fas fa-eye"></i> Perfiles públicos</h3><p>Busca a un jugador registrado sin mostrar su número completo.</p><form id="playerPublicSearchForm" class="player-form"><input id="playerPublicSearch" type="tel" placeholder="Número del jugador" required><button class="btn btn-outline" type="submit"><i class="fas fa-search"></i> Buscar perfil</button></form><div id="playerSearchResult" class="player-search-result player-status">Inicia sesión para buscar perfiles.</div></div>
-    </div>
-    <div id="playerProfileView" class="player-profile">
-      <div class="player-profile-head"><div><div id="playerProfileName" class="player-profile-name"></div><span id="playerProfileClass" class="player-badge"></span></div><button id="playerLogout" class="player-logout" type="button"><i class="fas fa-right-from-bracket"></i> Cerrar sesión</button></div>
-      <div id="playerStats" class="player-stats"></div><div id="playerInventory" class="player-list"></div>
-      <div class="player-card" style="margin-top:14px"><h3><i class="fas fa-eye"></i> Buscar otro jugador</h3><form id="playerPublicSearchAuthForm" class="player-form"><input id="playerPublicSearchAuth" type="tel" placeholder="Número registrado del jugador" required><button class="btn btn-outline" type="submit"><i class="fas fa-search"></i> Ver perfil público</button></form><div id="playerSearchAuthResult" class="player-search-result player-status"></div></div>
-      <div class="player-account-grid" style="margin-top:14px"><div class="player-card"><h3><i class="fas fa-gavel"></i> Publicar subasta</h3><p>El objeto se reserva de tu inventario al publicar.</p><form id="playerAuctionForm" class="player-form player-auction-form show"><select id="playerAuctionItem" required><option value="">Selecciona un objeto</option><option value="gema_lunar">💎 Gema lunar</option><option value="colmillo_dragon">🦷 Colmillo de dragón</option><option value="runa_antigua">🔯 Runa antigua</option><option value="corazon_golem">🪨 Corazón de gólem</option><option value="pergamino_perdido">📜 Pergamino perdido</option></select><input id="playerAuctionPrice" type="number" min="50" step="1" placeholder="Precio inicial en Niku Coins" required><input id="playerAuctionDuration" type="number" min="5" max="1440" value="60" placeholder="Duración en minutos" required><button class="btn" type="submit"><i class="fas fa-gavel"></i> Publicar</button></form><div id="playerAuctionStatus" class="player-status" aria-live="polite"></div></div><div class="player-card"><h3><i class="fas fa-store"></i> Subastas activas</h3><p>Publicaciones visibles para toda la comunidad.</p><div id="playerAuctionList" class="player-auction-list"></div></div></div>
     </div>
   </section>
 
@@ -954,30 +936,6 @@ const publicPvpHistory = document.getElementById('publicPvpHistory');
 const publicRewardEvents = document.getElementById('publicRewardEvents');
 const publicInvestmentsList = document.getElementById('publicInvestmentsList');
 const publicAuctionsList = document.getElementById('publicAuctionsList');
-const playerLoginView = document.getElementById('playerLoginView');
-const playerProfileView = document.getElementById('playerProfileView');
-const playerRequestCodeForm = document.getElementById('playerRequestCodeForm');
-const playerVerifyCodeForm = document.getElementById('playerVerifyCodeForm');
-const playerLoginPhone = document.getElementById('playerLoginPhone');
-const playerLoginCode = document.getElementById('playerLoginCode');
-const playerLoginStatus = document.getElementById('playerLoginStatus');
-const playerProfileName = document.getElementById('playerProfileName');
-const playerProfileClass = document.getElementById('playerProfileClass');
-const playerStats = document.getElementById('playerStats');
-const playerInventory = document.getElementById('playerInventory');
-const playerLogout = document.getElementById('playerLogout');
-const playerPublicSearchForm = document.getElementById('playerPublicSearchForm');
-const playerPublicSearch = document.getElementById('playerPublicSearch');
-const playerSearchResult = document.getElementById('playerSearchResult');
-const playerPublicSearchAuthForm = document.getElementById('playerPublicSearchAuthForm');
-const playerPublicSearchAuth = document.getElementById('playerPublicSearchAuth');
-const playerSearchAuthResult = document.getElementById('playerSearchAuthResult');
-const playerAuctionForm = document.getElementById('playerAuctionForm');
-const playerAuctionItem = document.getElementById('playerAuctionItem');
-const playerAuctionPrice = document.getElementById('playerAuctionPrice');
-const playerAuctionDuration = document.getElementById('playerAuctionDuration');
-const playerAuctionStatus = document.getElementById('playerAuctionStatus');
-const playerAuctionList = document.getElementById('playerAuctionList');
 const adminEconomyMetrics = document.getElementById('adminEconomyMetrics');
 const adminEconomyChart = document.getElementById('adminEconomyChart');
 const adminInvestmentList = document.getElementById('adminInvestmentList');
@@ -993,7 +951,6 @@ const adminReportsList = document.getElementById('adminReportsList');
   const adminUserModalClose = document.getElementById('adminUserModalClose');
   const adminUserModalTitle = document.getElementById('adminUserModalTitle');
   const adminUserModalSubtitle = document.getElementById('adminUserModalSubtitle');
-  const adminUserDeleteButton = document.getElementById('adminUserDeleteButton');
   const adminUserModalStats = document.getElementById('adminUserModalStats');
   const adminProfileForm = document.getElementById('adminProfileForm');
   const adminProfileName = document.getElementById('adminProfileName');
@@ -1028,28 +985,6 @@ function updateAdminRoute(){
     adminStatus.textContent='';
   }
 }
-function renderPlayerProfile(profile){
-  if(!profile) return;
-  playerLoginView?.style.setProperty('display','none'); playerProfileView?.classList.add('show');
-  if(playerProfileName) playerProfileName.textContent=profile.name||'Jugador';
-  if(playerProfileClass) playerProfileClass.textContent=`Nivel ${Number(profile.level||1)} · ${profile.classKey||'Sin clase'}`;
-  if(playerStats) playerStats.innerHTML=`<div class="player-stat"><strong>${Number(profile.level||1)}</strong><span>Nivel</span></div><div class="player-stat"><strong>🪙 ${Number(profile.total||0).toLocaleString('es-ES')}</strong><span>Niku Coins</span></div><div class="player-stat"><strong>${Number(profile.xp||0).toLocaleString('es-ES')}</strong><span>Experiencia</span></div>`;
-  const loot=Object.entries(profile.loot||{}).filter(([,amount])=>Number(amount)>0).map(([id,amount])=>`<span class="player-chip">📦 ${escapeAdminHtml(id)} ×${amount}</span>`);
-  const tools=Object.entries(profile.tools||{}).map(([id,tool])=>`<span class="player-chip">🛠️ ${escapeAdminHtml(id)} ${Number(tool.durability||0)}/${Number(tool.maxDurability||0)}</span>`);
-  const achievements=(profile.achievements||[]).map(item=>`<span class="player-chip">🏆 ${escapeAdminHtml(item.id)}</span>`);
-  if(playerInventory) playerInventory.innerHTML=loot.concat(tools,achievements).join('')||'<span class="player-status">Tu inventario aún está vacío.</span>';
-  socket.emit('player-auctions');
-}
-function renderPlayerAuctions(items=[]){
-  if(!playerAuctionList) return;
-  playerAuctionList.innerHTML=items.length?items.map(item=>`<div class="auction-row"><div><strong>${escapeAdminHtml(item.itemName||'Objeto')}</strong><small>${escapeAdminHtml(item.seller||'Jugador')} · ${Number(item.bidCount||0)} pujas</small></div><div class="auction-price">🪙 ${formatCoins(item.currentBid||item.startingPrice)}</div></div>`).join(''):'<div class="player-status">No hay subastas activas.</div>';
-}
-playerRequestCodeForm?.addEventListener('submit',event=>{event.preventDefault(); playerLoginStatus.textContent='Enviando código...'; socket.emit('player-login-request',{phone:playerLoginPhone.value});});
-playerVerifyCodeForm?.addEventListener('submit',event=>{event.preventDefault(); playerLoginStatus.textContent='Verificando...'; socket.emit('player-login-verify',{phone:playerLoginPhone.value,code:playerLoginCode.value});});
-playerLogout?.addEventListener('click',()=>socket.emit('player-logout'));
-playerPublicSearchForm?.addEventListener('submit',event=>{event.preventDefault(); playerSearchResult.textContent='Buscando...'; socket.emit('player-public-profile',{number:playerPublicSearch.value});});
-playerPublicSearchAuthForm?.addEventListener('submit',event=>{event.preventDefault(); playerSearchAuthResult.textContent='Buscando...'; socket.emit('player-public-profile',{number:playerPublicSearchAuth.value});});
-playerAuctionForm?.addEventListener('submit',event=>{event.preventDefault(); playerAuctionStatus.textContent='Publicando...'; socket.emit('player-auction-create',{itemId:playerAuctionItem.value,price:Number(playerAuctionPrice.value),duration:Number(playerAuctionDuration.value)});});
 updateAdminRoute();
 window.addEventListener('hashchange', updateAdminRoute);
 let lastPublicInvestmentCount = null;
@@ -1128,7 +1063,7 @@ function renderAdminUsers(data={}){
   adminUsersState=data || {users:[],achievements:[],items:{}};
   const users=adminUsersState.users || [];
   if(!users.length){ adminUsersList.innerHTML='<div class="console-empty">No hay usuarios registrados.</div>'; return; }
-  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">${escapeAdminHtml(user.classLabel||'🧭 Sin clase')} · 🛡️ Nivel ${Number(user.level||1)} · ✨ ${Number(user.xp||0).toLocaleString('es-ES')} XP<br>🪙 ${Number(user.total||0).toLocaleString('es-ES')} total · 🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button><button type="button" data-delete-user="${escapeAdminHtml(user.number)}">Eliminar</button></div></div>`).join('');
+  adminUsersList.innerHTML=users.map(user=>`<div class="admin-user-row"><div><div class="admin-user-name">${escapeAdminHtml(user.name)}</div><div class="admin-user-number">+${escapeAdminHtml(user.number)}</div></div><div class="admin-user-meta">${escapeAdminHtml(user.classLabel||'🧭 Sin clase')} · 🛡️ Nivel ${Number(user.level||1)} · ✨ ${Number(user.xp||0).toLocaleString('es-ES')} XP<br>🪙 ${Number(user.total||0).toLocaleString('es-ES')} total · 🏆 ${(user.achievements||[]).length} logros · 🎒 ${(user.items||[]).length} objetos</div><div class="admin-user-actions"><button class="manage-user" type="button" data-manage-user="${escapeAdminHtml(user.number)}">Gestionar</button></div></div>`).join('');
   if(selectedAdminUser && adminUserModal?.classList.contains('active')) openAdminUser(selectedAdminUser.number);
 }
 function openAdminUser(number){
@@ -1191,13 +1126,6 @@ adminLogout?.addEventListener('click',()=>{
 socket.on('public-leaderboard',renderPublicLeaderboard);
 socket.on('public-reward-event',renderPublicRewardEvent);
 socket.on('public-auctions',renderPublicAuctions);
-socket.on('player-login-status',(data={})=>{if(playerLoginStatus){playerLoginStatus.textContent=data.message||'';playerLoginStatus.style.color=data.ok?'var(--green)':'var(--danger)';if(data.ok&&playerVerifyCodeForm)playerVerifyCodeForm.hidden=false;}});
-socket.on('player-login-success',(profile)=>{if(playerVerifyCodeForm)playerVerifyCodeForm.hidden=true;if(playerLoginStatus)playerLoginStatus.textContent='Sesión iniciada correctamente.';renderPlayerProfile(profile);});
-socket.on('player-logout-success',()=>{playerProfileView?.classList.remove('show');if(playerLoginView)playerLoginView.style.display='grid';if(playerLoginCode)playerLoginCode.value='';if(playerLoginStatus)playerLoginStatus.textContent='Sesión cerrada.';});
-socket.on('player-profile-data',renderPlayerProfile);
-socket.on('player-public-profile-data',(data={})=>{const html=data.ok?`<strong>${escapeAdminHtml(data.profile.name)}</strong><br>Nivel ${Number(data.profile.level||1)} · ${escapeAdminHtml(data.profile.classKey||'Sin clase')}<br>🏆 ${Number(data.profile.achievements?.length||0)} logros · 🪙 ${Number(data.profile.total||0).toLocaleString('es-ES')} monedas`:`${escapeAdminHtml(data.message||'No se encontró el jugador.')}`;if(playerSearchResult)playerSearchResult.innerHTML=html;if(playerSearchAuthResult)playerSearchAuthResult.innerHTML=html;});
-socket.on('player-auctions-data',renderPlayerAuctions);
-socket.on('player-auction-status',(data={})=>{if(playerAuctionStatus){playerAuctionStatus.textContent=data.message||'';playerAuctionStatus.style.color=data.ok?'var(--green)':'var(--danger)';}if(data.ok){playerAuctionPrice.value='';socket.emit('player-profile');}});
 socket.on('admin-economy-data',renderAdminEconomy);
 socket.on('admin-bots-data',renderAdminBots);
 socket.on('admin-users-data',renderAdminUsers);
@@ -1222,16 +1150,10 @@ adminBotsList?.addEventListener('click',(event)=>{
 });
 adminUsersList?.addEventListener('click',(event)=>{
   const manageButton=event.target.closest('[data-manage-user]');
-  const deleteButton=event.target.closest('[data-delete-user]');
   if(manageButton) openAdminUser(manageButton.dataset.manageUser);
-  if(deleteButton){
-    const number=deleteButton.dataset.deleteUser;
-    if(confirm(`¿Eliminar definitivamente el usuario ${number} de perfiles, coins y logros?`)) socket.emit('admin-user-delete',{number});
-  }
 });
 adminReportsList?.addEventListener('click',(event)=>{ const statusButton=event.target.closest('[data-report-status]'); const deleteButton=event.target.closest('[data-delete-report]'); if(statusButton) socket.emit('admin-report-status',{id:statusButton.dataset.reportStatus,status:statusButton.dataset.status}); if(deleteButton && confirm('¿Borrar este reporte del panel de administración?')) socket.emit('admin-report-delete',{id:deleteButton.dataset.deleteReport}); });
 adminUserModalClose?.addEventListener('click',closeAdminUser);
-adminUserDeleteButton?.addEventListener('click',()=>{ if(selectedAdminUser&&confirm(`¿Eliminar definitivamente el perfil de ${selectedAdminUser.name} y todos sus datos RPG?`)){ socket.emit('admin-user-delete',{number:selectedAdminUser.number}); closeAdminUser(); } });
 adminUserModal?.addEventListener('click',(event)=>{ if(event.target===adminUserModal) closeAdminUser(); });
 adminProfileForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(selectedAdminUser) socket.emit('admin-user-rename',{number:selectedAdminUser.number,name:adminProfileName.value}); });
 adminBalanceForm?.addEventListener('submit',(event)=>{ event.preventDefault(); if(!selectedAdminUser) return; const amount=Number(document.getElementById('adminBalanceAmount').value); socket.emit('admin-user-adjust-balance',{number:selectedAdminUser.number,wallet:document.getElementById('adminBalanceWallet').value,action:document.getElementById('adminBalanceAction').value,amount}); });

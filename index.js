@@ -378,72 +378,6 @@ function hashModeratorSecret(value) {
 function normalizeWebLogin(value) {
     return String(value ?? '').trim().replace(/^\+/, '').replace(/[\s()-]/g, '');
 }
-function isSyntheticWebProfile(profile, number) {
-    return profile?.name === `Jugador ${number.slice(-4)}` && !profile.phoneNumber && !profile.description && !profile.genre && !profile.birth && !profile.partner && !profile.history?.length;
-}
-function webProfileEntry(number) {
-    const alias = botData.phoneAliases?.[number];
-    return Object.entries(botData.profiles || {}).find(([key, value]) => (publicNumber(key) === number || key === alias || publicNumber(value?.phoneNumber) === number) && value?.registered && value?.name && !isSyntheticWebProfile(value, number))?.[1] || null;
-}
-function linkWebProfileFromSession(number, session) {
-    const candidates = [session?.userId, session?.sock?.user?.id].filter(Boolean).map(value => jidNormalizedUser(value));
-    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => profile?.registered && profile?.name && !isSyntheticWebProfile(profile, number) && (publicNumber(key) === number || publicNumber(profile?.phoneNumber) === number || candidates.includes(jidNormalizedUser(key))));
-    if (match && candidates.includes(jidNormalizedUser(match[0]))) {
-        botData.phoneAliases[number] = match[0];
-        return match[1];
-    }
-    return match?.[1] || null;
-}
-function removeSyntheticWebProfile(number) {
-    let removed = false;
-    for (const [key, profile] of Object.entries(botData.profiles || {})) {
-        if (isSyntheticWebProfile(profile, number) && (publicNumber(key) === number || publicNumber(profile?.phoneNumber) === number)) {
-            delete botData.profiles[key];
-            removed = true;
-        }
-    }
-    return removed;
-}
-function webWalletsFor(number) {
-    const result = [];
-    const alias = botData.phoneAliases?.[number];
-    for (const [chatId, state] of Object.entries(botData.economy || {})) {
-        for (const [jid, wallet] of Object.entries(state?.users || {})) {
-            if (publicNumber(jid) === number || jid === alias) result.push({ chatId, jid, wallet });
-        }
-    }
-    return result;
-}
-function webPlayerSnapshot(number) {
-    const profile = webProfileEntry(number);
-    if (!profile) return null;
-    const wallets = webWalletsFor(number);
-    const loot = {}, tools = {}, achievements = new Map();
-    let coins = 0, bank = 0, level = 1, xp = 0, classKey = '';
-    for (const { wallet } of wallets) {
-        coins += Math.max(0, Number(wallet?.coins) || 0);
-        bank += Math.max(0, Number(wallet?.bank) || 0);
-        level = Math.max(level, Math.floor(Number(wallet?.rpg?.level) || 1));
-        xp = Math.max(xp, Math.floor(Number(wallet?.rpg?.xp) || 0));
-        classKey ||= String(wallet?.rpg?.class || '');
-        for (const [id, amount] of Object.entries(wallet?.loot || {})) loot[id] = (loot[id] || 0) + Math.max(0, Number(amount) || 0);
-        for (const [id, tool] of Object.entries(wallet?.tools || {})) if (!tools[id] || Number(tool?.durability) > tools[id].durability) tools[id] = { durability: Math.max(0, Number(tool?.durability) || 0), maxDurability: Number(tool?.maxDurability) || 0 };
-        for (const [id, entry] of Object.entries(wallet?.rpg?.achievements || {})) achievements.set(id, { id, unlockedAt: entry?.unlockedAt || null });
-    }
-    return { number: `${number.slice(0, 3)}••••${number.slice(-2)}`, name: String(profile.name).slice(0, 32), description: String(profile.description || '').slice(0, 240), gender: String(profile.gender || ''), classKey, level, xp, coins, bank, total: coins + bank, loot, tools, achievements: [...achievements.values()] };
-}
-function webAuctionWallet(number, itemId) {
-    return webWalletsFor(number).find(({ wallet }) => Number(wallet?.loot?.[itemId]) > 0) || null;
-}
-function hashWebCode(value) { return crypto.createHash('sha256').update(String(value || '')).digest('hex'); }
-async function deliverWebLoginCode(number, code) {
-    const connected = Object.values(sessions).filter(session => session?.isConnected && session.sock?.sendMessage);
-    const target = connected.find(session => sessionNumber(session) === number) || connected[0];
-    if (!target) return false;
-    await target.sock.sendMessage(`${number}@s.whatsapp.net`, { text: `🔐 *Código de acceso web NIKU MD*\n\nTu código de un solo uso es: *${code}*\n\nCaduca en 5 minutos. Si no lo solicitaste, ignora este mensaje.` });
-    return true;
-}
-
 function moderatorSnapshot() {
     return Object.entries(botData.moderators || {}).map(([id, moderator]) => ({
         id,
@@ -2562,67 +2496,6 @@ io.on('connection', (socket) => {
     socket.emit('public-leaderboard', publicLeaderboardSnapshot());
     socket.emit('public-auctions', publicAuctionsSnapshot());
 
-    socket.on('player-login-request', async ({ phone } = {}) => {
-        const number = normalizePhoneNumber(phone);
-        if (!number) return socket.emit('player-login-status', { ok: false, message: 'Escribe un número válido con código de país.' });
-        if (socket.playerCodeSentAt && Date.now() - socket.playerCodeSentAt < 45_000) return socket.emit('player-login-status', { ok: false, message: 'Espera unos segundos antes de solicitar otro código.' });
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        try {
-            if (!await deliverWebLoginCode(number, code)) return socket.emit('player-login-status', { ok: false, message: 'No hay un bot conectado para enviar el código. Conecta primero tu número.' });
-            socket.webDeliverySession = Object.values(sessions).find(session => session?.isConnected && session.sock?.sendMessage && sessionNumber(session) === number) || Object.values(sessions).find(session => session?.isConnected && session.sock?.sendMessage) || null;
-            socket.playerLoginChallenge = { number, hash: hashWebCode(code), expiresAt: Date.now() + 5 * 60_000, attempts: 0 };
-            socket.playerCodeSentAt = Date.now();
-            socket.emit('player-login-status', { ok: true, message: 'Código enviado a tu WhatsApp. Caduca en 5 minutos.' });
-        } catch (error) {
-            socket.emit('player-login-status', { ok: false, message: 'No se pudo enviar el código de acceso.' });
-        }
-    });
-    socket.on('player-login-verify', ({ phone, code } = {}) => {
-        const challenge = socket.playerLoginChallenge;
-        const number = normalizePhoneNumber(phone);
-        if (!challenge || challenge.number !== number || challenge.expiresAt < Date.now() || challenge.attempts >= 5 || hashWebCode(code) !== challenge.hash) {
-            if (challenge) challenge.attempts += 1;
-            return socket.emit('player-login-status', { ok: false, message: 'Código incorrecto o caducado.' });
-        }
-        socket.playerAuthenticated = true;
-        socket.playerNumber = number;
-        delete socket.playerLoginChallenge;
-        const profile = webProfileEntry(number) || linkWebProfileFromSession(number, socket.webDeliverySession);
-        if (!profile) {
-            const removedSynthetic = removeSyntheticWebProfile(number);
-            if (removedSynthetic) saveBotData();
-            return socket.emit('player-login-status', { ok: false, needsRegistration: true, message: 'Código correcto, pero no encontré el perfil RPG real de este número. En WhatsApp escribe .registrarse TuNombre. No se creó ningún nombre automáticamente.' });
-        }
-        saveBotData();
-        socket.emit('player-login-success', webPlayerSnapshot(number));
-    });
-    socket.on('player-logout', () => { socket.playerAuthenticated = false; socket.playerNumber = null; socket.emit('player-logout-success'); });
-    socket.on('player-profile', () => {
-        if (!socket.playerAuthenticated) return socket.emit('player-login-status', { ok: false, message: 'Inicia sesión para consultar tu perfil.' });
-        socket.emit('player-profile-data', webPlayerSnapshot(socket.playerNumber));
-    });
-    socket.on('player-public-profile', ({ number } = {}) => {
-        if (!socket.playerAuthenticated) return socket.emit('player-login-status', { ok: false, message: 'Inicia sesión para consultar perfiles.' });
-        const normalized = normalizePhoneNumber(number);
-        const profile = normalized ? webPlayerSnapshot(normalized) : null;
-        socket.emit('player-public-profile-data', profile ? { ok: true, profile } : { ok: false, message: 'No se encontró un jugador registrado.' });
-    });
-    socket.on('player-auctions', () => socket.emit('player-auctions-data', publicAuctionsSnapshot()));
-    socket.on('player-auction-create', ({ itemId, price, duration } = {}) => {
-        if (!socket.playerAuthenticated) return socket.emit('player-auction-status', { ok: false, message: 'Inicia sesión para publicar subastas.' });
-        const number = socket.playerNumber;
-        const item = String(itemId || '').toLowerCase();
-        const source = webAuctionWallet(number, item);
-        if (!source) return socket.emit('player-auction-status', { ok: false, message: 'No tienes ese objeto en tu inventario.' });
-        const seller = `${number}@s.whatsapp.net`;
-        const result = commands.auction.createWebAuction(botData, seller, source.chatId, source.wallet, item, price, duration);
-        if (!result.ok) return socket.emit('player-auction-status', result);
-        saveBotData();
-        broadcastPublicAuctions();
-        socket.emit('player-auction-status', { ok: true, message: 'Subasta publicada correctamente.', auction: commands.auction.snapshot(botData).find(row => row.id === result.auction.id) || null });
-        socket.emit('player-profile-data', webPlayerSnapshot(number));
-    });
-
     // Admin auth
     socket.on('admin-auth', ({ username, password } = {}) => {
         const now = Date.now();
@@ -2850,35 +2723,6 @@ io.on('connection', (socket) => {
         emitAdminUsers(socket);
         io.emit('public-leaderboard', publicLeaderboardSnapshot());
     });
-    socket.on('admin-user-delete', ({ number } = {}) => {
-        if (!socket.authenticated) return;
-        const target = String(number || '').replace(/\D/g, '');
-        if (!target) {
-            socket.emit('admin-users-status', { ok: false, message: 'Indica un número válido.' });
-            return;
-        }
-        let deleted = false;
-        for (const key of Object.keys(botData.profiles || {})) {
-            if (publicNumber(key) === target) { delete botData.profiles[key]; deleted = true; }
-        }
-        for (const state of Object.values(botData.economy || {})) {
-            for (const key of Object.keys(state?.users || {})) {
-                if (publicNumber(key) === target) { delete state.users[key]; deleted = true; }
-            }
-        }
-        for (const key of Object.keys(botData.premiumUsers || {})) if (publicNumber(key) === target) { delete botData.premiumUsers[key]; deleted = true; }
-        for (const key of Object.keys(botData.userNames || {})) if (publicNumber(key) === target) { delete botData.userNames[key]; deleted = true; }
-        for (const clan of Object.values(botData.clans || {})) if (Array.isArray(clan?.members)) clan.members = clan.members.filter(jid => publicNumber(jid) !== target);
-        if (!deleted) {
-            socket.emit('admin-users-status', { ok: false, message: 'No se encontró ese usuario.' });
-            return;
-        }
-        saveBotData();
-        socket.emit('admin-users-status', { ok: true, message: `Usuario ${target} eliminado de perfiles y rankings.` });
-        emitAdminUsers(socket);
-        io.emit('public-leaderboard', publicLeaderboardSnapshot());
-    });
-
     socket.on('admin-supertoken-generate', ({ days } = {}) => {
         if (!socket.authenticated) return;
         const result = createSuperToken(days);
