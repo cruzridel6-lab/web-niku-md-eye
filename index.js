@@ -1651,7 +1651,7 @@ class BotSession {
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public']);
-                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
+                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1889,6 +1889,10 @@ class BotSession {
                                         case 'advertencias': case 'warnings': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['lista', ...args]); break;
                                         case 'quitaradvertencia': case 'quitaradvertencias': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['quitar', ...args]); break;
                                         case 'antiventas': case 'antisales': await commands.antisales(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'anti':
+                                            if (['sticker', 'stickers', 'estiker', 'antistiker', 'antisticker'].includes(String(args[0] || '').toLowerCase())) await commands.antisticker(this.sock, from, msg, isAdmin, botData, saveBotData, args.slice(1));
+                                            else await commands.antisticker(this.sock, from, msg, isAdmin, botData, saveBotData, args);
+                                            break;
                                         case 'antiestiker': case 'antistiker': case 'antisticker': case 'anti-sticker': await commands.antisticker(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'mutelist': case 'listmute': case 'silenciados': case 'muteds': await commands.mutelist(this.sock, from, msg, isAdmin, botData); break;
                                         case 'join': await commands.join(this.sock, from, msg, q); break;
@@ -2418,7 +2422,7 @@ function smartHelpText(unknown, prefix = '.') {
 }
 function isKnownCommand(name) {
     const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar', 'report', 'reporte', 'subastas', 'subasta', 'subastar', 'publicarsubasta', 'pujar', 'bid', 'mispujas', 'missubastas', 'cancelarsubasta', 'subastaayuda']);
-    const aliases = new Set(['abrir', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker']);
+    const aliases = new Set(['abrir', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker']);
     if (common.has(name) || aliases.has(name) || Object.prototype.hasOwnProperty.call(commands, name)) return true;
     for (const command of Object.values(commands || {})) if (Array.isArray(command?.aliases) && command.aliases.includes(name)) return true;
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
