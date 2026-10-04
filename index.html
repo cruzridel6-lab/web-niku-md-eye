@@ -1432,7 +1432,10 @@ socket.on('stats', (data)=>{
 
 document.getElementById('year').innerText = new Date().getFullYear();
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{}));
+  window.addEventListener('load',()=>{
+    const adminApp = window.location.pathname === '/admin';
+    navigator.serviceWorker.register(adminApp ? '/admin-sw.js' : '/sw.js', {scope: adminApp ? '/admin' : '/'}).catch(()=>{});
+  });
 }
 </script>
 </body>
