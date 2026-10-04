@@ -1504,7 +1504,9 @@ class BotSession {
                         const botNumberClean = botNumber.split('@')[0];
 
                         const sender = msg.key.participant || from;
-                        const senderClean = sender.split('@')[0];
+                        const normalizedSender = jidNormalizedUser(sender);
+                        const senderClean = normalizedSender.split('@')[0];
+                        const isBotSender = Boolean(isMe || (normalizedSender && botNumber && normalizedSender === botNumber));
 
                         const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                         const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
@@ -1519,7 +1521,6 @@ class BotSession {
                         if (!isAdmin && isGroup) {
                             try {
                                 const groupMetadata = await this.sock.groupMetadata(from);
-                                const normalizedSender = jidNormalizedUser(sender);
                                 const participant = groupMetadata.participants.find(p => jidNormalizedUser(p.id) === normalizedSender);
                                 isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
                             } catch (e) {
@@ -1563,7 +1564,9 @@ class BotSession {
                         }
 
                         // Antilink
-                        if (isGroup && botData.antilinkGroups[from] && !isAdmin) {
+                        // Administradores y el propio bot están siempre exentos del antienlace.
+                        const antLinkExempt = Boolean(isAdmin || isBotSender);
+                        if (isGroup && !antLinkExempt && botData.antilinkGroups[from]) {
                             const linkPatterns = [/chat.whatsapp.com\//i, /http:\/\//i, /https:\/\//i, /www\./i, /[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/i];
                             if (linkPatterns.some(pattern => pattern.test(text))) {
                                 const mode = botData.antilinkGroups[from];
