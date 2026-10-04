@@ -30,6 +30,7 @@ Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automa
 - **Panel web:** dashboard oscuro, estadísticas en tiempo real, comentarios y consola ADMIN privada.
 - **Reportes:** cualquier usuario puede usar `.reporte Descripción del problema`; el bot envía el nombre, número, hora y descripción al canal de WhatsApp configurado.
 - **Moderación administrativa:** desde el panel se puede banear un número, impedir que vuelva a vincularse y desvincular su sesión activa.
+- **Antiporno:** `.antiporno on/off` elimina enlaces y texto sexual detectado y expulsa al remitente; con `OPENAI_API_KEY` también analiza imágenes, stickers y el primer fotograma de videos.
 - **SuperToken:** el panel muestra los comandos Premium incluidos y permite generar un SuperToken temporal para habilitarlos mediante `.reclamar <supertoken>`.
 - **Moderación:** la ruta `/moderacion` tiene login independiente, permisos limitados por casillas y herramientas para SuperTokens, bloqueos, usuarios y sesiones.
 - **Premium:** se eliminó la compra mediante `.tienda`; el acceso Premium solo se concede mediante SuperToken o desde Administración.
