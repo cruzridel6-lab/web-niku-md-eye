@@ -686,11 +686,9 @@ function sendIndexWithPreview(req, res) {
     const protocol = String(req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
     const host = req.get('x-forwarded-host') || req.get('host');
     const baseUrl = `${protocol}://${host}`;
-    const manifestPath = req.path === '/admin' ? '/admin.webmanifest' : '/manifest.webmanifest';
     const imageUrl = `${baseUrl}/og-image.jpg`;
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.type('html').send(INDEX_TEMPLATE
-        .replaceAll('href="/manifest.webmanifest"', `href="${manifestPath}"`)
         .replaceAll('__NIKU_OG_IMAGE__', imageUrl)
         .replaceAll('__NIKU_OG_URL__', `${baseUrl}${req.path === '/admin' ? '/admin' : req.path === '/moderacion' ? '/moderacion' : '/'}`));
 }
