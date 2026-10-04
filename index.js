@@ -1579,10 +1579,11 @@ class BotSession {
                             const commandName = cmd.slice(1).split(' ')[0];
                             // Reporte es un canal de soporte público, incluso en modo privado.
                             // Los comandos de soporte y canje deben funcionar en privado para cualquier usuario.
-                            if (!this.isPublic && !isAuthorized && !['report', 'reporte', 'reclamar'].includes(commandName)) return;
-                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar']);
+                            const hasPremiumAccess = isPremiumWhatsApp(sender);
+                            if (!this.isPublic && !isAuthorized && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'menu', 'menú', 'public']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
-                            if (!registrationCommands.has(commandName) && !registeredProfile?.registered) {
+                            if (!registrationCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
 ┃
 ┃ 👋 *¡Hola! Aún no tienes un perfil activo.*
@@ -1625,10 +1626,6 @@ class BotSession {
                                     switch (commandName) {
                                         // ===== MENU =====
                                         case 'menu': case 'menú': {
-                                            if (!registeredProfileForMessage(msg, sender)?.registered) {
-                                                await this.sock.sendMessage(from, { text: '🔐 *Registro obligatorio*\n\nAntes de abrir el menú debes crear tu personaje con:\n*.registrarse Tu Nombre*' }, { quoted: msg });
-                                                break;
-                                            }
                                             const customName = botData.userNames[this.userId] || msg.pushName || 'User';
                                             const menuText = generateMenuText(customName, this);
                                             try {
