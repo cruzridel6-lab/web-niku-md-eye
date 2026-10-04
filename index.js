@@ -2398,7 +2398,7 @@ function smartHelpText(unknown, prefix = '.') {
 }
 function isKnownCommand(name) {
     const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar', 'report', 'reporte', 'subastas', 'subasta', 'subastar', 'publicarsubasta', 'pujar', 'bid', 'mispujas', 'missubastas', 'cancelarsubasta', 'subastaayuda']);
-    const aliases = new Set(['abrir', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn']);
+    const aliases = new Set(['abrir', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales']);
     if (common.has(name) || aliases.has(name) || Object.prototype.hasOwnProperty.call(commands, name)) return true;
     for (const command of Object.values(commands || {})) if (Array.isArray(command?.aliases) && command.aliases.includes(name)) return true;
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
