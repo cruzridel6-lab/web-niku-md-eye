@@ -583,6 +583,21 @@
     .public-board-grid.compact-leaderboards{grid-template-columns:1fr}.compact-leaderboards .public-board-list{max-height:112px}
   }
 
+
+  /* ---------- Readable tabs for rankings and live activity ---------- */
+  body{font-size:.98rem;line-height:1.52}
+  nav{height:68px}.brand .name{font-size:.98rem}.brand .tag{font-size:.64rem}.nav-links a{font-size:.76rem}
+  header{padding-top:124px}header p.sub{font-size:.82rem}
+  .quick-item{font-size:.7rem}.stat-value{font-size:1.22rem}.stat-label{font-size:.62rem}.public-bots-title{font-size:.74rem}.public-bots-live{font-size:.64rem}.public-bot-name{font-size:.64rem}.public-bot-number{font-size:.58rem}.public-bot-status{font-size:.62rem}
+  .leaderboard-tabs{display:flex;margin-top:12px;gap:6px;padding:5px;overflow-x:auto}
+  .leaderboard-tab{flex:1 1 130px;min-width:112px;padding:9px 11px;font-size:.76rem;white-space:nowrap}
+  .public-board-grid.compact-leaderboards{display:block;margin-top:9px}
+  .compact-leaderboards .public-board-card{display:none;padding:13px 14px}
+  .compact-leaderboards .public-board-card.active{display:block}
+  .compact-leaderboards .public-board-card h3{font-size:.86rem}.compact-leaderboards .public-board-card p{font-size:.66rem}.compact-leaderboards .public-board-list{max-height:220px}.compact-leaderboards .public-board-row{padding:7px 8px;font-size:.7rem}
+  .live-board-panel{padding:10px!important}.live-board-panel .compact-public-events{margin-top:0!important;margin-bottom:8px!important;padding:11px!important}.live-board-panel .compact-public-events:last-child{margin-bottom:0!important}.live-board-panel .public-events-head h3{font-size:.8rem}.live-board-panel .public-events-head p{font-size:.62rem}.live-board-panel .public-events-output{height:86px;font-size:.68rem}.live-board-panel .investment-row,.live-board-panel .auction-row{padding:8px 9px}.live-board-panel .investment-row-head,.live-board-panel .auction-row strong{font-size:.7rem}.live-board-panel .investment-row-meta,.live-board-panel .auction-row small{font-size:.58rem}
+  @media(max-width:620px){body{font-size:.9rem}.nav-links a{font-size:.68rem}.brand .name{font-size:.86rem}.leaderboard-tabs{margin-inline:-2px}.leaderboard-tab{flex:0 0 auto;min-width:104px;padding:8px 9px;font-size:.68rem}.compact-leaderboards .public-board-list{max-height:180px}.live-board-panel .public-events-output{height:72px}}
+
 </style>
 </head>
 <body>
@@ -664,21 +679,24 @@
     <div class="public-bots-head"><span class="public-bots-title"><i class="fas fa-robot"></i> Bots conectados</span><span id="publicBotsLive" class="public-bots-live">Actualizando...</span></div>
     <div id="publicBotsList" class="public-bots-list"><div class="public-bots-empty">Esperando conexiones...</div></div>
   </div>
-  <div class="leaderboard-tabs" role="tablist" aria-label="Categorías de rankings">
+  <div class="leaderboard-tabs" role="tablist" aria-label="Rankings y actividad en vivo">
     <button class="leaderboard-tab active" type="button" role="tab" aria-selected="true" data-board-tab="achievements"><i class="fas fa-trophy"></i> Logros</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="coins"><i class="fas fa-coins"></i> Niku Coins</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="pvp"><i class="fas fa-swords"></i> PvP</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="history"><i class="fas fa-clock-rotate-left"></i> Historial</button>
+    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="live"><i class="fas fa-bolt"></i> En vivo</button>
   </div>
   <div class="public-board-grid compact-leaderboards" id="leaderboards">
     <div class="public-board-card active" data-board-panel="achievements"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="coins"><h3><i class="fas fa-coins"></i> Top de Niku Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="pvp"><h3><i class="fas fa-swords"></i> Ranking PvP</h3><p>Los mejores duelistas.</p><div id="publicPvpBoard" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="history"><h3><i class="fas fa-clock-rotate-left"></i> Historial PvP</h3><p>Últimos enfrentamientos.</p><div id="publicPvpHistory" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
+    <div class="public-board-card live-board-panel" data-board-panel="live">
+      <div class="public-events-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-bolt"></i> Recompensas en vivo</h3><p>Últimas recompensas y logros desbloqueados.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicRewardEvents" class="public-events-output"><div class="console-empty">Esperando nuevas recompensas...</div></div></div>
+      <div class="public-investments-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-chart-line"></i> Inversiones activas</h3><p>Operaciones en curso del reino.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicInvestmentsList" class="public-investments-list"><div class="console-empty">No hay inversiones activas.</div></div></div>
+      <div class="public-auctions-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-gavel"></i> Casa de Subastas</h3><p>Botín de mazmorras publicado por la comunidad.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicAuctionsList" class="auction-list"><div class="auction-empty">No hay subastas activas.</div></div></div>
+    </div>
   </div>
-  <div class="public-events-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-bolt"></i> Recompensas en vivo</h3><p>Últimas recompensas y logros desbloqueados.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicRewardEvents" class="public-events-output"><div class="console-empty">Esperando nuevas recompensas...</div></div></div>
-  <div class="public-investments-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-chart-line"></i> Inversiones activas</h3><p>Operaciones en curso del reino, actualizadas en vivo.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicInvestmentsList" class="public-investments-list"><div class="console-empty">No hay inversiones activas.</div></div></div>
-  <div class="public-auctions-card compact-public-events"><div class="public-events-head"><div><h3><i class="fas fa-gavel"></i> Casa de Subastas</h3><p>Botín de mazmorras publicado por la comunidad.</p></div><span class="public-events-live">● EN VIVO</span></div><div id="publicAuctionsList" class="auction-list"><div class="auction-empty">No hay subastas activas.</div></div></div>
 </header>
 
 <main>
