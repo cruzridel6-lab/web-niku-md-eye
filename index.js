@@ -377,13 +377,15 @@ function normalizeWebLogin(value) {
     return String(value ?? '').trim().replace(/^\+/, '').replace(/[\s()-]/g, '');
 }
 function webProfileEntry(number) {
-    return Object.entries(botData.profiles || {}).find(([key, value]) => publicNumber(key) === number && value?.registered && value?.name)?.[1] || null;
+    const alias = botData.phoneAliases?.[number];
+    return Object.entries(botData.profiles || {}).find(([key, value]) => (publicNumber(key) === number || key === alias) && value?.registered && value?.name)?.[1] || null;
 }
 function webWalletsFor(number) {
     const result = [];
+    const alias = botData.phoneAliases?.[number];
     for (const [chatId, state] of Object.entries(botData.economy || {})) {
         for (const [jid, wallet] of Object.entries(state?.users || {})) {
-            if (publicNumber(jid) === number) result.push({ chatId, jid, wallet });
+            if (publicNumber(jid) === number || jid === alias) result.push({ chatId, jid, wallet });
         }
     }
     return result;
@@ -785,7 +787,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -806,6 +808,7 @@ function loadBotDataFromDisk() {
     if (!Array.isArray(botData.adminReports)) botData.adminReports = [];
     if (!botData.auctions || typeof botData.auctions !== 'object' || Array.isArray(botData.auctions)) botData.auctions = {};
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
+    if (!botData.phoneAliases || typeof botData.phoneAliases !== 'object' || Array.isArray(botData.phoneAliases)) botData.phoneAliases = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
     if (!botData.superTokens || typeof botData.superTokens !== 'object' || Array.isArray(botData.superTokens) || (!Object.keys(botData.superTokens).length && Object.keys(botData.premiumTokens).length)) botData.superTokens = Object.keys(botData.premiumTokens).length ? botData.premiumTokens : {};
@@ -1547,6 +1550,14 @@ class BotSession {
                         const normalizedSender = jidNormalizedUser(sender);
                         const senderClean = normalizedSender.split('@')[0];
                         const isBotSender = Boolean(isMe || (normalizedSender && botNumber && normalizedSender === botNumber));
+                        const alternatePhoneJid = msg.key.participantAlt || msg.key.senderPn;
+                        if (/@s\.whatsapp\.net$/i.test(String(alternatePhoneJid || '')) && /@lid$/i.test(String(sender || ''))) {
+                            const alternateNumber = publicNumber(alternatePhoneJid);
+                            if (alternateNumber && botData.phoneAliases[alternateNumber] !== sender) {
+                                botData.phoneAliases[alternateNumber] = sender;
+                                saveBotData();
+                            }
+                        }
 
                         const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                         const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;

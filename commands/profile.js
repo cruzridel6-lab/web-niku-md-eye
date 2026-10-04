@@ -21,7 +21,10 @@ function canonicalJid(jid) {
     const number = numberOf(jid);
     return number ? `${number}@s.whatsapp.net` : String(jid || '').trim();
 }
-function jidOf(msg, chatId) { return canonicalJid(msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId)); }
+function jidOf(msg, chatId) {
+    const candidate = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId);
+    return canonicalJid(candidate);
+}
 function reply(sock, chatId, msg, text, extra = {}) { return sock.sendMessage(chatId, { text, ...extra }, { quoted: msg }); }
 function contextTarget(msg) {
     const context = msg?.message?.extendedTextMessage?.contextInfo || {};
