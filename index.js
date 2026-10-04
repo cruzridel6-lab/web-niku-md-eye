@@ -1566,11 +1566,16 @@ class BotSession {
                         if (isGroup && botData.antilinkGroups[from] && !isAdmin) {
                             const linkPatterns = [/chat.whatsapp.com\//i, /http:\/\//i, /https:\/\//i, /www\./i, /[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/i];
                             if (linkPatterns.some(pattern => pattern.test(text))) {
-                                try {
-                                    const mode = botData.antilinkGroups[from];
-                                    await this.sock.sendMessage(from, { delete: msg.key });
-                                    if (mode === 'kick') await this.sock.groupParticipantsUpdate(from, [sender], "remove");
-                                } catch (e) {}
+                                const mode = botData.antilinkGroups[from];
+                                try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (e) {}
+                                if (mode === 'kick') {
+                                    try {
+                                        await this.sock.groupParticipantsUpdate(from, [jidNormalizedUser(sender)], 'remove');
+                                        await this.sock.sendMessage(from, { text: '🚫 Enlace no permitido. El mensaje fue eliminado y el remitente fue expulsado.' });
+                                    } catch (e) {
+                                        this.sendLog(`Antienlace no pudo expulsar a ${sender}: ${e.message}`, 'warning');
+                                    }
+                                }
                                 return;
                             }
                         }
