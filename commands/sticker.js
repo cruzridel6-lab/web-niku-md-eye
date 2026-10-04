@@ -70,7 +70,7 @@ function runFfmpeg(args) {
     });
 }
 
-module.exports = async function stickerCommand(sock, chatId, msg, textArg = '') {
+async function stickerCommand(sock, chatId, msg, textArg = '') {
     let tmpFile;
     try {
         const selected = getMedia(msg);
@@ -134,3 +134,6 @@ module.exports = async function stickerCommand(sock, chatId, msg, textArg = '') 
         if (tmpFile) await fs.remove(tmpFile).catch(() => {});
     }
 };
+
+stickerCommand.aliases = ['sticker', 's', 'textsticker'];
+module.exports = stickerCommand;
