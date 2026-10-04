@@ -125,6 +125,7 @@ const commands = {
     trivia: require('./commands/trivia'),
     coinflip: require('./commands/coinflip'),
     economy: require('./commands/economy'),
+    auction: require('./commands/auction'),
     profile: require('./commands/profile'),
     roll: require('./commands/roll'),
     riddle: require('./commands/riddle'),
@@ -741,7 +742,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
+let botData = { antilinkGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -760,6 +761,7 @@ function loadBotDataFromDisk() {
     if (!botData.pvpDuels || typeof botData.pvpDuels !== 'object' || Array.isArray(botData.pvpDuels)) botData.pvpDuels = {};
     if (!botData.pvpDuelHistory || typeof botData.pvpDuelHistory !== 'object' || Array.isArray(botData.pvpDuelHistory)) botData.pvpDuelHistory = {};
     if (!Array.isArray(botData.adminReports)) botData.adminReports = [];
+    if (!botData.auctions || typeof botData.auctions !== 'object' || Array.isArray(botData.auctions)) botData.auctions = {};
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
@@ -794,6 +796,13 @@ const publicRewardEvents = [];
 function adminReportsSnapshot() { return (botData.adminReports || []).slice(0, 200).map(report => ({ id: report.id, target: publicNumber(report.target) || report.target, reporter: publicNumber(report.reporter) || report.reporter, chatId: report.chatId, message: String(report.message || '').slice(0, 1000), status: report.status || 'new', createdAt: report.createdAt, handledAt: report.handledAt || null })); }
 function emitAdminReports(socket) { if (socket?.authenticated) socket.emit('admin-reports-data', adminReportsSnapshot()); }
 function receiveAdminReport(data = {}) { const report = { id: `report-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, target: String(data.target || '').slice(0, 80), reporter: String(data.reporter || '').slice(0, 80), chatId: String(data.chatId || '').slice(0, 80), message: String(data.message || '').slice(0, 1000), status: 'new', createdAt: data.createdAt || new Date().toISOString() }; botData.adminReports.unshift(report); if (botData.adminReports.length > 200) botData.adminReports.length = 200; saveBotData(); for (const adminSocket of adminSockets) emitAdminReports(adminSocket); return report; }
+function publicAuctionsSnapshot() { return commands.auction.snapshot(botData); }
+function broadcastPublicAuctions() { io.emit('public-auctions', publicAuctionsSnapshot()); }
+function settleExpiredAuctions() {
+    const settled = commands.auction.settleExpiredAuctions(botData);
+    if (settled.length) { saveBotData(); broadcastPublicAuctions(); }
+    return settled;
+}
 
 function getDashboardStats() {
     const connectedSessions = Object.values(sessions).filter(session => session.isConnected && session.sock?.user);
@@ -1671,6 +1680,8 @@ class BotSession {
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
                                         case 'funmenu': await sendCategoryMenu(this.sock, from, msg, '🎉 FUN MENU', ['joke', 'meme', 'dare', 'truth', 'ascii', 'roast', 'compliment', 'ship', 'emojimix', 'character', 'quote', 'fact', 'trivia', 'roll', 'riddle', 'wouldyourather']); break;
                                         case 'economy':
+                                        case 'subastas': case 'subasta': case 'subastar': case 'publicarsubasta': case 'pujar': case 'bid': case 'mispujas': case 'missubastas': case 'cancelarsubasta': case 'subastaayuda':
+                                            await commands.auction.runAuction(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.', { onChanged: broadcastPublicAuctions }); break;
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
                                         case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
@@ -1717,7 +1728,7 @@ class BotSession {
                                         case 'campaña': case 'campana': case 'quest': case 'historia':
                                         case 'tutorial': case 'guia': case 'guía': case 'guiaaventura':
                                         case 'titulos': case 'títulos': case 'titulo': case 'title':
-                                        case 'mercadojugadores': case 'subasta': case 'market':
+                                        case 'mercadojugadores': case 'market':
                                         case 'temporada': case 'season': case 'rankingtemporada':
                                         case 'habilidades': case 'skills': case 'talentos':
                                         case 'pocion': case 'poción': case 'potion': case 'curar':
@@ -2257,7 +2268,7 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
 
 async function sendRpgInteractiveMenu(sock, jid, msg) {
     await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
-        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Unirse a una raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Ver mochila y equipo'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['invertir', '📈 Invertir', 'Invertir monedas durante 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros']
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Unirse a una raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Ver mochila y equipo'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Invertir monedas durante 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros']
     ].map(([command, title, description]) => ({ command, title, description })), msg);
 }
 
@@ -2286,7 +2297,7 @@ function smartHelpText(unknown, prefix = '.') {
     return `🤔 No reconozco *${prefix}${unknown}*.\n\n¿Quizás quisiste usar?\n${lines}\n\nTambién puedes escribir *${prefix}menu* para abrir el menú interactivo o *${prefix}ayuda <comando>* para ver una guía.`;
 }
 function isKnownCommand(name) {
-    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar', 'report', 'reporte']);
+    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar', 'report', 'reporte', 'subastas', 'subasta', 'subastar', 'publicarsubasta', 'pujar', 'bid', 'mispujas', 'missubastas', 'cancelarsubasta', 'subastaayuda']);
     if (common.has(name) || Object.prototype.hasOwnProperty.call(commands, name)) return true;
     for (const command of Object.values(commands || {})) if (Array.isArray(command?.aliases) && command.aliases.includes(name)) return true;
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
@@ -2382,6 +2393,7 @@ function generateMenuText(userName, session) {
 io.on('connection', (socket) => {
     socket.emit('stats', getDashboardStats());
     socket.emit('public-leaderboard', publicLeaderboardSnapshot());
+    socket.emit('public-auctions', publicAuctionsSnapshot());
 
     // Admin auth
     socket.on('admin-auth', ({ username, password } = {}) => {
@@ -2916,4 +2928,4 @@ server.listen(PORT, async () => {
     broadcastDashboardStats();
 });
 
-setInterval(broadcastDashboardStats, 5000).unref();
+setInterval(() => { settleExpiredAuctions(); broadcastDashboardStats(); }, 5000).unref();
