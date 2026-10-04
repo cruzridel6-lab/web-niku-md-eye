@@ -1631,7 +1631,7 @@ class BotSession {
                             // Los comandos de soporte y canje deben funcionar en privado para cualquier usuario.
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
-                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'menu', 'menú', 'public']);
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public']);
                             const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
