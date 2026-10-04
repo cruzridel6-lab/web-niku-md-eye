@@ -1337,17 +1337,23 @@ class BotSession {
             });
 
             this.sock.ev.on('group-participants.update', async ({ id, participants, action }) => {
-                if (!id || !Array.isArray(participants)) return;
+                if (!id || !Array.isArray(participants) || !participants.length) return;
                 try {
+                    const eventAction = String(action || '').toLowerCase();
+                    const isJoin = ['add', 'added', 'join', 'joined'].includes(eventAction);
+                    const isLeave = ['remove', 'removed', 'leave', 'left'].includes(eventAction);
+                    const enabled = value => value === true || ['true', 'on', '1', 'activar', 'enable'].includes(String(value || '').toLowerCase());
                     const meta = await this.sock.groupMetadata(id).catch(() => ({ subject: id, desc: '' }));
                     const groupName = meta.subject || id;
-                    const mentions = participants;
-                    const names = participants.map(jid => `@${String(jid).split('@')[0]}`).join(', ');
-                    if ((action === 'add' || action === 'remove') && (action === 'add' ? botData.groupWelcome[id] : botData.groupBye[id])) {
-                        const template = action === 'add'
-                            ? (botData.groupWelcomeText[id] || '👋 ¡Bienvenido/a @user a @grupo!')
-                            : (botData.groupByeText[id] || '👋 @user ha salido de @grupo.');
-                        const text = template.replace(/@user/g, names).replace(/@grupo/g, groupName).replace(/@desc/g, meta.desc || '');
+                    const mentions = participants.map(String);
+                    const names = mentions.map(jid => `@${jid.split('@')[0]}`).join(', ');
+                    const welcomeEnabled = enabled(botData.groupWelcome?.[id]);
+                    const byeEnabled = enabled(botData.groupBye?.[id]);
+                    if ((isJoin && welcomeEnabled) || (isLeave && byeEnabled)) {
+                        const template = isJoin
+                            ? (botData.groupWelcomeText?.[id] || '👋 ¡Bienvenido/a @user a @grupo!')
+                            : (botData.groupByeText?.[id] || '👋 @user ha salido de @grupo.');
+                        const text = String(template).replace(/@user/g, names).replace(/@grupo/g, groupName).replace(/@desc/g, meta.desc || '');
                         await this.sock.sendMessage(id, { text, mentions });
                     }
                     if (botData.groupAlerts[id] && (action === 'promote' || action === 'demote')) {
