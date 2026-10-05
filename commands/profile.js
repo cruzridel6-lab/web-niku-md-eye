@@ -1,4 +1,5 @@
 const pendingMarriages = new Map();
+const { classImagePath, sendImageCaption } = require('../lib/rpgMedia');
 
 const ALIASES = {
     register: ['registrarse', 'registrar', 'register', 'registro'],
@@ -226,10 +227,13 @@ async function showProfile(sock, chatId, msg, jid, profile, botData) {
     const characterClass = classes[rpg.class] || '🧭 Sin clase — usa .clase para elegir';
     const partner = profile.partner ? `💍 ${spouseWord(profile.genre)} con *${targetName(botData, profile.partner)}*` : '💍 Sin pareja';
     const text = `👤 *PERFIL RPG DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🛡️ Clase: *${characterClass}*\n⭐ Nivel: *${Number(rpg.level) || 1}*\n✨ Experiencia: *${Number(rpg.xp) || 0} XP*\n🎂 Cumpleaños: *${formatBirth(profile.birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n🪙 Bolsa: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Cofre: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
+    const mentions = profile.partner ? [jid, profile.partner] : [jid];
+    const classImage = classImagePath(rpg.class);
+    if (classImage) return sendImageCaption(sock, chatId, msg, classImage, text, { mentions });
     try {
         const image = await sock.profilePictureUrl(jid, 'image');
-        return sock.sendMessage(chatId, { image: { url: image }, caption: text, mentions: profile.partner ? [jid, profile.partner] : [jid] }, { quoted: msg });
-    } catch { return sock.sendMessage(chatId, { text, mentions: profile.partner ? [jid, profile.partner] : [jid] }, { quoted: msg }); }
+        return sock.sendMessage(chatId, { image: { url: image }, caption: text, mentions }, { quoted: msg });
+    } catch { return sock.sendMessage(chatId, { text, mentions }, { quoted: msg }); }
 }
 
 module.exports = profileCommand;

@@ -1,5 +1,6 @@
 const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
+const { classImagePath, shopImagePath, sendImageCaption } = require('../lib/rpgMedia');
 const COIN = '🪙 Niku Coins';
 const MIN_BET = 200;
 const INVESTMENT_DURATION = 5 * 60 * 1000;
@@ -601,7 +602,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         activateWelcomeMission(user);
         save();
         const selected = CHARACTER_CLASSES[requested];
-        return reply(sock, chatId, msg, `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
+        return sendImageCaption(sock, chatId, msg, classImagePath(requested), `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
     }
 
     if (canonical === 'raid') {
@@ -725,7 +726,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
                 return `🛍️ *${item.name}* — *${fmt(item.price)} ${COIN}* · ${item.durability} usos${durability}`;
             }).join('\n');
             const gearOffers = classEquipment(user).map(item => `⚔️ *${item.name}* — *${fmt(item.price)} ${COIN}* · +${Math.round(item.bonus * 100)}% en ${item.activities.join(', ')}\nComprar: *${prefix}mercader ${item.id}*`).join('\n');
-            return reply(sock, chatId, msg, `🧑‍🌾 *MERCADER RPG*\n\n${offers}\n\n👑 *EQUIPAMIENTO DE ${CHARACTER_CLASSES[user.rpg.class]?.label || 'TU CLASE'}*\n${gearOffers || 'Elige una clase para desbloquear armas y armaduras.'}\n\n📦 Vender drops: *${prefix}mercader vender*\n\n⛏️ Minar requiere pico\n⚔️ Cazar requiere espada\n🎣 Pescar requiere caña`);
+            return sendImageCaption(sock, chatId, msg, shopImagePath(), `🧑‍🌾 *MERCADER RPG*\n\n${offers}\n\n👑 *EQUIPAMIENTO DE ${CHARACTER_CLASSES[user.rpg.class]?.label || 'TU CLASE'}*\n${gearOffers || 'Elige una clase para desbloquear armas y armaduras.'}\n\n📦 Vender drops: *${prefix}mercader vender*\n\n⛏️ Minar requiere pico\n⚔️ Cazar requiere espada\n🎣 Pescar requiere caña`);
         }
         const item = MERCHANT_ITEMS[selected];
         if (user.coins < item.price) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}.\nNecesitas: *${fmt(item.price)}*\nTienes: *${fmt(user.coins)}*`);
