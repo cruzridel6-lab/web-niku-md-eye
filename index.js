@@ -2376,18 +2376,23 @@ const TOOL_DISPLAY_NAMES = {
 };
 
 async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
+    const sections = [];
+    for (let index = 0; index < rows.length; index += 30) {
+        const chunk = rows.slice(index, index + 30);
+        sections.push({
+            title: `${title.replace(/[\*_]/g, '').slice(0, 20)}${sections.length ? ` · ${sections.length + 1}` : ''}`,
+            rows: chunk.map(row => ({
+                title: String(row.title).slice(0, 24),
+                description: String(row.description || 'Ejecutar comando').slice(0, 72),
+                id: `cmd_${row.command}`
+            }))
+        });
+    }
     const menuButton = {
         name: 'single_select',
         buttonParamsJson: JSON.stringify({
             title: '📋 ELEGIR COMANDO',
-            sections: [{
-                title: title.replace(/[\*_]/g, '').slice(0, 24),
-                rows: rows.slice(0, 30).map(row => ({
-                    title: String(row.title).slice(0, 24),
-                    description: String(row.description || 'Ejecutar comando').slice(0, 72),
-                    id: `cmd_${row.command}`
-                }))
-            }]
+            sections
         })
     };
     const channelButton = { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Ver canal', url: settings.whatsappChannel, merchant_url: settings.whatsappChannel }) };
@@ -2401,7 +2406,7 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
 
 async function sendRpgInteractiveMenu(sock, jid, msg) {
     await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
-        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Unirse a una raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Ver mochila y equipo'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Invertir monedas durante 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros']
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['registrarse', '📝 Registrarse', 'Crear personaje'], ['tutorial', '🧭 Tutorial', 'Primeros pasos y misión'], ['clase', '🛡️ Clase', 'Elegir clase RPG'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Mochila y equipamiento'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['fabricar', '🔨 Fabricar', 'Crear objetos'], ['mercader', '🧑‍🌾 Mercader', 'Comprar herramientas y equipo'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Inversión de 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros'], ['balance', '💰 Balance', 'Ver Niku Coins'], ['nivel', '⭐ Nivel', 'Ver experiencia'], ['minar', '⛏️ Minar', 'Extraer recursos'], ['pescar', '🎣 Pescar', 'Pescar recursos'], ['cazar', '🏹 Cazar', 'Cazar monstruos'], ['mazmorra', '🏰 Mazmorra', 'Explorar la mazmorra'], ['reparar', '🔧 Reparar', 'Reparar la mazmorra'], ['explorar', '🧭 Explorar', 'Explorar regiones'], ['recolectar', '🌿 Recolectar', 'Recolectar recursos'], ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'], ['campaña', '📜 Campaña', 'Misiones de historia'], ['clan', '⚔️ Clan', 'Clanes y guerras'], ['daily', '🎁 Daily', 'Recompensa diaria'], ['work', '💼 Work', 'Misión del gremio'], ['deposit', '🏦 Depositar', 'Guardar monedas'], ['withdraw', '💳 Retirar', 'Sacar monedas'], ['pay', '💸 Pagar', 'Enviar monedas'], ['coinflip', '🎰 Coinflip', 'Apostar monedas'], ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'], ['crime', '🕵️ Crime', 'Encargo clandestino'], ['rob', '🦹 Robar', 'Golpe de pícaro'], ['premio', '🎁 Premio', 'Reclamar regalo'], ['einfo', '⏱️ Einfo', 'Tiempos de economía']
     ].map(([command, title, description]) => ({ command, title, description })), msg);
 }
 
