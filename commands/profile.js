@@ -3,11 +3,11 @@ const pendingMarriages = new Map();
 const ALIASES = {
     register: ['registrarse', 'registrar', 'register', 'registro'],
     profile: ['profile', 'perfil', 'user'],
-    marry: ['marry', 'casar'],
-    divorce: ['divorce', 'divorciar'],
+    marry: ['marry', 'casar', 'casarse', 'matrimonio'],
+    divorce: ['divorce', 'divorciar', 'separarse'],
     history: ['history', 'historial', 'historialmatrimonial', 'marryhistory'],
     pfp: ['pfp', 'getpfp', 'foto', 'avatar'],
-    setbirth: ['setbirth', 'setcumple', 'setbirthday'],
+    setbirth: ['setbirth', 'setcumple', 'setbirthday', 'cumple', 'cumpleanos', 'cumpleaños', 'birthday'],
     setdesc: ['setbio', 'setdescription', 'setdescperfil'],
     setgenre: ['setgenre', 'setgenero']
 };
@@ -133,7 +133,7 @@ function economyFor(botData, chatId, jid) {
     return matches.find(user => user?.rpg?.class) || (key ? users[key] : matches[0] || {});
 }
 function profileMenu(prefix = '.') {
-    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
+    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
 }
 
 async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {

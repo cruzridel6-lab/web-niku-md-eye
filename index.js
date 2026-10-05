@@ -1803,9 +1803,9 @@ class BotSession {
                                         case 'economy':
                                         case 'subastas': case 'subasta': case 'subastar': case 'publicarsubasta': case 'pujar': case 'bid': case 'mispujas': case 'missubastas': case 'cancelarsubasta': case 'subastaayuda':
                                             await commands.auction.runAuction(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.', { onChanged: broadcastPublicAuctions }); break;
-                                        case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'divorce': case 'divorciar':
+                                        case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'casarse': case 'matrimonio': case 'divorce': case 'divorciar': case 'separarse':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
-                                        case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'setgenre': case 'setgenero':
+                                        case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'cumple': case 'cumpleanos': case 'cumpleaños': case 'birthday': case 'setgenre': case 'setgenero':
                                         case 'clase': case 'class': case 'job':
                                             await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'open': case 'abrir': await commands.open(this.sock, from, msg, isAdmin, q); break;
