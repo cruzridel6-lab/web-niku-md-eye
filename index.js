@@ -1394,7 +1394,12 @@ class BotSession {
                     const enabled = value => value === true || ['true', 'on', '1', 'activar', 'enable'].includes(String(value || '').toLowerCase());
                     const meta = await this.sock.groupMetadata(id).catch(() => ({ subject: id, desc: '' }));
                     const groupName = meta.subject || id;
-                    const mentions = participants.map(String);
+                    const mentions = participants
+                        .map(participant => typeof participant === 'string'
+                            ? participant
+                            : participant?.phoneNumber || participant?.pn || participant?.id || participant?.jid || participant?.participant)
+                        .filter(Boolean)
+                        .map(String);
                     const names = mentions.map(jid => `@${jid.split('@')[0]}`).join(', ');
                     const welcomeEnabled = enabled(botData.groupWelcome?.[id]);
                     const byeEnabled = enabled(botData.groupBye?.[id]);
