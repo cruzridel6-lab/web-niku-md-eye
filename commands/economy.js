@@ -141,6 +141,25 @@ function normalizeJid(jid) {
     return String(jid || '').split(':')[0].replace(/[^0-9@.a-z_-]/gi, '');
 }
 function numberOf(jid) { return normalizeJid(jid).split('@')[0]; }
+function sameIdentity(botData, left, right) {
+    const a = numberOf(left); const b = numberOf(right);
+    if (!a || !b) return false;
+    if (a === b) return true;
+    const aliases = botData?.phoneAliases || {};
+    const linked = value => {
+        const key = numberOf(value);
+        const result = new Set([key]);
+        for (const [phone, lid] of Object.entries(aliases)) {
+            if (numberOf(phone) === key || numberOf(lid) === key) {
+                result.add(numberOf(phone));
+                result.add(numberOf(lid));
+            }
+        }
+        return result;
+    };
+    const leftIds = linked(left); const rightIds = linked(right);
+    return [...leftIds].some(value => rightIds.has(value));
+}
 function syncClassToRegisteredProfile(botData, jid, user) {
     botData.profiles ||= {};
     botData.phoneAliases ||= {};
@@ -197,7 +216,8 @@ function ensureState(botData, chatId, sender) {
     const state = botData.economy[chatId];
     state.users ||= {};
     state.raids ||= { active: null, history: [] };
-    const jid = normalizeJid(sender);
+    const rawJid = normalizeJid(sender);
+    const jid = Object.keys(state.users).find(key => sameIdentity(botData, key, rawJid)) || rawJid;
     state.users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
     const user = state.users[jid];
     user.coins = Math.max(0, Number(user.coins) || 0);
@@ -205,16 +225,16 @@ function ensureState(botData, chatId, sender) {
     user.lastSeen = Date.now();
     return { state, user, jid };
 }
-function findUser(state, jid) {
+function findUser(state, jid, botData = {}) {
     const wanted = numberOf(jid);
-    const key = Object.keys(state.users || {}).find(k => numberOf(k) === wanted);
+    const key = Object.keys(state.users || {}).find(k => sameIdentity(botData, k, jid));
     return key ? { key, user: state.users[key] } : null;
 }
-function getTarget(msg, q, state) {
+function getTarget(msg, q, state, botData = {}) {
     const context = getContext(msg);
     const raw = context.mentioned || context.quoted || (String(q || '').match(/@?\d{7,16}/)?.[0]);
     if (!raw) return null;
-    return findUser(state, raw.replace(/^@/, '') + (raw.includes('@') ? '' : '@s.whatsapp.net'));
+    return findUser(state, raw.replace(/^@/, '') + (raw.includes('@') ? '' : '@s.whatsapp.net'), botData);
 }
 function cooldown(user, key, ms) {
     const remaining = Math.max(0, ms - (Date.now() - (Number(user[key]) || 0)));
@@ -564,7 +584,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         let changed = false;
         for (const [id, duel] of Object.entries(duels)) {
             if (duel.status !== 'pending' || now - Number(duel.createdAt) <= 10 * 60e3) continue;
-            const challenger = findUser(state, duel.challenger);
+            const challenger = findUser(state, duel.challenger, botData);
             if (challenger) challenger.user.coins = (Number(challenger.user.coins) || 0) + Number(duel.stake || 0);
             delete duels[id];
             changed = true;
@@ -595,12 +615,12 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             return commandReply(sock, chatId, msg, 'duel', `🏆 *RANKING PvP DEL CHAT*\n\n${text}\n\n_Ordenado por victorias, porcentaje y saldo neto._`, { mentions: rows.map(item => item.player) });
         }
         if (['aceptar', 'accept'].includes(action)) {
-            const requestedChallenger = getTarget(msg, args.slice(1).join(' '), state);
-            const pending = Object.values(duels).filter(duel => duel.status === 'pending' && duel.target === jid)
-                .filter(duel => !requestedChallenger || duel.challenger === requestedChallenger.key)
+            const requestedChallenger = getTarget(msg, args.slice(1).join(' '), state, botData);
+            const pending = Object.values(duels).filter(duel => duel.status === 'pending' && sameIdentity(botData, duel.target, jid))
+                .filter(duel => !requestedChallenger || sameIdentity(botData, duel.challenger, requestedChallenger.key))
                 .sort((a, b) => Number(b.createdAt) - Number(a.createdAt))[0];
             if (!pending) return commandReply(sock, chatId, msg, 'duel', `❌ No tienes duelos pendientes. Usa *${prefix}duelo @usuario <cantidad>* para retar a alguien.`);
-            const challenger = findUser(state, pending.challenger);
+            const challenger = findUser(state, pending.challenger, botData);
             const stake = Number(pending.stake) || 0;
             if (!challenger || stake < MIN_BET) { delete duels[pending.id]; save(); return commandReply(sock, chatId, msg, 'duel', '❌ Ese duelo ya no es válido porque falta la cuenta del retador.'); }
             if (user.coins < stake) return commandReply(sock, chatId, msg, 'duel', `❌ Necesitas *${fmt(stake)} ${COIN}* para aceptar el duelo. Tienes *${fmt(user.coins)}*.`);
@@ -626,32 +646,32 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             return commandReply(sock, chatId, msg, 'duel', `⚔️ *DUELO PvP RESUELTO*\n\n🏆 Ganador: @${numberOf(winner.key)}\n💥 Derrotado: @${numberOf(loser)}\n🪙 Pozo ganado: *${fmt(stake * 2)} ${COIN}*\n📈 ELO del ganador: *${winnerRpg.pvp.elo}* (+${eloGain})\n🔥 Racha: *${winnerRpg.pvp.streak}*\n\n💰 Saldo del ganador: *${fmt(winner.account.coins)} ${COIN}*`, { mentions: [winner.key, loser] });
         }
         if (['rechazar', 'reject'].includes(action)) {
-            const pending = Object.values(duels).find(duel => duel.status === 'pending' && duel.target === jid);
+            const pending = Object.values(duels).find(duel => duel.status === 'pending' && sameIdentity(botData, duel.target, jid));
             if (!pending) return commandReply(sock, chatId, msg, 'duel', '❌ No tienes un duelo pendiente que rechazar.');
-            const challenger = findUser(state, pending.challenger);
+            const challenger = findUser(state, pending.challenger, botData);
             if (challenger) challenger.user.coins = (Number(challenger.user.coins) || 0) + Number(pending.stake || 0);
             delete duels[pending.id]; save();
             return commandReply(sock, chatId, msg, 'duel', `↩️ Rechazaste el duelo. Se devolvieron *${fmt(pending.stake)} ${COIN}* al retador.`);
         }
         if (['cancelar', 'cancel'].includes(action)) {
-            const pending = Object.values(duels).find(duel => duel.status === 'pending' && duel.challenger === jid);
+            const pending = Object.values(duels).find(duel => duel.status === 'pending' && sameIdentity(botData, duel.challenger, jid));
             if (!pending) return commandReply(sock, chatId, msg, 'duel', '❌ No tienes un duelo pendiente que cancelar.');
             user.coins += Number(pending.stake) || 0;
             delete duels[pending.id]; save();
             return commandReply(sock, chatId, msg, 'duel', `↩️ Duelo cancelado. Se te devolvieron *${fmt(pending.stake)} ${COIN}*.`);
         }
         if (['estado', 'status', 'lista'].includes(action)) {
-            const pending = Object.values(duels).filter(duel => duel.status === 'pending' && (duel.challenger === jid || duel.target === jid));
+            const pending = Object.values(duels).filter(duel => duel.status === 'pending' && (sameIdentity(botData, duel.challenger, jid) || sameIdentity(botData, duel.target, jid)));
             if (!pending.length) return commandReply(sock, chatId, msg, 'duel', '⚔️ No tienes duelos pendientes.');
-            const text = pending.map(duel => `${duel.challenger === jid ? '📤 Retaste a' : '📥 Te retó'} @${numberOf(duel.challenger === jid ? duel.target : duel.challenger)} · *${fmt(duel.stake)} ${COIN}*`).join('\n');
+            const text = pending.map(duel => `${sameIdentity(botData, duel.challenger, jid) ? '📤 Retaste a' : '📥 Te retó'} @${numberOf(sameIdentity(botData, duel.challenger, jid) ? duel.target : duel.challenger)} · *${fmt(duel.stake)} ${COIN}*`).join('\n');
             return commandReply(sock, chatId, msg, 'duel', `⚔️ *DUELOS PENDIENTES*\n\n${text}\n\nAceptar: *${prefix}duelo aceptar*\nCancelar: *${prefix}duelo cancelar*`, { mentions: pending.flatMap(duel => [duel.challenger, duel.target]) });
         }
-        const target = getTarget(msg, q, state);
+        const target = getTarget(msg, q, state, botData);
         const stake = amount(args[args.length - 1]);
         if (!target || !stake || stake < MIN_BET) return commandReply(sock, chatId, msg, 'duel', `ℹ️ Uso: *${prefix}${HELP.duel}*\nMínimo: *${fmt(MIN_BET)} ${COIN}*`);
-        if (target.key === jid) return commandReply(sock, chatId, msg, 'duel', '❌ No puedes retarte a ti mismo.');
+        if (sameIdentity(botData, target.key, jid)) return commandReply(sock, chatId, msg, 'duel', '❌ No puedes retarte a ti mismo.');
         if (user.coins < stake) return commandReply(sock, chatId, msg, 'duel', `❌ No tienes suficientes ${COIN}. Necesitas *${fmt(stake)}* y tienes *${fmt(user.coins)}*.`);
-        if (Object.values(duels).some(duel => duel.status === 'pending' && (duel.challenger === jid || duel.target === jid))) return commandReply(sock, chatId, msg, 'duel', '⚔️ Tú o ese jugador ya tienen un duelo pendiente.');
+        if (Object.values(duels).some(duel => duel.status === 'pending' && (sameIdentity(botData, duel.challenger, jid) || sameIdentity(botData, duel.target, jid) || sameIdentity(botData, duel.target, target.key)))) return commandReply(sock, chatId, msg, 'duel', '⚔️ Tú o ese jugador ya tienen un duelo pendiente.');
         if (!consumeDailyLimit(botData, user, jid, 'duelStake', stake, ECONOMY_LIMITS.duelStake, 'duel_limit', { stake, target: target.key })) {
             save();
             return commandReply(sock, chatId, msg, 'duel', `🛡️ Alcanzaste el límite diario de apuestas PvP (*${fmt(ECONOMY_LIMITS.duelStake)} ${COIN}*). Vuelve mañana.`);
@@ -1102,7 +1122,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     }
 
     if (canonical === 'balance') {
-        const target = getTarget(msg, q, state) || { key: jid, user };
+        const target = getTarget(msg, q, state, botData) || { key: jid, user };
         const total = (target.user.coins || 0) + (target.user.bank || 0);
         return commandReply(sock, chatId, msg, 'balance', `🧙 *FICHA DEL AVENTURERO @${numberOf(target.key)}*\n\n🪙 Bolsa: *${fmt(target.user.coins)} ${COIN}*\n🏦 Cofre del gremio: *${fmt(target.user.bank)} ${COIN}*\n💎 Patrimonio total: *${fmt(total)} ${COIN}*`, { mentions: [target.key] });
     }
@@ -1182,7 +1202,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         save(); return commandReply(sock, chatId, msg, canonical, `${canonical === 'deposit' ? '🏦 Guardaste en el cofre' : '💳 Retiraste del cofre'} *${fmt(value)} ${COIN}*.\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}* · Cofre: *${fmt(user.bank)} ${COIN}*`);
     }
     if (canonical === 'pay') {
-        const target = getTarget(msg, q, state);
+        const target = getTarget(msg, q, state, botData);
         const value = amount(args[0]);
         if (!target || !value || value === 'all') return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP.pay}*`);
         if (target.key === jid) return reply(sock, chatId, msg, '❌ No puedes transferirte a ti mismo.');
@@ -1234,7 +1254,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         save(); return reply(sock, chatId, msg, won ? `🎉 ¡El destino favoreció tu tirada! Ganaste *${fmt(value)} ${COIN}*.` : `💥 La suerte te abandonó en la taberna. Perdiste *${fmt(value)} ${COIN}*.`);
     }
     if (canonical === 'steal') {
-        const target = getTarget(msg, q, state);
+        const target = getTarget(msg, q, state, botData);
         if (!target) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP.steal}*`);
         if (target.key === jid) return reply(sock, chatId, msg, '❌ No puedes robarte a ti mismo.');
         const wait = cooldown(user, 'lastRob', 10 * 60e3);
