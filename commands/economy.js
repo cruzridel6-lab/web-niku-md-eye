@@ -129,7 +129,7 @@ function reply(sock, chatId, msg, text, extra = {}) {
     return sock.sendMessage(chatId, { text, ...extra }, { quoted: msg });
 }
 function getSender(msg, chatId) {
-    return msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId);
+    return msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId);
 }
 function normalizeJid(jid) {
     return String(jid || '').split(':')[0].replace(/[^0-9@.a-z_-]/gi, '');

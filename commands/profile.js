@@ -111,7 +111,15 @@ function targetName(botData, jid) {
 function economyFor(botData, chatId, jid) {
     const users = botData.economy?.[chatId]?.users || {};
     const wanted = numberOf(jid);
-    const key = Object.keys(users).find(item => numberOf(item) === wanted);
+    const aliases = botData.phoneAliases || {};
+    const identityNumbers = new Set([wanted]);
+    const mappedLid = aliases[wanted];
+    if (mappedLid) identityNumbers.add(numberOf(mappedLid));
+    for (const [phone, lid] of Object.entries(aliases)) {
+        if (numberOf(lid) === wanted) identityNumbers.add(numberOf(phone));
+    }
+    const samePlayer = item => identityNumbers.has(numberOf(item));
+    const key = Object.keys(users).find(samePlayer);
     if (key) {
         const current = users[key];
         if (current?.rpg?.class) return current;
@@ -119,7 +127,7 @@ function economyFor(botData, chatId, jid) {
     const matches = [];
     for (const state of Object.values(botData.economy || {})) {
         const stateUsers = state?.users || {};
-        const stateKey = Object.keys(stateUsers).find(item => numberOf(item) === wanted);
+        const stateKey = Object.keys(stateUsers).find(samePlayer);
         if (stateKey) matches.push(stateUsers[stateKey]);
     }
     return matches.find(user => user?.rpg?.class) || (key ? users[key] : matches[0] || {});
