@@ -1827,6 +1827,7 @@ class BotSession {
                                             break;
                                         case 'balance': case 'bal': case 'coins':
                                         case 'baltop': case 'eboard': case 'economytop':
+                                        case 'duel': case 'duelo': case 'pvp': case 'desafio': case 'desafío':
                                         case 'cf': case 'coinflip': case 'flip': case 'crime': case 'daily':
                                         case 'deposit': case 'dep': case 'd': case 'einfo': case 'economyinfo': case 'cooldowns':
                                         case 'pay': case 'transfer': case 'give': case 'rt': case 'ruleta': case 'roulette': case 'rtl':
@@ -2421,7 +2422,7 @@ function smartHelpText(unknown, prefix = '.') {
     return `🤔 No reconozco *${prefix}${unknown}*.\n\n¿Quizás quisiste usar?\n${lines}\n\nTambién puedes escribir *${prefix}menu* para abrir el menú interactivo o *${prefix}ayuda <comando>* para ver una guía.`;
 }
 function isKnownCommand(name) {
-    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar', 'report', 'reporte', 'subastas', 'subasta', 'subastar', 'publicarsubasta', 'pujar', 'bid', 'mispujas', 'missubastas', 'cancelarsubasta', 'subastaayuda']);
+    const common = new Set(['menu', 'menú', 'allmenu', 'ownermenu', 'groupmenu', 'adminmenu', 'rpgmenu', 'gamemenu', 'economymenu', 'aimenu', 'downloadmenu', 'subbotmenu', 'subbots', 'toolsmenu', 'funmenu', 'animemenu', 'stickermenu', 'imagemenu', 'textmakermenu', 'logomenu', 'miscmenu', 'bugmenu', 'ayuda', 'help', 'reclamar', 'report', 'reporte', 'duel', 'duelo', 'pvp', 'desafio', 'desafío', 'subastas', 'subasta', 'subastar', 'publicarsubasta', 'pujar', 'bid', 'mispujas', 'missubastas', 'cancelarsubasta', 'subastaayuda']);
     const aliases = new Set(['abrir', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker']);
     if (common.has(name) || aliases.has(name) || Object.prototype.hasOwnProperty.call(commands, name)) return true;
     for (const command of Object.values(commands || {})) if (Array.isArray(command?.aliases) && command.aliases.includes(name)) return true;
