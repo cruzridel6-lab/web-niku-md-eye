@@ -139,6 +139,29 @@ function normalizeJid(jid) {
     return String(jid || '').split(':')[0].replace(/[^0-9@.a-z_-]/gi, '');
 }
 function numberOf(jid) { return normalizeJid(jid).split('@')[0]; }
+function syncClassToRegisteredProfile(botData, jid, user) {
+    botData.profiles ||= {};
+    botData.phoneAliases ||= {};
+    const wanted = numberOf(jid);
+    const identities = new Set([wanted]);
+    const add = value => { const n = numberOf(value); if (n) identities.add(n); };
+    for (const [phone, lid] of Object.entries(botData.phoneAliases)) {
+        if (identities.has(numberOf(phone))) add(lid);
+        if (identities.has(numberOf(lid))) add(phone);
+    }
+    let found = false;
+    for (const [key, profile] of Object.entries(botData.profiles)) {
+        const profileNumbers = [numberOf(key), numberOf(profile?.phoneNumber)].filter(Boolean);
+        if (!profileNumbers.some(value => identities.has(value))) continue;
+        profile.rpg ||= {};
+        profile.rpg.class = user.rpg?.class || '';
+        profile.rpg.level = Number(user.rpg?.level) || 1;
+        profile.rpg.xp = Number(user.rpg?.xp) || 0;
+        profile.classKey = profile.rpg.class;
+        found = true;
+    }
+    return found;
+}
 function getContext(msg) {
     const context = msg?.message?.extendedTextMessage?.contextInfo || {};
     return {
@@ -602,6 +625,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         }
         if (user.rpg.class) return reply(sock, chatId, msg, `🛡️ Tu personaje ya pertenece a la clase *${CHARACTER_CLASSES[user.rpg.class]?.label || user.rpg.class}*. La clase se elige una sola vez.`);
         user.rpg.class = requested;
+        syncClassToRegisteredProfile(botData, jid, user);
         activateWelcomeMission(user);
         save();
         const selected = CHARACTER_CLASSES[requested];
