@@ -22,9 +22,18 @@ function canonicalJid(jid) {
     const number = numberOf(jid);
     return number ? `${number}@s.whatsapp.net` : String(jid || '').trim();
 }
-function jidOf(msg, chatId) {
+function resolvePhoneNumber(botData, jid) {
+    const wanted = numberOf(jid);
+    if (!wanted) return '';
+    for (const [phone, lid] of Object.entries(botData?.phoneAliases || {})) {
+        if (numberOf(phone) === wanted || numberOf(lid) === wanted) return numberOf(phone);
+    }
+    const profile = Object.entries(botData?.profiles || {}).find(([key, value]) => numberOf(key) === wanted || numberOf(value?.phoneNumber) === wanted);
+    return numberOf(profile?.[1]?.phoneNumber || profile?.[0]) || wanted;
+}
+function jidOf(msg, chatId, botData) {
     const candidate = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId);
-    return canonicalJid(candidate);
+    return canonicalJid(resolvePhoneNumber(botData, candidate) || candidate);
 }
 function reply(sock, chatId, msg, text, extra = {}) { return sock.sendMessage(chatId, { text, ...extra }, { quoted: msg }); }
 function contextTarget(msg) {
@@ -139,7 +148,7 @@ function profileMenu(prefix = '.') {
 
 async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {
     const canonical = ALIAS_TO_COMMAND[String(command || '').toLowerCase()] || 'profile';
-    const own = jidOf(msg, chatId);
+    const own = jidOf(msg, chatId, botData);
     const ownProfile = ensure(botData, own, msg?.pushName || 'Usuario');
     const save = () => saveBotData();
     if (canonical === 'register') {

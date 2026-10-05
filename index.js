@@ -866,6 +866,16 @@ function getDashboardStats() {
 }
 function publicNumber(jid) { return String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, ''); }
 function sessionNumber(session) { return publicNumber(session?.phoneNumber || session?.sock?.user?.id); }
+function profileIdentityNumbers(key, profile) {
+    const numbers = new Set();
+    const add = value => { const number = publicNumber(value); if (number) numbers.add(number); };
+    add(key); add(profile?.phoneNumber);
+    for (const [phone, lid] of Object.entries(botData.phoneAliases || {})) {
+        if (numbers.has(publicNumber(phone))) add(lid);
+        if (numbers.has(publicNumber(lid))) add(phone);
+    }
+    return numbers;
+}
 function bannedSnapshot() {
     return Object.entries(botData.bannedNumbers || {}).map(([number, entry]) => ({
         number,
@@ -875,7 +885,7 @@ function bannedSnapshot() {
 function registeredProfileFor(jid) {
     const wanted = publicNumber(jid);
     if (!wanted) return null;
-    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => publicNumber(key) === wanted && profile?.registered && profile?.name);
+    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => profileIdentityNumbers(key, profile).has(wanted) && profile?.registered && profile?.name);
     return match ? match[1] : null;
 }
 function registeredProfileForMessage(msg, fallbackJid) {
@@ -894,7 +904,7 @@ function registeredProfileForMessage(msg, fallbackJid) {
 }
 function publicPlayer(jid) {
     const number = publicNumber(jid);
-    const profile = Object.entries(botData.profiles || {}).find(([key, value]) => publicNumber(key) === number && value?.registered && value?.name);
+    const profile = Object.entries(botData.profiles || {}).find(([key, value]) => profileIdentityNumbers(key, value).has(number) && value?.registered && value?.name);
     if (profile) return String(profile[1].name).slice(0, 32);
     return number ? `Jugador ${number.slice(-4)}` : 'Jugador';
 }
