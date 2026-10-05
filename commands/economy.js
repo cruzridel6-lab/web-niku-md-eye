@@ -123,7 +123,7 @@ const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'r
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario', duel: 'duelo @usuario <apuesta> · aceptar · rechazar · cancelar',
     withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
@@ -163,6 +163,26 @@ function syncClassToRegisteredProfile(botData, jid, user) {
         found = true;
     }
     return found;
+}
+function syncClassFromRegisteredProfile(botData, jid, user) {
+    botData.profiles ||= {};
+    botData.phoneAliases ||= {};
+    user.rpg ||= {};
+    const identities = new Set([numberOf(jid)]);
+    const add = value => { const n = numberOf(value); if (n) identities.add(n); };
+    for (const [phone, lid] of Object.entries(botData.phoneAliases)) {
+        if (identities.has(numberOf(phone))) add(lid);
+        if (identities.has(numberOf(lid))) add(phone);
+    }
+    const found = Object.entries(botData.profiles).find(([key, profile]) => [numberOf(key), numberOf(profile?.phoneNumber)].some(value => identities.has(value)));
+    const profileClass = found?.[1]?.rpg?.class || found?.[1]?.rpg?.classKey || found?.[1]?.classKey;
+    if (profileClass && CHARACTER_CLASSES[profileClass]) {
+        user.rpg.class ||= profileClass;
+        user.classKey ||= profileClass;
+        if (!user.rpg.level && found[1].rpg?.level) user.rpg.level = Number(found[1].rpg.level) || 1;
+        if (!user.rpg.xp && found[1].rpg?.xp) user.rpg.xp = Number(found[1].rpg.xp) || 0;
+    }
+    return user.rpg.class || user.classKey || '';
 }
 function getContext(msg) {
     const context = msg?.message?.extendedTextMessage?.contextInfo || {};
@@ -498,6 +518,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (!ALIASES[canonical]) return reply(sock, chatId, msg, menu(prefix));
     const sender = getSender(msg, chatId);
     const { state, user, jid } = ensureState(botData, chatId, sender);
+    syncClassFromRegisteredProfile(botData, jid, user);
     ensureRpg(user);
     ensureFeatureState(user);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
@@ -550,6 +571,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         }
         if (changed) save();
         const action = String(args[0] || '').toLowerCase();
+        if (!action) return commandReply(sock, chatId, msg, 'duel', `⚔️ *CÓMO USAR LOS DUELOS*\n\n1️⃣ Reta a alguien: *${prefix}duelo @usuario 1000*\n2️⃣ El usuario acepta: *${prefix}duelo aceptar*\n3️⃣ El bot sortea el ganador y entrega un pozo equivalente al doble de la apuesta\n\nMínimo: *${fmt(MIN_BET)} ${COIN}*\nVer pendientes: *${prefix}duelo estado*\nRechazar: *${prefix}duelo rechazar*\nCancelar tu reto: *${prefix}duelo cancelar*\nHistorial: *${prefix}duelo historial*`);
         if (['historial', 'history', 'hist'].includes(action)) {
             if (!history.length) return commandReply(sock, chatId, msg, 'duel', '📜 Todavía no hay duelos PvP registrados en este chat.');
             const rows = history.slice(0, 10).map((duel, index) => `${index + 1}. 🏆 @${numberOf(duel.winner)} venció a @${numberOf(duel.loser)} · *${fmt(duel.stake)} ${COIN}* · ${new Date(duel.resolvedAt).toLocaleDateString('es-ES')}`).join('\n');
@@ -603,7 +625,15 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             save();
             return commandReply(sock, chatId, msg, 'duel', `⚔️ *DUELO PvP RESUELTO*\n\n🏆 Ganador: @${numberOf(winner.key)}\n💥 Derrotado: @${numberOf(loser)}\n🪙 Pozo ganado: *${fmt(stake * 2)} ${COIN}*\n📈 ELO del ganador: *${winnerRpg.pvp.elo}* (+${eloGain})\n🔥 Racha: *${winnerRpg.pvp.streak}*\n\n💰 Saldo del ganador: *${fmt(winner.account.coins)} ${COIN}*`, { mentions: [winner.key, loser] });
         }
-        if (['cancelar', 'cancel', 'rechazar', 'reject'].includes(action)) {
+        if (['rechazar', 'reject'].includes(action)) {
+            const pending = Object.values(duels).find(duel => duel.status === 'pending' && duel.target === jid);
+            if (!pending) return commandReply(sock, chatId, msg, 'duel', '❌ No tienes un duelo pendiente que rechazar.');
+            const challenger = findUser(state, pending.challenger);
+            if (challenger) challenger.user.coins = (Number(challenger.user.coins) || 0) + Number(pending.stake || 0);
+            delete duels[pending.id]; save();
+            return commandReply(sock, chatId, msg, 'duel', `↩️ Rechazaste el duelo. Se devolvieron *${fmt(pending.stake)} ${COIN}* al retador.`);
+        }
+        if (['cancelar', 'cancel'].includes(action)) {
             const pending = Object.values(duels).find(duel => duel.status === 'pending' && duel.challenger === jid);
             if (!pending) return commandReply(sock, chatId, msg, 'duel', '❌ No tienes un duelo pendiente que cancelar.');
             user.coins += Number(pending.stake) || 0;

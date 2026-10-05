@@ -68,7 +68,8 @@ function ensure(botData, jid, name = 'Usuario') {
     profile.registered = Boolean(profile.registered);
     profile.description ||= '';
     profile.genre ||= '';
-    profile.birth ||= '';
+    profile.birth ||= profile.birthday || profile.birthDate || profile.cumpleanos || profile.cumpleaños || '';
+    profile.birthday = profile.birth;
     profile.phoneNumber ||= numberOf(key);
     profile.history = Array.isArray(profile.history) ? profile.history : [];
     return profile;
@@ -165,6 +166,7 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     rememberMessageIdentity(botData, msg, chatId);
     const own = jidOf(msg, chatId, botData);
     const ownProfile = ensure(botData, own, msg?.pushName || 'Usuario');
+    botData.pendingMarriages ||= {};
     const save = () => saveBotData();
     if (canonical === 'register') {
         const name = String(q || '').trim().replace(/\s+/g, ' ');
@@ -222,22 +224,24 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
         return reply(sock, chatId, msg, `💔 @${numberOf(own)} y @${numberOf(partner)} se han divorciado.`, { mentions: [own, partner] });
     }
     if (canonical === 'marry') {
-        const target = findTarget(msg, q, own);
+        const explicitTarget = contextTarget(msg) || String(q || '').match(/@?\d{7,16}/)?.[0];
+        const pending = botData.pendingMarriages[own];
+        const accepting = pending && pending.expires > Date.now() && (!explicitTarget || numberOf(explicitTarget) === numberOf(pending.from));
+        const target = accepting ? pending.from : findTarget(msg, q, own);
         if (!target || target === own) return reply(sock, chatId, msg, `💍 Menciona o responde al usuario. Ejemplo: *${prefix}marry @usuario*`);
         const targetProfile = ensure(botData, target);
         if (ownProfile.partner) return reply(sock, chatId, msg, `💍 Ya estás ${spouseWord(ownProfile.genre)} con ${targetName(botData, ownProfile.partner)}.`);
         if (targetProfile.partner) return reply(sock, chatId, msg, '💍 Esa persona ya tiene pareja.');
-        const pending = pendingMarriages.get(own);
-        if (pending && pending.from === target && pending.expires > Date.now()) {
+        if (accepting && pending.from === target) {
             const startedAt = Date.now(); const start = new Date(startedAt).toLocaleString('es-ES');
             ownProfile.partner = target; targetProfile.partner = own;
             ownProfile.history.push({ partner: target, start, startedAt, end: null });
             targetProfile.history.push({ partner: own, start, startedAt, end: null });
-            pendingMarriages.delete(target); save();
+            delete botData.pendingMarriages[own]; save();
             return reply(sock, chatId, msg, `💍 ¡Se han casado @${numberOf(own)} y @${numberOf(target)}!\n\nQue disfruten su nueva etapa.`, { mentions: [own, target] });
         }
-        pendingMarriages.set(target, { from: own, expires: Date.now() + 30 * 60 * 1000 });
-        const expirationTimer = setTimeout(() => { const current = pendingMarriages.get(target); if (current?.from === own) pendingMarriages.delete(target); }, 30 * 60 * 1000);
+        botData.pendingMarriages[target] = { from: own, expires: Date.now() + 30 * 60 * 1000 };
+        const expirationTimer = setTimeout(() => { const current = botData.pendingMarriages[target]; if (current?.from === own) { delete botData.pendingMarriages[target]; save(); } }, 30 * 60 * 1000);
         expirationTimer.unref?.();
         return reply(sock, chatId, msg, `💌 @${numberOf(target)}, @${numberOf(own)} te propone matrimonio. Responde mencionándolo con *${prefix}marry* para aceptar.`, { mentions: [target, own] });
     }
@@ -251,7 +255,8 @@ async function showProfile(sock, chatId, msg, jid, profile, botData) {
     const classes = { guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador' };
     const characterClass = classes[classKey] || '🧭 Sin clase — usa .clase para elegir';
     const partner = profile.partner ? `💍 ${spouseWord(profile.genre)} con *${targetName(botData, profile.partner)}*` : '💍 Sin pareja';
-    const text = `👤 *PERFIL RPG DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🛡️ Clase: *${characterClass}*\n⭐ Nivel: *${Number(rpg.level) || 1}*\n✨ Experiencia: *${Number(rpg.xp) || 0} XP*\n🎂 Cumpleaños: *${formatBirth(profile.birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n🪙 Bolsa: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Cofre: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
+    const birth = profile.birth || profile.birthday || profile.birthDate || economy.birth || economy.birthday || '';
+    const text = `👤 *PERFIL RPG DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🛡️ Clase: *${characterClass}*\n⭐ Nivel: *${Number(rpg.level) || 1}*\n✨ Experiencia: *${Number(rpg.xp) || 0} XP*\n🎂 Cumpleaños: *${formatBirth(birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n🪙 Bolsa: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Cofre: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
     const mentions = profile.partner ? [jid, profile.partner] : [jid];
     const classImage = classImagePath(classKey);
     if (classImage) return sendImageCaption(sock, chatId, msg, classImage, text, { mentions });

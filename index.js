@@ -748,7 +748,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
-let botData = { antilinkGroups: {}, antiSalesGroups: {}, antiStickerGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
+ let botData = { antilinkGroups: {}, antiSalesGroups: {}, antiStickerGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, pendingMarriages: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -769,6 +769,7 @@ function loadBotDataFromDisk() {
     if (!Array.isArray(botData.adminReports)) botData.adminReports = [];
     if (!botData.auctions || typeof botData.auctions !== 'object' || Array.isArray(botData.auctions)) botData.auctions = {};
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
+    if (!botData.pendingMarriages || typeof botData.pendingMarriages !== 'object' || Array.isArray(botData.pendingMarriages)) botData.pendingMarriages = {};
     if (!botData.phoneAliases || typeof botData.phoneAliases !== 'object' || Array.isArray(botData.phoneAliases)) botData.phoneAliases = {};
     if (!botData.groupWarnings || typeof botData.groupWarnings !== 'object' || Array.isArray(botData.groupWarnings)) botData.groupWarnings = {};
     if (!botData.antiSalesGroups || typeof botData.antiSalesGroups !== 'object' || Array.isArray(botData.antiSalesGroups)) botData.antiSalesGroups = {};
