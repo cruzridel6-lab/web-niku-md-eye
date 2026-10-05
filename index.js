@@ -60,6 +60,7 @@ const commands = {
     warn: require('./commands/warn'),
     antisales: require('./commands/antisales'),
     antisticker: require('./commands/antisticker'),
+    strictmode: require('./commands/strictmode'),
     kickoffline: require('./commands/kickoffline'),
     hidetag: require('./commands/hidetag'),
     tagall: require('./commands/tagall'),
@@ -772,6 +773,7 @@ function loadBotDataFromDisk() {
     if (!botData.groupWarnings || typeof botData.groupWarnings !== 'object' || Array.isArray(botData.groupWarnings)) botData.groupWarnings = {};
     if (!botData.antiSalesGroups || typeof botData.antiSalesGroups !== 'object' || Array.isArray(botData.antiSalesGroups)) botData.antiSalesGroups = {};
     if (!botData.antiStickerGroups || typeof botData.antiStickerGroups !== 'object' || Array.isArray(botData.antiStickerGroups)) botData.antiStickerGroups = {};
+    if (!botData.strictGroups || typeof botData.strictGroups !== 'object' || Array.isArray(botData.strictGroups)) botData.strictGroups = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
     if (!botData.superTokens || typeof botData.superTokens !== 'object' || Array.isArray(botData.superTokens) || (!Object.keys(botData.superTokens).length && Object.keys(botData.premiumTokens).length)) botData.superTokens = Object.keys(botData.premiumTokens).length ? botData.premiumTokens : {};
@@ -1669,7 +1671,7 @@ class BotSession {
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public']);
-                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
+                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1802,7 +1804,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antiestiker', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antiestiker', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1865,7 +1867,7 @@ class BotSession {
                                         case 'temporada': case 'season': case 'rankingtemporada':
                                         case 'habilidades': case 'skills': case 'talentos':
                                         case 'pocion': case 'poción': case 'potion': case 'curar':
-                                        case 'estadisticas': case 'estadística': case 'rpgstatus': case 'poder':
+                                        case 'estadisticas': case 'estadística': case 'rpgstatus': case 'poder': case 'prestamo': case 'préstamo': case 'loan':
                                             await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'animemenu': await sendCategoryMenu(this.sock, from, msg, '🎌 ANIME MENU', ['anime', 'angry', 'bath', 'bite', 'bleh', 'blush', 'bored', 'coffee', 'cry', 'cuddle', 'dance', 'drunk', 'eat', 'handhold', 'happy', 'highfive', 'hug', 'jump', 'kill', 'kiss', 'kisscheek', 'laugh', 'lick', 'love', 'nope', 'pat', 'pout', 'punch', 'push', 'run', 'sad', 'scared', 'seduce', 'shy', 'slap', 'sleep', 'smile', 'smoke', 'spit', 'step', 'think', 'walk', 'wave', 'wink', 'manga']); break;
                                         case 'stickermenu': await sendCategoryMenu(this.sock, from, msg, '🏷️ STICKER MENU', ['sticker', 'textsticker', 'emojimix', 'toimg']); break;
@@ -1908,6 +1910,7 @@ class BotSession {
                                         case 'advertencias': case 'warnings': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['lista', ...args]); break;
                                         case 'quitaradvertencia': case 'quitaradvertencias': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['quitar', ...args]); break;
                                         case 'antiventas': case 'antisales': await commands.antisales(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'modoestricto': case 'modoeatrito': case 'strictmode': await commands.strictmode(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'anti':
                                             if (['sticker', 'stickers', 'estiker', 'antistiker', 'antisticker'].includes(String(args[0] || '').toLowerCase())) await commands.antisticker(this.sock, from, msg, isAdmin, botData, saveBotData, args.slice(1));
                                             else await commands.antisticker(this.sock, from, msg, isAdmin, botData, saveBotData, args);

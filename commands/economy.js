@@ -115,7 +115,8 @@ const ALIASES = {
     steal: ['steal', 'rob', 'robar'],
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
     work: ['work', 'w'],
-    investment: ['invertir', 'inversion', 'inversión']
+    investment: ['invertir', 'inversion', 'inversión'],
+    loan: ['prestamo', 'préstamo', 'loan']
 };
 const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'registro', 'profile', 'perfil', 'user', 'marry', 'casar', 'divorce', 'divorciar', 'history', 'historial', 'historialmatrimonial', 'marryhistory', 'pfp', 'getpfp', 'foto', 'avatar', 'setbio', 'setdescription', 'setdescperfil', 'setbirth', 'setcumple', 'setbirthday', 'setgenre', 'setgenero']);
 
@@ -123,7 +124,7 @@ const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
     roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario',
-    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -416,7 +417,7 @@ function consumeDailyLimit(botData, user, jid, field, amountValue, limit, type, 
     return true;
 }
 function menu(prefix = '.') {
-    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 🖼️ ${prefix}pfp · Foto de perfil\n│ ✍️ ${prefix}setbio · Descripción del perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ⚧️ ${prefix}setgenre · Género\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de monedas de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 📊 ${prefix}estadisticas · Estadísticas RPG\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏛️ ${prefix}subastas · Casa de subastas RPG\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 💸 ${prefix}pay · Entregar monedas\n│ 📈 ${prefix}invertir · Inversión de 5 minutos\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🧪 ${prefix}pocion · Curar al aventurero\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 🖼️ ${prefix}pfp · Foto de perfil\n│ ✍️ ${prefix}setbio · Descripción del perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ⚧️ ${prefix}setgenre · Género\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de monedas de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 📊 ${prefix}estadisticas · Estadísticas RPG\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏛️ ${prefix}subastas · Casa de subastas RPG\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 🏦 ${prefix}prestamo · Préstamo RPG\n│ 💸 ${prefix}pay · Entregar monedas\n│ 📈 ${prefix}invertir · Inversión de 5 minutos\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🧪 ${prefix}pocion · Curar al aventurero\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 function tutorialText(user, prefix = '.') {
     const mission = user.rpg?.welcomeMission;
@@ -1084,6 +1085,40 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (!rows.length) return reply(sock, chatId, msg, `❌ Página inválida. Usa una página entre 1 y ${pages}.`);
         const text = rows.map((x, i) => `${(page - 1) * 10 + i + 1}. @${numberOf(x.key)} — *${fmt(x.total)} ${COIN}*`).join('\n');
         return reply(sock, chatId, msg, `🏆 *RANKING DE AVENTUREROS*\n\n${text}\n\n_Página ${page}/${pages}_`, { mentions: rows.map(x => x.key) });
+    }
+    if (canonical === 'loan') {
+        const action = String(args[0] || 'estado').toLowerCase();
+        const loan = user.loan;
+        if (loan && !loan.paid && Date.now() > Number(loan.dueAt) && !loan.defaulted) {
+            loan.total = Math.ceil(Number(loan.total) * 1.10);
+            loan.defaulted = true;
+            save();
+        }
+        if (['estado', 'status', 'ver'].includes(action)) {
+            if (!loan || loan.paid) return reply(sock, chatId, msg, '🏦 No tienes un préstamo activo.\n\nSolicita uno con *.prestamo <cantidad>*.\nLímite: *20.000 monedas* · Interés: *20%* · Plazo: *7 días*');
+            return reply(sock, chatId, msg, `🏦 *PRÉSTAMO ACTIVO*\n\n🪙 Recibido: *${fmt(loan.principal)} ${COIN}*\n💳 Total a devolver: *${fmt(loan.total)} ${COIN}*\n📅 Vence: *${new Date(loan.dueAt).toLocaleDateString('es-ES')}*${loan.defaulted ? '\n⚠️ Se aplicó un recargo del 10% por vencimiento.' : ''}\n\nPaga con: *.prestamo pagar <cantidad|todo>*`);
+        }
+        if (['pagar', 'pago', 'repay'].includes(action)) {
+            if (!loan || loan.paid) return reply(sock, chatId, msg, '✅ No tienes un préstamo pendiente.');
+            const requested = amount(args[1]);
+            if (!requested) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}prestamo pagar <cantidad|todo>*`);
+            const payment = Math.min(requested === 'all' ? loan.total : requested, loan.total, user.coins);
+            if (payment < 1) return reply(sock, chatId, msg, '❌ No tienes monedas suficientes para realizar un pago.');
+            user.coins -= payment;
+            loan.total -= payment;
+            if (loan.total <= 0) { loan.total = 0; loan.paid = true; loan.paidAt = new Date().toISOString(); }
+            save();
+            return reply(sock, chatId, msg, `${loan.paid ? '✅ *PRÉSTAMO PAGADO COMPLETAMENTE*' : '💳 *PAGO REGISTRADO*'}\n\n🪙 Pago: *${fmt(payment)} ${COIN}*\n${loan.paid ? '🎉 Ya no tienes deuda.' : `📌 Saldo pendiente: *${fmt(loan.total)} ${COIN}*`}`);
+        }
+        const requested = amount(args[0]);
+        const maxLoan = 20000;
+        if (loan && !loan.paid) return reply(sock, chatId, msg, `❌ Ya tienes un préstamo activo de *${fmt(loan.total)} ${COIN}*. Usa *.prestamo estado* o *.prestamo pagar todo*.`);
+        if (!requested || requested === 'all' || requested < 1000 || requested > maxLoan) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}prestamo <cantidad>*\nMínimo: *1.000* · Máximo: *${fmt(maxLoan)} ${COIN}*\nInterés: *20%* · Plazo: *7 días*`);
+        const principal = requested;
+        user.coins += principal;
+        user.loan = { principal, total: Math.ceil(principal * 1.20), createdAt: new Date().toISOString(), dueAt: Date.now() + 7 * 86400000, paid: false, defaulted: false };
+        save();
+        return reply(sock, chatId, msg, `🏦 *PRÉSTAMO APROBADO*\n\n🪙 Recibiste: *${fmt(principal)} ${COIN}*\n💳 Devolverás: *${fmt(user.loan.total)} ${COIN}*\n📅 Vencimiento: *${new Date(user.loan.dueAt).toLocaleDateString('es-ES')}*\n\nUsa *.prestamo estado* para consultar o *.prestamo pagar todo* para liquidarlo.`);
     }
     if (canonical === 'daily') {
         const wait = cooldown(user, 'lastDaily', 24 * 60 * 60 * 1000);
