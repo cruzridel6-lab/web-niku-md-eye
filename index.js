@@ -1678,7 +1678,7 @@ class BotSession {
 ┃ ➜ *.registrarse Carlos*
 ┃
 ┃ 🏆 Tu nombre aparecerá en los rankings
-┃ de logros y Niku Coins.
+┃ de logros y monedas de oro.
 ┃
 ╰━━━〔 🪙 *NIKU MD · RPG* 〕━━━╯` }, { quoted: msg });
                                 return;
@@ -1781,7 +1781,7 @@ class BotSession {
                                             reward.claimedAt = new Date().toISOString();
                                             saveBotData();
                                             const toolsText = Object.keys(rewardTools).length ? `\n🧰 Herramientas: *${Object.keys(rewardTools).map(tool => tool === 'pico' ? '⛏️ Pico' : tool === 'espada' ? '⚔️ Espada' : '🎣 Caña').join(', ')}*` : '';
-                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*\n\n🪙 Recibiste: *${coins.toLocaleString('es-ES')} Niku Coins*${toolsText}\n💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} Niku Coins*\n\n✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
+                                            await this.sock.sendMessage(from, { text: `🎉 *¡Regalo reclamado!*\n\n🪙 Recibiste: *${coins.toLocaleString('es-ES')} monedas de oro*${toolsText}\n💰 Tu saldo actual: *${wallet.coins.toLocaleString('es-ES')} monedas de oro*\n\n✨ Gracias por usar NIKUBOT MD.` }, { quoted: msg });
                                             break;
                                         }
                                         case 'book':
@@ -1829,7 +1829,7 @@ class BotSession {
                                                 if (starterGranted) publishStarterPackEvent(sender);
                                                 const wallet = Object.entries(botData.economy?.[from]?.users || {}).find(([key]) => publicNumber(key) === publicNumber(sender))?.[1];
                                                 if (!wasRegistered && isRegistered && !wallet?.rpg?.class) {
-                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 Niku Coins*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
+                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 monedas de oro*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
                                                 }
                                             }
                                             break;
@@ -2231,7 +2231,7 @@ class BotSession {
                             `*🎵 CANCIÓN ACTUAL:*\n` +
                             `> Sin canción seleccionada\n\n` +
                             `🎁 *PACK INICIAL PARA PRINCIPIANTES:*\n` +
-                            `🪙 1.000 Niku Coins\n` +
+                            `🪙 1.000 monedas de oro\n` +
                             `⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n` +
                             `🔐 Regístrate con *.registrarse Tu Nombre* para recibirlo.\n\n` +
                             `Escribe *.menu* para explorar todas las funciones.\n\n` +
@@ -2406,7 +2406,7 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
 
 async function sendRpgInteractiveMenu(sock, jid, msg) {
     await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
-        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['pfp', '🖼️ Foto', 'Ver foto de perfil'], ['setbio', '✍️ Biografía', 'Editar descripción'], ['setbirth', '🎂 Cumpleaños', 'Guardar cumpleaños'], ['setgenre', '⚧️ Género', 'Configurar género'], ['marry', '💍 Casarse', 'Forjar vínculo'], ['divorce', '💔 Divorciarse', 'Terminar vínculo'], ['historial', '📜 Historial', 'Historial matrimonial'], ['registrarse', '📝 Registrarse', 'Crear personaje'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Mochila y equipamiento'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['pocion', '🧪 Poción', 'Curar al aventurero'], ['titulos', '🏷️ Títulos', 'Títulos del aventurero'], ['temporada', '🏆 Temporada', 'Ranking de temporada'], ['fabricar', '🔨 Fabricar', 'Crear objetos'], ['mercader', '🧑‍🌾 Mercader', 'Comprar herramientas y equipo'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Inversión de 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros'], ['balance', '💰 Balance', 'Ver Niku Coins'], ['nivel', '⭐ Nivel', 'Ver experiencia'], ['estadisticas', '📊 Estadísticas', 'Estadísticas RPG'], ['rpgstatus', '📈 Poder', 'Estado del aventurero'], ['minar', '⛏️ Minar', 'Extraer recursos'], ['pescar', '🎣 Pescar', 'Pescar recursos'], ['cazar', '🏹 Cazar', 'Cazar monstruos'], ['mazmorra', '🏰 Mazmorra', 'Explorar la mazmorra'], ['reparar', '🔧 Reparar', 'Reparar la mazmorra'], ['explorar', '🧭 Explorar', 'Explorar regiones'], ['recolectar', '🌿 Recolectar', 'Recolectar recursos'], ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'], ['campaña', '📜 Campaña', 'Misiones de historia'], ['clan', '⚔️ Clan', 'Clanes y guerras'], ['daily', '🎁 Daily', 'Recompensa diaria'], ['work', '💼 Work', 'Misión del gremio'], ['deposit', '🏦 Depositar', 'Guardar monedas'], ['withdraw', '💳 Retirar', 'Sacar monedas'], ['pay', '💸 Pagar', 'Enviar monedas'], ['coinflip', '🎰 Coinflip', 'Apostar monedas'], ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'], ['crime', '🕵️ Crime', 'Encargo clandestino'], ['rob', '🦹 Robar', 'Golpe de pícaro'], ['premio', '🎁 Premio', 'Reclamar regalo'], ['einfo', '⏱️ Einfo', 'Tiempos de economía']
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['pfp', '🖼️ Foto', 'Ver foto de perfil'], ['setbio', '✍️ Biografía', 'Editar descripción'], ['setbirth', '🎂 Cumpleaños', 'Guardar cumpleaños'], ['setgenre', '⚧️ Género', 'Configurar género'], ['marry', '💍 Casarse', 'Forjar vínculo'], ['divorce', '💔 Divorciarse', 'Terminar vínculo'], ['historial', '📜 Historial', 'Historial matrimonial'], ['registrarse', '📝 Registrarse', 'Crear personaje'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Mochila y equipamiento'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['pocion', '🧪 Poción', 'Curar al aventurero'], ['titulos', '🏷️ Títulos', 'Títulos del aventurero'], ['temporada', '🏆 Temporada', 'Ranking de temporada'], ['fabricar', '🔨 Fabricar', 'Crear objetos'], ['mercader', '🧑‍🌾 Mercader', 'Comprar herramientas y equipo'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Inversión de 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros'], ['balance', '💰 Balance', 'Ver monedas de oro'], ['nivel', '⭐ Nivel', 'Ver experiencia'], ['estadisticas', '📊 Estadísticas', 'Estadísticas RPG'], ['rpgstatus', '📈 Poder', 'Estado del aventurero'], ['minar', '⛏️ Minar', 'Extraer recursos'], ['pescar', '🎣 Pescar', 'Pescar recursos'], ['cazar', '🏹 Cazar', 'Cazar monstruos'], ['mazmorra', '🏰 Mazmorra', 'Explorar la mazmorra'], ['reparar', '🔧 Reparar', 'Reparar la mazmorra'], ['explorar', '🧭 Explorar', 'Explorar regiones'], ['recolectar', '🌿 Recolectar', 'Recolectar recursos'], ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'], ['campaña', '📜 Campaña', 'Misiones de historia'], ['clan', '⚔️ Clan', 'Clanes y guerras'], ['daily', '🎁 Daily', 'Recompensa diaria'], ['work', '💼 Work', 'Misión del gremio'], ['deposit', '🏦 Depositar', 'Guardar monedas'], ['withdraw', '💳 Retirar', 'Sacar monedas'], ['pay', '💸 Pagar', 'Enviar monedas'], ['coinflip', '🎰 Coinflip', 'Apostar monedas'], ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'], ['crime', '🕵️ Crime', 'Encargo clandestino'], ['rob', '🦹 Robar', 'Golpe de pícaro'], ['premio', '🎁 Premio', 'Reclamar regalo'], ['einfo', '⏱️ Einfo', 'Tiempos de economía']
     ].map(([command, title, description]) => ({ command, title, description })), msg);
 }
 
@@ -2698,7 +2698,7 @@ io.on('connection', (socket) => {
             if (remaining === safeAmount) return adminUserStatus(socket, 'Ese usuario no tiene saldo suficiente.', false);
         }
         saveBotData();
-        return adminUserStatus(socket, `${action === 'add' ? 'Agregados' : 'Quitados'} ${safeAmount.toLocaleString('es-ES')} ${wallet === 'bank' ? 'coins del banco' : 'Niku Coins'} a ${target}.`);
+        return adminUserStatus(socket, `${action === 'add' ? 'Agregados' : 'Quitados'} ${safeAmount.toLocaleString('es-ES')} ${wallet === 'bank' ? 'coins del banco' : 'monedas de oro'} a ${target}.`);
     });
     socket.on('admin-user-achievement', ({ number, achievementId, action = 'add' } = {}) => {
         if (!socket.authenticated) return;
@@ -2757,7 +2757,7 @@ io.on('connection', (socket) => {
             return;
         }
         saveBotData();
-        socket.emit('admin-users-status', { ok: true, message: `Se quitaron ${removed.toLocaleString('es-ES')} Niku Coins a ${target}.` });
+        socket.emit('admin-users-status', { ok: true, message: `Se quitaron ${removed.toLocaleString('es-ES')} monedas de oro a ${target}.` });
         emitAdminUsers(socket);
         io.emit('public-leaderboard', publicLeaderboardSnapshot());
     });
@@ -2778,7 +2778,7 @@ io.on('connection', (socket) => {
         if (!socket.authenticated) return;
         const safeCoins = Math.floor(Number(coins) || 0);
         if (!Number.isSafeInteger(safeCoins) || safeCoins < 1 || safeCoins > 1000000000) {
-            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 Niku Coins.' });
+            socket.emit('admin-premium-status', { ok: false, message: 'Indica una cantidad válida entre 1 y 1.000.000.000 monedas de oro.' });
             return;
         }
         const result = createRewardToken(safeCoins, tools);

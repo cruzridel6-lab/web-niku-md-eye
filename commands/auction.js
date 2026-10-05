@@ -1,4 +1,5 @@
-const COIN = '🪙 Niku Coins';
+const { commandImagePath, sendImageCaption } = require('../lib/rpgMedia');
+const COIN = '🪙 monedas de oro';
 const COMMISSION_RATE = 0.05;
 const MIN_PRICE = 50;
 const MAX_DURATION_MINUTES = 24 * 60;
@@ -15,6 +16,7 @@ function numberOf(jid) { return String(jid || '').split('@')[0].split(':')[0].re
 function normalizeJid(jid) { return String(jid || '').split(':')[0].replace(/[^0-9@.a-z_-]/gi, ''); }
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
 function reply(sock, chatId, msg, text) { return sock.sendMessage(chatId, { text }, { quoted: msg }); }
+function imageReply(sock, chatId, msg, text, extra = {}) { return sendImageCaption(sock, chatId, msg, commandImagePath('auction'), text, extra); }
 function senderOf(msg, chatId) { return normalizeJid(msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId)); }
 function ensureUser(botData, chatId, jid) {
   botData.economy ||= {};
@@ -111,33 +113,33 @@ async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, p
   const args = parseArgs(q);
   const sender = senderOf(msg, chatId);
   const own = getUser(botData, chatId, sender).user;
-  if (['subastaayuda', 'auctionhelp'].includes(canonical)) return reply(sock, chatId, msg, auctionHelp(prefix));
+  if (['subastaayuda', 'auctionhelp'].includes(canonical)) return imageReply(sock, chatId, msg, auctionHelp(prefix));
   if (['subastas', 'subasta', 'auction', 'auctions'].includes(canonical) || ['ver', 'lista', 'listar'].includes(String(args[0] || '').toLowerCase())) {
-    return reply(sock, chatId, msg, formatListings(activeAuctions(botData), prefix));
+    return imageReply(sock, chatId, msg, formatListings(activeAuctions(botData), prefix));
   }
   if (['missubastas', 'misubastas'].includes(canonical)) {
     const rows = activeAuctions(botData).filter(item => item.seller === sender);
-    return reply(sock, chatId, msg, rows.length ? `📦 *TUS SUBASTAS*\n\n${rows.map(item => `*${item.id}* · ${item.itemName} · ${fmt(item.currentBid || item.startingPrice)} ${COIN} · ${item.bids.length} pujas`).join('\n')}` : '📦 No tienes subastas activas.');
+    return imageReply(sock, chatId, msg, rows.length ? `📦 *TUS SUBASTAS*\n\n${rows.map(item => `*${item.id}* · ${item.itemName} · ${fmt(item.currentBid || item.startingPrice)} ${COIN} · ${item.bids.length} pujas`).join('\n')}` : '📦 No tienes subastas activas.');
   }
   if (['mispujas', 'mybids'].includes(canonical)) {
     const rows = activeAuctions(botData).filter(item => item.bids?.some(bid => bid.bidder === sender));
-    return reply(sock, chatId, msg, rows.length ? `🔨 *TUS PUJAS*\n\n${rows.map(item => { const bid = [...item.bids].reverse().find(b => b.bidder === sender); return `*${item.id}* · ${item.itemName} · Tu puja: *${fmt(bid.amount)} ${COIN}*`; }).join('\n')}` : '🔨 No tienes pujas activas.');
+    return imageReply(sock, chatId, msg, rows.length ? `🔨 *TUS PUJAS*\n\n${rows.map(item => { const bid = [...item.bids].reverse().find(b => b.bidder === sender); return `*${item.id}* · ${item.itemName} · Tu puja: *${fmt(bid.amount)} ${COIN}*`; }).join('\n')}` : '🔨 No tienes pujas activas.');
   }
   if (['cancelarsubasta', 'cancelauction'].includes(canonical)) {
     const auction = botData.auctions[args[0]];
-    if (!auction || auction.status !== 'active' || auction.seller !== sender) return reply(sock, chatId, msg, '❌ No se encontró tu subasta activa.');
-    if (auction.bids?.length) return reply(sock, chatId, msg, '❌ No puedes cancelar una subasta que ya tiene pujas.');
+    if (!auction || auction.status !== 'active' || auction.seller !== sender) return imageReply(sock, chatId, msg, '❌ No se encontró tu subasta activa.');
+    if (auction.bids?.length) return imageReply(sock, chatId, msg, '❌ No puedes cancelar una subasta que ya tiene pujas.');
     returnLoot(botData, auction); auction.status = 'cancelled'; auction.endedAt = new Date().toISOString(); saveBotData(); touch(hooks);
-    return reply(sock, chatId, msg, `✅ Subasta *${auction.id}* cancelada. El objeto volvió a tu inventario.`);
+    return imageReply(sock, chatId, msg, `✅ Subasta *${auction.id}* cancelada. El objeto volvió a tu inventario.`);
   }
   if (['pujar', 'bid'].includes(canonical)) {
     const auction = botData.auctions[args[0]];
     const amount = Math.floor(Number(args[1]));
-    if (!auction || auction.status !== 'active' || Number(auction.expiresAt) <= now) return reply(sock, chatId, msg, '❌ La subasta no existe o ya terminó. Usa *.subastas*.');
-    if (auction.seller === sender) return reply(sock, chatId, msg, '❌ No puedes pujar por tu propia publicación.');
+    if (!auction || auction.status !== 'active' || Number(auction.expiresAt) <= now) return imageReply(sock, chatId, msg, '❌ La subasta no existe o ya terminó. Usa *.subastas*.');
+    if (auction.seller === sender) return imageReply(sock, chatId, msg, '❌ No puedes pujar por tu propia publicación.');
     const minimum = Math.max(Number(auction.startingPrice) || MIN_PRICE, (Number(auction.currentBid) || 0) + 1);
-    if (!Number.isFinite(amount) || amount < minimum) return reply(sock, chatId, msg, `❌ La puja mínima es *${fmt(minimum)} ${COIN}*.`);
-    if (own.coins < amount) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}. Saldo: *${fmt(own.coins)}*.`);
+    if (!Number.isFinite(amount) || amount < minimum) return imageReply(sock, chatId, msg, `❌ La puja mínima es *${fmt(minimum)} ${COIN}*.`);
+    if (own.coins < amount) return imageReply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}. Saldo: *${fmt(own.coins)}*.`);
     const previous = auction.bids?.[auction.bids.length - 1];
     if (previous) refundBid(botData, previous);
     own.coins -= amount;
@@ -145,7 +147,7 @@ async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, p
     auction.bids.push({ bidder: sender, chatId, amount, createdAt: new Date(now).toISOString() });
     auction.currentBid = amount;
     saveBotData(); touch(hooks);
-    return reply(sock, chatId, msg, `🔨 *PUJA REGISTRADA*\n\n${auction.itemName}\n💰 Oferta: *${fmt(amount)} ${COIN}*\n🧾 ID: *${auction.id}*\n⏳ La puja queda reservada hasta el cierre.`);
+    return imageReply(sock, chatId, msg, `🔨 *PUJA REGISTRADA*\n\n${auction.itemName}\n💰 Oferta: *${fmt(amount)} ${COIN}*\n🧾 ID: *${auction.id}*\n⏳ La puja queda reservada hasta el cierre.`);
   }
   if (['subastar', 'publicarsubasta', 'sellauction'].includes(canonical)) {
     const itemId = String(args[0] || '').toLowerCase();
@@ -153,19 +155,19 @@ async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, p
     const price = Math.floor(Number(args[1]));
     const duration = Math.min(MAX_DURATION_MINUTES, Math.max(5, Math.floor(Number(args[2]) || 60)));
     own.loot ||= {};
-    if (!item) return reply(sock, chatId, msg, `❌ Objeto no válido.\n\n${auctionHelp(prefix)}`);
-    if ((Number(own.loot[itemId]) || 0) < 1) return reply(sock, chatId, msg, `❌ No tienes *${item.name}*. Consíguelo en *${prefix}mazmorra*.`);
-    if (!Number.isFinite(price) || price < MIN_PRICE) return reply(sock, chatId, msg, `❌ El precio inicial mínimo es *${fmt(MIN_PRICE)} ${COIN}*.`);
+    if (!item) return imageReply(sock, chatId, msg, `❌ Objeto no válido.\n\n${auctionHelp(prefix)}`);
+    if ((Number(own.loot[itemId]) || 0) < 1) return imageReply(sock, chatId, msg, `❌ No tienes *${item.name}*. Consíguelo en *${prefix}mazmorra*.`);
+    if (!Number.isFinite(price) || price < MIN_PRICE) return imageReply(sock, chatId, msg, `❌ El precio inicial mínimo es *${fmt(MIN_PRICE)} ${COIN}*.`);
     const activeMine = activeAuctions(botData).filter(row => row.seller === sender).length;
-    if (activeMine >= 5) return reply(sock, chatId, msg, '❌ Solo puedes tener 5 subastas activas al mismo tiempo.');
+    if (activeMine >= 5) return imageReply(sock, chatId, msg, '❌ Solo puedes tener 5 subastas activas al mismo tiempo.');
     own.loot[itemId] -= 1;
     if (own.loot[itemId] <= 0) delete own.loot[itemId];
     const auction = { id: `auc-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, seller: sender, sellerChatId: chatId, itemId, itemName: item.name, quantity: 1, startingPrice: price, currentBid: 0, bids: [], status: 'active', createdAt: new Date(now).toISOString(), expiresAt: now + duration * 60000 };
     botData.auctions[auction.id] = auction;
     saveBotData(); touch(hooks);
-    return reply(sock, chatId, msg, `✅ *SUBASTA PUBLICADA*\n\n📦 ${item.name}\n🧾 ID: *${auction.id}*\n💰 Precio inicial: *${fmt(price)} ${COIN}*\n⏳ Duración: *${duration} minutos*\n\nEl objeto quedó reservado hasta que termine la subasta.`);
+    return imageReply(sock, chatId, msg, `✅ *SUBASTA PUBLICADA*\n\n📦 ${item.name}\n🧾 ID: *${auction.id}*\n💰 Precio inicial: *${fmt(price)} ${COIN}*\n⏳ Duración: *${duration} minutos*\n\nEl objeto quedó reservado hasta que termine la subasta.`);
   }
-  return reply(sock, chatId, msg, auctionHelp(prefix));
+  return imageReply(sock, chatId, msg, auctionHelp(prefix));
 }
 
 module.exports = { runAuction, snapshot, settleExpiredAuctions, LOOT, COMMISSION_RATE, MIN_PRICE, MAX_DURATION_MINUTES };
