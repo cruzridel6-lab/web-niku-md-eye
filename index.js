@@ -1408,7 +1408,10 @@ class BotSession {
                             ? (botData.groupWelcomeText?.[id] || '👋 ¡Bienvenido/a @user a @grupo!')
                             : (botData.groupByeText?.[id] || '👋 @user ha salido de @grupo.');
                         const text = String(template).replace(/@user/g, names).replace(/@grupo/g, groupName).replace(/@desc/g, meta.desc || '');
-                        await this.sock.sendMessage(id, { text, mentions });
+                        let profileImageUrl = null;
+                        if (mentions[0] && typeof this.sock.profilePictureUrl === 'function') profileImageUrl = await this.sock.profilePictureUrl(mentions[0], 'image').catch(() => null);
+                        if (profileImageUrl) await this.sock.sendMessage(id, { image: { url: profileImageUrl }, caption: text, mentions });
+                        else await this.sock.sendMessage(id, { text, mentions });
                     }
                     if (botData.groupAlerts[id] && (action === 'promote' || action === 'demote')) {
                         await this.sock.sendMessage(id, { text: `${action === 'promote' ? '⬆️' : '⬇️'} ${names} ${action === 'promote' ? 'ahora es administrador' : 'ya no es administrador'}.`, mentions });
