@@ -1,6 +1,7 @@
 const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
 const { classImagePath, commandImagePath, shopImagePath, dungeonImagePath, sendImageCaption } = require('../lib/rpgMedia');
+const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
 const INVESTMENT_DURATION = 5 * 60 * 1000;
@@ -234,7 +235,14 @@ function equipmentAdvantageText(user, activity) {
     const percent = Math.round((equipmentRewardMultiplier(user, activity) - 1) * 100);
     return percent > 0 ? `\n⚔️ Equipamiento activo: *+${percent}% de recompensa*` : '';
 }
-function lootById(id) { return DUNGEON_LOOT.find(item => item.id === id); }
+function lootById(id) {
+    const raw = String(id || '').toLowerCase();
+    const [baseId, rarity] = raw.split(':');
+    const item = DUNGEON_LOOT.find(entry => entry.id === baseId);
+    if (!item) return null;
+    const info = rarityInfo(rarity);
+    return { ...item, id: raw, name: `${info.icon} ${info.label} ${item.name}`, sellPrice: Math.floor(item.sellPrice * info.multiplier) };
+}
 function raidClassMultiplier(user) {
     return ({ guerrero: 1.25, mago: 1.15, picaro: 1.20, tirador: 1.20 })[user.rpg?.class] || 1;
 }
@@ -489,6 +497,8 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (!ALIASES[canonical]) return reply(sock, chatId, msg, menu(prefix));
     const sender = getSender(msg, chatId);
     const { state, user, jid } = ensureState(botData, chatId, sender);
+    ensureRpg(user);
+    ensureFeatureState(user);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
     await resumeInvestmentsForChat(sock, chatId, botData, saveBotData);
@@ -499,7 +509,11 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const mention = [jid];
     const commandAchievements = addStat(user, 'commandsUsed', 1);
     const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
+    const completedMissions = recordMissionEvent(user, canonical, 1);
+    const randomEvent = maybeRandomEvent(user);
     if (xpEvent.gained || commandAchievements.length) save();
+    if (randomEvent) { const eventXp = addXp(user, randomEvent.xp); await reply(sock, chatId, msg, `${randomEvent.title}\n\n🪙 Premio: *+${fmt(randomEvent.coins)} ${COIN}*\n✨ XP extra: *+${randomEvent.xp}*${levelUpText(eventXp)}`); save(); }
+    if (completedMissions.length) { completedMissions.forEach(mission => addXp(user, mission.xp)); save(); }
 
     if (canonical === 'investment') {
         botData.investments ||= {};
@@ -827,6 +841,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
 
     if (canonical === 'mission') {
         const action = String(args[0] || '').toLowerCase();
+        if (action === 'diarias' || action === 'diaria' || action === 'semanales' || action === 'semanal' || !action) {
+            return commandReply(sock, chatId, msg, 'mission', `📜 *MISIONES DEL AVENTURERO*\n\n${missionText(user, prefix)}`);
+        }
         const welcome = user.rpg?.welcomeMission;
         const welcomeText = welcome ? `🎯 *MISIÓN DE BIENVENIDA*\n${welcome.title}\n${welcome.objective}\nProgreso: *${Math.min(Number(welcome.progress) || 0, Number(welcome.target) || 1)}/${welcome.target}*\n${welcome.claimed ? '✅ Recompensa entregada: 500 monedas de oro + 40 XP' : '🎁 Completa tu primer combate para recibir 500 monedas de oro + 40 XP.'}` : '';
         if (action === 'nueva' && user.mission && !user.mission.completed) return commandReply(sock, chatId, msg, 'mission', '📜 Ya tienes una misión activa. Complétala antes de pedir otra.');
@@ -845,6 +862,11 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (dungeon.integrity < 25) return commandReply(sock, chatId, msg, 'dungeon', `🏚️ Tu mazmorra está demasiado dañada (*${dungeon.integrity}/100*).\nUsa *${prefix}reparar* para restaurarla por *1.500 ${COIN}*.`);
         const sword = toolState(user, 'espada');
         if (!sword) return commandReply(sock, chatId, msg, 'dungeon', `❌ Necesitas una ⚔️ *espada* para entrar a la mazmorra.\nUsa *${prefix}mercader espada* para comprar una.`);
+        if (user.rpg.energy < 18) return commandReply(sock, chatId, msg, `dungeon`, `⚡ No tienes suficiente energía. Necesitas *18* y tienes *${user.rpg.energy}/${user.rpg.maxEnergy}*.`);
+        const actionLimit = consumeAction(user, 'dungeon', 3);
+        if (!actionLimit.ok) return commandReply(sock, chatId, msg, 'dungeon', '🚪 Ya alcanzaste el límite diario de 3 expediciones. Vuelve mañana.');
+        const energy = consumeEnergy(user, 18);
+        if (!energy.ok) return commandReply(sock, chatId, msg, 'dungeon', `⚡ No tienes suficiente energía. Necesitas *18* y tienes *${energy.energy}/${energy.maxEnergy}*. Descansa o espera a que se recupere.`);
         const remaining = Math.max(0, mission.target - mission.progress);
         const runsLeft = 3 - dungeon.runs;
         const kills = runsLeft === 1 ? remaining : Math.min(remaining, 5 + Math.floor(Math.random() * 8));
@@ -855,10 +877,12 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const dungeonAchievements = addStat(user, 'dungeonKills', kills);
         const reward = Math.floor(random(DUNGEON_REWARDS) * equipmentRewardMultiplier(user, 'dungeon'));
         user.coins += reward;
-        const droppedLoot = Math.random() < 0.45 ? random(DUNGEON_LOOT) : null;
+        const droppedLoot = Math.random() < 0.55 ? random(DUNGEON_LOOT) : null;
         if (droppedLoot) {
             user.loot ||= {};
-            user.loot[droppedLoot.id] = (Number(user.loot[droppedLoot.id]) || 0) + 1;
+            const rare = rareDrop(user, droppedLoot.id, droppedLoot.name, droppedLoot.sellPrice);
+            user.loot[rare.id] = (Number(user.loot[rare.id]) || 0) + 1;
+            droppedLoot._rare = rare;
         }
         let completion = '';
         let missionAchievements = [];
@@ -877,7 +901,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const unlocked = [...dungeonAchievements, ...missionAchievements];
         save();
         await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
-        return sendImageCaption(sock, chatId, msg, dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${equipmentAdvantageText(user, 'dungeon')}\n${droppedLoot ? `📦 *DROP:* ${droppedLoot.name}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot.id}*` : '🔍 No encontraste un drop vendible esta vez.'}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}`);
+        return sendImageCaption(sock, chatId, msg, dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${equipmentAdvantageText(user, 'dungeon')}\n${droppedLoot ? `📦 *DROP:* ${droppedLoot._rare.label}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot._rare.id}*` : '🔍 No encontraste un drop vendible esta vez.'}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${levelUpText(xpEvent)}`);
     }
 
     if (canonical === 'level') {
@@ -898,6 +922,11 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const waitMs = isMine ? 45e3 : isFish ? 60e3 : 50e3;
         const wait = cooldown(user, waitKey, waitMs);
         if (wait) return commandReply(sock, chatId, msg, canonical, `⏳ Tu personaje necesita descansar. Vuelve en *${timeLeft(wait)}*.`);
+        if (user.rpg.energy < (isMine ? 5 : isFish ? 6 : 7)) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía para esta actividad. Tienes *${user.rpg.energy}/${user.rpg.maxEnergy}*.`);
+        const limit = consumeAction(user, canonical, isMine ? 40 : isFish ? 30 : 30);
+        if (!limit.ok) return commandReply(sock, chatId, msg, canonical, `🛡️ Alcanzaste el límite diario de *${limit.limit}* acciones para este comando. Vuelve mañana.`);
+        const energy = consumeEnergy(user, isMine ? 5 : isFish ? 6 : 7);
+        if (!energy.ok) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía. Necesitas *${isMine ? 5 : isFish ? 6 : 7}* y tienes *${energy.energy}/${energy.maxEnergy}*.`);
         const tool = toolState(user, toolKey);
         if (!tool) {
             const names = { pico: '⛏️ pico', cana: '🎣 caña de pescar', espada: '⚔️ espada' };
@@ -905,7 +934,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         }
         const baseReward = random(isMine ? MINING_REWARDS : isFish ? FISHING_REWARDS : HUNTING_REWARDS);
         const reward = Math.floor(baseReward * classRewardMultiplier(user, canonical) * equipmentRewardMultiplier(user, canonical));
-        const item = isMine ? random(['carbón', 'hierro', 'oro', 'diamante', 'redstone']) : isFish ? random(['bacalao', 'salmón', 'pez globo', 'tesoro', 'libro encantado']) : random(['conejo', 'jabalí', 'ciervo', 'zorro', 'lobo salvaje']);
+        const baseItem = isMine ? random(['carbón', 'hierro', 'oro', 'diamante', 'redstone']) : isFish ? random(['bacalao', 'salmón', 'pez globo', 'tesoro', 'libro encantado']) : random(['conejo', 'jabalí', 'ciervo', 'zorro', 'lobo salvaje']);
+        const rare = rareDrop(user, `${canonical}-${baseItem}`, baseItem, baseReward);
+        const item = rare.label;
         const used = consumeTool(user, toolKey);
         user.coins += reward;
         user[waitKey] = Date.now();
@@ -915,7 +946,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             ? [`⛏️ *${numberOf(jid)}* entra a una mina...`, '⛏️ Rompiendo piedra... ▰▱▱▱▱▱▱▱▱▱', '⛏️ Rompiendo piedra... ▰▰▰▰▰▱▱▱▱▱', `💎 ¡Encontraste ${item}!`]
             : isFish ? [`🎣 *${numberOf(jid)}* lanza la caña...`, '🎣 El agua se mueve... ▰▱▱▱▱▱▱▱▱▱', '🎣 ¡Algo mordió el anzuelo! ▰▰▰▰▰▰▱▱▱▱', `🐟 ¡Pescaste ${item}!`] : [`⚔️ *${numberOf(jid)}* se prepara para cazar...`, '⚔️ Siguiendo huellas... ▰▱▱▱▱▱▱▱▱▱', '⚔️ ¡La presa apareció! ▰▰▰▰▰▰▱▱▱▱', `🏹 ¡Cazaste un ${item}!`];
         await animate(sock, chatId, msg, frames);
-        return commandReply(sock, chatId, msg, canonical, `✅ Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}\n⭐ +${xpEvent.gained || 0} XP${achievementText(unlocked)}`);
+        return commandReply(sock, chatId, msg, canonical, `✅ Encontraste *${item}*\n🪙 Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n⭐ +${xpEvent.gained || 0} XP${levelUpText(xpEvent)}${achievementText(unlocked)}`);
     }
 
     if (canonical === 'clan') {
