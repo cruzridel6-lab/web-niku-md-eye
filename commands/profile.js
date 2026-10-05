@@ -22,6 +22,15 @@ function canonicalJid(jid) {
     const number = numberOf(jid);
     return number ? `${number}@s.whatsapp.net` : String(jid || '').trim();
 }
+function rememberMessageIdentity(botData, msg, chatId) {
+    botData.phoneAliases ||= {};
+    const lid = msg?.key?.participant || (!msg?.key?.fromMe && String(chatId || '').endsWith('@lid') ? chatId : '');
+    const phone = msg?.key?.participantAlt || msg?.key?.senderPn;
+    if (/@lid$/i.test(String(lid)) && /@s\.whatsapp\.net$/i.test(String(phone))) {
+        const number = numberOf(phone);
+        if (number && botData.phoneAliases[number] !== lid) botData.phoneAliases[number] = lid;
+    }
+}
 function resolvePhoneNumber(botData, jid) {
     const wanted = numberOf(jid);
     if (!wanted) return '';
@@ -148,6 +157,7 @@ function profileMenu(prefix = '.') {
 
 async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {
     const canonical = ALIAS_TO_COMMAND[String(command || '').toLowerCase()] || 'profile';
+    rememberMessageIdentity(botData, msg, chatId);
     const own = jidOf(msg, chatId, botData);
     const ownProfile = ensure(botData, own, msg?.pushName || 'Usuario');
     const save = () => saveBotData();
