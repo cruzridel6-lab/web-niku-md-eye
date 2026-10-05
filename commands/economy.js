@@ -230,11 +230,25 @@ function findUser(state, jid, botData = {}) {
     const key = Object.keys(state.users || {}).find(k => sameIdentity(botData, k, jid));
     return key ? { key, user: state.users[key] } : null;
 }
-function getTarget(msg, q, state, botData = {}) {
+function targetJidFromMessage(msg, q) {
     const context = getContext(msg);
-    const raw = context.mentioned || context.quoted || (String(q || '').match(/@?\d{7,16}/)?.[0]);
+    const raw = context.mentioned || context.quoted || (String(q || '').match(/@?\d{7,20}/)?.[0]);
     if (!raw) return null;
-    return findUser(state, raw.replace(/^@/, '') + (raw.includes('@') ? '' : '@s.whatsapp.net'), botData);
+    const candidate = normalizeJid(String(raw).replace(/^@/, ''));
+    const number = numberOf(candidate);
+    if (!/^\d{7,20}$/.test(number)) return null;
+    return candidate.includes('@') ? candidate : `${number}@s.whatsapp.net`;
+}
+function getTarget(msg, q, state, botData = {}) {
+    const targetJid = targetJidFromMessage(msg, q);
+    return targetJid ? findUser(state, targetJid, botData) : null;
+}
+function getDuelTarget(msg, q, state, botData = {}) {
+    const targetJid = targetJidFromMessage(msg, q);
+    if (!targetJid) return null;
+    // Un jugador puede recibir un reto antes de usar la economía. Se conserva
+    // el JID original (incluido @lid) y se reutiliza su cuenta si ya existe.
+    return findUser(state, targetJid, botData) || { key: targetJid, user: null };
 }
 function cooldown(user, key, ms) {
     const remaining = Math.max(0, ms - (Date.now() - (Number(user[key]) || 0)));
@@ -666,7 +680,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             const text = pending.map(duel => `${sameIdentity(botData, duel.challenger, jid) ? '📤 Retaste a' : '📥 Te retó'} @${numberOf(sameIdentity(botData, duel.challenger, jid) ? duel.target : duel.challenger)} · *${fmt(duel.stake)} ${COIN}*`).join('\n');
             return commandReply(sock, chatId, msg, 'duel', `⚔️ *DUELOS PENDIENTES*\n\n${text}\n\nAceptar: *${prefix}duelo aceptar*\nCancelar: *${prefix}duelo cancelar*`, { mentions: pending.flatMap(duel => [duel.challenger, duel.target]) });
         }
-        const target = getTarget(msg, q, state, botData);
+        const target = getDuelTarget(msg, q, state, botData);
         const stake = amount(args[args.length - 1]);
         if (!target || !stake || stake < MIN_BET) return commandReply(sock, chatId, msg, 'duel', `ℹ️ Uso: *${prefix}${HELP.duel}*\nMínimo: *${fmt(MIN_BET)} ${COIN}*`);
         if (sameIdentity(botData, target.key, jid)) return commandReply(sock, chatId, msg, 'duel', '❌ No puedes retarte a ti mismo.');
