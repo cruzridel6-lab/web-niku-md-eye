@@ -538,7 +538,42 @@
   footer{padding:28px 16px;margin-top:20px;font-size:.7rem;}
   @media(max-width:768px){nav{padding:0 14px;}.nav-links{top:58px;padding:9px;}.nav-links a{padding:10px;width:100%;}.hero-banner{width:calc(100% - 22px);margin-top:68px;max-height:150px;}.hero-banner img{height:150px;}.banner-nav{width:calc(100% - 22px);}.banner-nav a{padding:7px 9px;}header{padding-top:48px;}.quick-strip,.steps-grid{grid-template-columns:1fr;}.feature-grid,.link-grid{grid-template-columns:1fr 1fr;}}
   @media(max-width:460px){.brand .tag{display:none;}.brand .name{font-size:.78rem;}.nav-links a{font-size:.68rem;}.hero-banner{max-height:120px;}.hero-banner img{height:120px;}header h1{font-size:1.85rem;}.feature-grid,.link-grid{grid-template-columns:1fr;}.stats-row{flex-direction:row;}.stat-card{min-width:0;flex:1;padding:9px 10px;}.stat-label{font-size:.55rem;}}
-
+  /* ---------- Reino RPG azul: capa visual final ---------- */
+  :root{
+    --bg:#050a1a;--bg-panel:rgba(10,22,45,.9);--bg-panel-2:rgba(7,16,34,.96);
+    --grid:rgba(100,190,255,.08);--green:#5ec8ff;--green-dim:#2588c8;--green-deep:#092c54;
+    --green-glass:rgba(54,170,255,.13);--border:rgba(91,184,255,.3);--text:#eef7ff;
+    --muted:#9bb1ca;--amber:#ffd166;--danger:#ff6b83;--violet:#9c8cff;--silver:#dcecff;--gold:#ffd166;
+  }
+  body{background:radial-gradient(circle at 50% 0%,rgba(24,96,174,.28),transparent 38%),linear-gradient(145deg,#040817 0%,#071a36 48%,#030713 100%);}
+  body::after{content:"";position:fixed;inset:0;z-index:-4;pointer-events:none;background:linear-gradient(180deg,rgba(4,12,30,.35),rgba(3,7,18,.92)),url('Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg') center/cover no-repeat;opacity:.2;filter:saturate(.85) contrast(1.08);}
+  .grid-bg{background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:42px 42px;}
+  .glow-orb{background:radial-gradient(circle,rgba(42,159,255,.22) 0%,rgba(116,91,255,.12) 34%,transparent 70%);}
+  .brand .mark{border-color:rgba(94,200,255,.5);background:linear-gradient(145deg,rgba(50,159,255,.25),rgba(156,140,255,.16));}
+  header h1{background:linear-gradient(100deg,#e9f8ff 10%,#5ec8ff 42%,#9c8cff 72%,#d9f4ff);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 28px rgba(94,200,255,.26);}
+  header h1 .glitch-wrap::before,header h1 .glitch-wrap::after{color:var(--green);}
+  .hero-banner{border-color:rgba(94,200,255,.45);background:linear-gradient(135deg,rgba(11,40,78,.94),rgba(9,15,38,.92));box-shadow:0 20px 70px rgba(0,0,0,.5),0 0 36px rgba(45,155,255,.16);}
+  .hero-banner::before{background:linear-gradient(105deg,transparent 40%,rgba(94,200,255,.2) 50%,transparent 60%);}
+  .stat-card,.public-bots-panel,.public-board-card,.public-events-card,.public-investments-card,.public-auctions-card{border-color:rgba(94,200,255,.27);background:linear-gradient(145deg,rgba(13,34,67,.88),rgba(6,14,31,.86));}
+  .btn{background:linear-gradient(135deg,#168ed5,#514bc5);color:#fff;box-shadow:0 10px 28px rgba(26,142,213,.25);}
+  .btn:hover{box-shadow:0 14px 34px rgba(70,153,255,.35);}
+  .btn-outline{background:rgba(255,255,255,.035);border-color:rgba(94,200,255,.4);color:var(--text);}
+  .quick-item,.step-card,.feature-item,.official-card{border-color:rgba(94,200,255,.24);background:linear-gradient(145deg,rgba(17,47,87,.58),rgba(255,255,255,.018));}
+  section.panel{border-color:rgba(94,200,255,.3);background:linear-gradient(145deg,rgba(11,31,62,.9),rgba(5,13,29,.92));box-shadow:0 18px 50px rgba(0,0,0,.22),inset 0 1px rgba(124,205,255,.06);}
+  section.panel::before{background:var(--bg);color:#82d5ff;}
+  .feature-item:hover,.official-card:hover{border-color:var(--green);background:rgba(49,151,231,.12);}
+  .leaderboard-tabs{border-color:rgba(94,200,255,.25);background:rgba(5,15,33,.76);}
+  .leaderboard-tab:hover,.leaderboard-tab.active{color:#06152c;background:linear-gradient(135deg,#5ec8ff,#a295ff);box-shadow:0 5px 16px rgba(94,200,255,.2);}
+  .public-board-row{border-color:rgba(94,200,255,.16);background:rgba(255,255,255,.025);}
+  .public-board-row:hover{border-color:rgba(94,200,255,.62);background:rgba(94,200,255,.09);}
+  .public-board-row strong,.auction-price,.public-bot-status,.public-bots-live{color:var(--green);}
+  .investment-progress span{background:linear-gradient(90deg,#2588c8,#5ec8ff,#9c8cff);box-shadow:0 0 10px rgba(94,200,255,.4);}
+  .admin-head{background:linear-gradient(135deg,rgba(21,69,124,.35),rgba(55,42,125,.22));border-color:rgba(94,200,255,.3);}
+  .admin-card,.admin-kpi,.admin-fold,.admin-login input,.premium-card{border-color:rgba(94,200,255,.22);background:rgba(5,16,36,.7);}
+  .admin-fold>summary:hover{background:rgba(94,200,255,.08);}
+  .admin-section-tag,.admin-live-pill{border-color:rgba(94,200,255,.4);color:var(--green);}
+  .rpg-divider{background:linear-gradient(90deg,transparent,rgba(94,200,255,.7),rgba(156,140,255,.55),transparent);}
+  @media(max-width:768px){body::after{opacity:.13;}section.panel{padding:20px 16px;}.hero-banner{box-shadow:0 12px 35px rgba(0,0,0,.4);}}
 </style>
 </head>
 <body>
@@ -571,7 +606,7 @@
       <div id="adminUserModalStats" class="quick-strip"></div><div class="rpg-divider"></div>
       <div class="rpg-admin-grid">
         <div class="rpg-control-card"><h4><i class="fas fa-id-card"></i> Identidad</h4><form id="adminProfileForm"><input id="adminProfileName" type="text" minlength="2" maxlength="32" placeholder="Nombre del personaje" required><button class="btn" type="submit">Guardar nombre</button></form></div>
-        <div class="rpg-control-card"><h4><i class="fas fa-coins"></i> Economía</h4><form id="adminBalanceForm"><select id="adminBalanceWallet"><option value="coins">Niku Coins</option><option value="bank">Banco</option></select><select id="adminBalanceAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><input id="adminBalanceAmount" type="number" min="1" step="1" placeholder="Cantidad" required><button class="btn" type="submit">Aplicar saldo</button></form></div>
+        <div class="rpg-control-card"><h4><i class="fas fa-coins"></i> Economía</h4><form id="adminBalanceForm"><select id="adminBalanceWallet"><option value="coins">Monedas de oro</option><option value="bank">Banco</option></select><select id="adminBalanceAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><input id="adminBalanceAmount" type="number" min="1" step="1" placeholder="Cantidad" required><button class="btn" type="submit">Aplicar saldo</button></form></div>
         <div class="rpg-control-card"><h4><i class="fas fa-box-open"></i> Objetos</h4><form id="adminItemForm"><select id="adminItemId"></select><select id="adminItemAction"><option value="add">Agregar</option><option value="remove">Quitar</option></select><button class="btn" type="submit">Aplicar objeto</button></form><div id="adminItemsCollection" class="rpg-collection"></div></div>
       </div>
       <div class="rpg-control-card" style="margin-top:12px"><h4><i class="fas fa-trophy"></i> Logros específicos</h4><div id="adminAchievementsCollection" class="rpg-collection"></div></div>
@@ -609,7 +644,7 @@
   </div>
   <div class="quick-strip" aria-label="Ventajas principales">
     <div class="quick-item"><i class="fas fa-bolt"></i>Bot NIKU MD activo</div>
-    <div class="quick-item"><i class="fas fa-coins"></i>Economía Niku Coins</div>
+    <div class="quick-item"><i class="fas fa-coins"></i>Economía Monedas de oro</div>
     <div class="quick-item"><i class="fas fa-swords"></i>Duelos PvP en vivo</div>
   </div>
 
@@ -623,13 +658,13 @@
   </div>
   <div class="leaderboard-tabs" role="tablist" aria-label="Categorías de rankings">
     <button class="leaderboard-tab active" type="button" role="tab" aria-selected="true" data-board-tab="achievements"><i class="fas fa-trophy"></i> Logros</button>
-    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="coins"><i class="fas fa-coins"></i> Niku Coins</button>
+    <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="coins"><i class="fas fa-coins"></i> Monedas de oro</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="pvp"><i class="fas fa-swords"></i> PvP</button>
     <button class="leaderboard-tab" type="button" role="tab" aria-selected="false" data-board-tab="history"><i class="fas fa-clock-rotate-left"></i> Historial</button>
   </div>
   <div class="public-board-grid compact-leaderboards" id="leaderboards">
     <div class="public-board-card active" data-board-panel="achievements"><h3><i class="fas fa-trophy"></i> Top de logros</h3><p>Jugadores con más logros desbloqueados.</p><div id="publicAchievementsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay logros registrados.</div></div></div>
-    <div class="public-board-card" data-board-panel="coins"><h3><i class="fas fa-coins"></i> Top de Niku Coins</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
+    <div class="public-board-card" data-board-panel="coins"><h3><i class="fas fa-coins"></i> Top de Monedas de oro</h3><p>Jugadores con mayor saldo total.</p><div id="publicCoinsBoard" class="public-board-list"><div class="public-board-empty">Aún no hay saldos registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="pvp"><h3><i class="fas fa-swords"></i> Ranking PvP</h3><p>Los mejores duelistas.</p><div id="publicPvpBoard" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
     <div class="public-board-card" data-board-panel="history"><h3><i class="fas fa-clock-rotate-left"></i> Historial PvP</h3><p>Últimos enfrentamientos.</p><div id="publicPvpHistory" class="public-board-list"><div class="public-board-empty">Aún no hay duelos registrados.</div></div></div>
   </div>
@@ -645,7 +680,7 @@
       <div class="feature-item"><i class="fas fa-reply"></i><h3>Respuestas automáticas</h3><p>Respuestas inteligentes basadas en activadores configurables.</p></div>
       <div class="feature-item"><i class="fas fa-image"></i><h3>Herramientas multimedia</h3><p>Descarga, convierte y gestiona archivos multimedia fácilmente.</p></div>
       <div class="feature-item"><i class="fas fa-puzzle-piece"></i><h3>Sistema de comandos</h3><p>Amplía el bot con comandos y automatizaciones personalizadas.</p></div>
-      <div class="feature-item"><i class="fas fa-gavel"></i><h3>Casa de subastas</h3><p>Publica botín de mazmorras, puja con Niku Coins y sigue el mercado en vivo.</p></div>
+      <div class="feature-item"><i class="fas fa-gavel"></i><h3>Casa de subastas</h3><p>Publica botín de mazmorras, puja con Monedas de oro y sigue el mercado en vivo.</p></div>
       <div class="feature-item"><i class="fas fa-shield-alt"></i><h3>Protección</h3><p>Controles integrados para cuidar tus sesiones y tu privacidad.</p></div>
     </div>
   </section>
@@ -1022,13 +1057,13 @@ function renderAdminEconomy(data={}){
   const metrics=[['fa-wallet','Capital total',formatCoins(data.total)],['fa-chart-line','Capital activo',formatCoins(data.activeCapital)],['fa-arrow-trend-up','Ganancias',formatCoins(data.profit)],['fa-arrow-trend-down','Pérdidas',formatCoins(data.loss)],['fa-percent','Tasas cobradas',formatCoins(data.transferTaxes)],['fa-shield-halved','Bloqueos antiabuso',formatCoins(data.abuseBlocked)]];
   if(adminEconomyMetrics) adminEconomyMetrics.innerHTML=metrics.map(([icon,label,value])=>`<div class="admin-economy-metric"><i class="fas ${icon}"></i><span>${label}</span><strong>${value}</strong></div>`).join('');
   const days=data.byDay||[], max=Math.max(1,...days.map(day=>Number(day.amount)||0));
-  if(adminEconomyChart) adminEconomyChart.innerHTML=days.map(day=>`<div class="economy-bar-wrap"><span class="economy-bar-value">${formatCoins(day.amount)}</span><div class="economy-bar" style="height:${Math.max(8,Math.round((Number(day.amount||0)/max)*100))}%" title="${formatCoins(day.amount)} Niku Coins · ${day.count} operaciones"></div><small>${escapeAdminHtml(day.label)}</small></div>`).join('')||'<div class="console-empty">Sin datos de inversión.</div>';
+  if(adminEconomyChart) adminEconomyChart.innerHTML=days.map(day=>`<div class="economy-bar-wrap"><span class="economy-bar-value">${formatCoins(day.amount)}</span><div class="economy-bar" style="height:${Math.max(8,Math.round((Number(day.amount||0)/max)*100))}%" title="${formatCoins(day.amount)} Monedas de oro · ${day.count} operaciones"></div><small>${escapeAdminHtml(day.label)}</small></div>`).join('')||'<div class="console-empty">Sin datos de inversión.</div>';
   renderInvestmentRows(data.active||[], adminInvestmentList, true);
 }
 function rewardEventText(event){
   const player=escapeAdminHtml(event.player||'Jugador');
   if(event.type==='achievement') return `🏆 ${player} desbloqueó el logro *${escapeAdminHtml(event.achievement||'nuevo')}*`;
-  return `🪙 ${player} ganó *${Number(event.amount||0).toLocaleString('es-ES')} Niku Coins* · ${escapeAdminHtml(event.source||'RPG')}`;
+  return `🪙 ${player} ganó *${Number(event.amount||0).toLocaleString('es-ES')} Monedas de oro* · ${escapeAdminHtml(event.source||'RPG')}`;
 }
 function renderPublicRewardEvents(events=[]){
   if(!publicRewardEvents) return;
@@ -1266,7 +1301,7 @@ rewardTokenResult?.addEventListener('click',()=>{
 socket.on('admin-reward-token',(result={})=>{
   rewardTokenResult.textContent=result.token || '';
   rewardTokenResult.classList.toggle('show',Boolean(result.token));
-  if(result.token){ const tools=Object.keys(result.tools||{}).join(', '); showToast(`Paquete generado: ${Number(result.coins||0).toLocaleString('es-ES')} Niku Coins${tools ? ` + ${tools}` : ''}`); }
+  if(result.token){ const tools=Object.keys(result.tools||{}).join(', '); showToast(`Paquete generado: ${Number(result.coins||0).toLocaleString('es-ES')} Monedas de oro${tools ? ` + ${tools}` : ''}`); }
 });
 socket.on('admin-reward-data',renderRewardData);
 rewardTokensList?.addEventListener('click',(event)=>{
