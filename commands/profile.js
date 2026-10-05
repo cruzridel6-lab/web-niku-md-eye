@@ -137,11 +137,16 @@ function economyFor(botData, chatId, jid) {
     for (const [phone, lid] of Object.entries(aliases)) {
         if (numberOf(lid) === wanted) identityNumbers.add(numberOf(phone));
     }
+    const addProfileIdentity = (key, profile) => {
+        const values = [numberOf(key), numberOf(profile?.phoneNumber)].filter(Boolean);
+        if (values.some(value => identityNumbers.has(value))) values.forEach(value => identityNumbers.add(value));
+    };
+    for (const [key, profile] of Object.entries(botData.profiles || {})) addProfileIdentity(key, profile);
     const samePlayer = item => identityNumbers.has(numberOf(item));
     const key = Object.keys(users).find(samePlayer);
     if (key) {
         const current = users[key];
-        if (current?.rpg?.class) return current;
+        if (current?.rpg?.class || current?.rpg?.classKey || current?.classKey) return current;
     }
     const matches = [];
     for (const state of Object.values(botData.economy || {})) {
@@ -149,7 +154,7 @@ function economyFor(botData, chatId, jid) {
         const stateKey = Object.keys(stateUsers).find(samePlayer);
         if (stateKey) matches.push(stateUsers[stateKey]);
     }
-    return matches.find(user => user?.rpg?.class) || (key ? users[key] : matches[0] || {});
+    return matches.find(user => user?.rpg?.class || user?.rpg?.classKey || user?.classKey) || (key ? users[key] : matches[0] || {});
 }
 function profileMenu(prefix = '.') {
     return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
@@ -242,12 +247,13 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
 async function showProfile(sock, chatId, msg, jid, profile, botData) {
     const economy = economyFor(botData, chatId, jid);
     const rpg = economy.rpg || { level: 1, xp: 0, class: '' };
+    const classKey = rpg.class || rpg.classKey || economy.classKey || '';
     const classes = { guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador' };
-    const characterClass = classes[rpg.class] || '🧭 Sin clase — usa .clase para elegir';
+    const characterClass = classes[classKey] || '🧭 Sin clase — usa .clase para elegir';
     const partner = profile.partner ? `💍 ${spouseWord(profile.genre)} con *${targetName(botData, profile.partner)}*` : '💍 Sin pareja';
     const text = `👤 *PERFIL RPG DE ${profile.name}*\n\n${profile.description ? `✍️ ${profile.description}\n\n` : ''}🛡️ Clase: *${characterClass}*\n⭐ Nivel: *${Number(rpg.level) || 1}*\n✨ Experiencia: *${Number(rpg.xp) || 0} XP*\n🎂 Cumpleaños: *${formatBirth(profile.birth)}*\n⚧️ Género: *${displayGenre(profile.genre)}*\n${partner}\n\n🪙 Bolsa: *${Number(economy.coins || 0).toLocaleString()}*\n🏦 Cofre: *${Number(economy.bank || 0).toLocaleString()}*\n📜 Matrimonios: *${profile.history.length}*`;
     const mentions = profile.partner ? [jid, profile.partner] : [jid];
-    const classImage = classImagePath(rpg.class);
+    const classImage = classImagePath(classKey);
     if (classImage) return sendImageCaption(sock, chatId, msg, classImage, text, { mentions });
     try {
         const image = await sock.profilePictureUrl(jid, 'image');
