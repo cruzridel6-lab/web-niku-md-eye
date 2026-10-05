@@ -2,12 +2,18 @@ const net = require('net');
 const dns = require('dns').promises;
 const { URL } = require('url');
 
-const COMMON_PORTS = [21, 22, 23, 25, 53, 80, 110, 143, 443, 445, 3306, 3389, 5432, 5900, 8080, 8443];
+const FIRST_PORT = 1;
+const LAST_PORT = 65535;
+const SCAN_CONCURRENCY = 192;
+const PORT_TIMEOUT = 900;
 const SERVICE_NAMES = {
-    21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS',
-    80: 'HTTP', 110: 'POP3', 143: 'IMAP', 443: 'HTTPS', 445: 'SMB',
-    3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 5900: 'VNC',
-    8080: 'HTTP alternativo', 8443: 'HTTPS alternativo'
+    20: 'FTP-DATA', 21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS',
+    80: 'HTTP', 110: 'POP3', 123: 'NTP', 135: 'RPC', 139: 'NetBIOS', 143: 'IMAP',
+    161: 'SNMP', 389: 'LDAP', 443: 'HTTPS', 445: 'SMB', 465: 'SMTPS', 587: 'SMTP submission',
+    636: 'LDAPS', 1433: 'MSSQL', 1521: 'Oracle', 2049: 'NFS', 2375: 'Docker',
+    3000: 'Node/HTTP', 3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 5900: 'VNC',
+    6379: 'Redis', 6443: 'Kubernetes', 8000: 'HTTP alternativo', 8080: 'HTTP alternativo',
+    8443: 'HTTPS alternativo', 9200: 'Elasticsearch', 27017: 'MongoDB'
 };
 
 function normalizeTarget(input) {
@@ -47,7 +53,37 @@ function isPrivateAddress(address) {
     return false;
 }
 
-function scanPort(host, port, timeout = 1800) {
+function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+async function lookupAddresses(hostname) {
+    if (net.isIP(hostname)) return [{ address: hostname, family: net.isIPv4(hostname) ? 4 : 6 }];
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            const addresses = await dns.lookup(hostname, { all: true, verbatim: false });
+            if (addresses.length) return addresses;
+        } catch (error) {
+            lastError = error;
+            if (!['EAI_AGAIN', 'ETIME', 'ESERVFAIL', 'ENOTFOUND'].includes(error.code)) throw error;
+            if (attempt < 2) await wait(500 * (attempt + 1));
+        }
+    }
+    for (const resolver of [dns.resolve4, dns.resolve6]) {
+        try {
+            const records = await resolver(hostname);
+            if (records?.length) return records.map(address => ({ address, family: net.isIPv4(address) ? 4 : 6 }));
+        } catch (error) { lastError = error; }
+    }
+    if (lastError?.code === 'EAI_AGAIN' || lastError?.code === 'ETIME') {
+        throw new Error(`El DNS no respondió después de varios intentos para ${hostname}. Intenta de nuevo en unos segundos.`);
+    }
+    if (lastError?.code === 'ENOTFOUND' || lastError?.code === 'ESERVFAIL') {
+        throw new Error(`El dominio ${hostname} no existe o no tiene registros DNS públicos.`);
+    }
+    throw new Error(`No se pudo resolver ${hostname}.`);
+}
+
+function scanPort(host, port, timeout = PORT_TIMEOUT) {
     return new Promise(resolve => {
         const socket = new net.Socket();
         let finished = false;
@@ -66,45 +102,45 @@ function scanPort(host, port, timeout = 1800) {
 }
 
 async function scanPorts(host) {
-    const results = [];
-    for (let i = 0; i < COMMON_PORTS.length; i += 4) {
-        const batch = COMMON_PORTS.slice(i, i + 4);
-        const scanned = await Promise.all(batch.map(port => scanPort(host, port)));
-        results.push(...scanned);
+    const openPorts = [];
+    let nextPort = FIRST_PORT;
+    async function worker() {
+        while (true) {
+            const port = nextPort++;
+            if (port > LAST_PORT) return;
+            const result = await scanPort(host, port);
+            if (result.open) openPorts.push(result.port);
+        }
     }
-    return results;
+    await Promise.all(Array.from({ length: SCAN_CONCURRENCY }, worker));
+    return openPorts.sort((a, b) => a - b);
 }
 
 module.exports = async function portscanCommand(sock, chatId, msg, q) {
     try {
         const hostname = normalizeTarget(q);
         await sock.sendMessage(chatId, {
-            text: `🔎 Analizando ${hostname}...\nPuertos comunes únicamente (escaneo rápido)`
+            text: `🔎 Analizando ${hostname}...\nRevisando todos los puertos TCP (1–65535). Puede tardar unos minutos.`
         }, { quoted: msg });
 
-        const addresses = net.isIP(hostname)
-            ? [{ address: hostname, family: net.isIPv4(hostname) ? 4 : 6 }]
-            : await dns.lookup(hostname, { all: true });
+        const addresses = await lookupAddresses(hostname);
         const publicAddress = addresses.find(item => !isPrivateAddress(item.address));
         if (!publicAddress) {
             throw new Error('El dominio no resuelve a una dirección pública.');
         }
 
-        const results = await scanPorts(publicAddress.address);
-        const openPorts = results.filter(result => result.open);
-        let text = `🔎 *Escaneo de puertos: ${hostname}*\n`;
+        const openPorts = await scanPorts(publicAddress.address);
+        let text = `🔎 *Escaneo completo de puertos: ${hostname}*\n`;
         text += `📍 IP: ${publicAddress.address}\n\n`;
 
         if (!openPorts.length) {
-            text += '✅ No se detectaron puertos abiertos entre los puertos comunes revisados.\n';
-            text += 'ℹ️ Esto no significa que todos los puertos estén cerrados; solo se revisaron los puertos indicados.';
+            text += '✅ No se detectaron puertos TCP abiertos.\n';
         } else {
             text += `*Puertos abiertos (${openPorts.length}):*\n`;
-            for (const result of openPorts) {
-                text += `✅ ${result.port} — ${SERVICE_NAMES[result.port] || 'Desconocido'}\n`;
-            }
+            text += openPorts.map(port => `✅ ${port} — ${SERVICE_NAMES[port] || 'Servicio no identificado'}`).join('\n');
+            text += '\n';
         }
-        text += `\n\n_Revisados ${COMMON_PORTS.length} puertos comunes._`;
+        text += `\n_Revisados los ${LAST_PORT.toLocaleString('es-ES')} puertos TCP._`;
         await sock.sendMessage(chatId, { text }, { quoted: msg });
     } catch (error) {
         console.error('Error en portscan:', error);
@@ -115,4 +151,6 @@ module.exports = async function portscanCommand(sock, chatId, msg, q) {
 };
 
 module.exports.normalizeTarget = normalizeTarget;
+module.exports.lookupAddresses = lookupAddresses;
 module.exports.scanPort = scanPort;
+module.exports.scanPorts = scanPorts;
