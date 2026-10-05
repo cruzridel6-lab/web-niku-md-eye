@@ -1879,7 +1879,7 @@ class BotSession {
                                         }
 
                                         // ===== MEDIA & DOWNLOAD =====
-                                        case 'song': await commands.song(this.sock, from, msg); break;
+                                        case 'song': await commands.song(this.sock, from, msg, q); break;
                                         case 'video': await commands.video(this.sock, from, msg); break;
                                         case 'youtube': case 'yt': await commands.youtube(this.sock, from, msg, q); break;
                                         case 'insta': case 'ig': await commands.insta(this.sock, from, msg, q); break;

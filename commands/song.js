@@ -3,7 +3,7 @@ const yts = require('yt-search');
 const fs = require('fs').promises;
 const path = require('path');
 const { toAudio } = require('../lib/converter');
-const { getDirectUrl } = require('../lib/youtube');
+const { getDirectUrl, downloadDirectFile } = require('../lib/youtube');
 
 const AXIOS_DEFAULTS = {
     timeout: 60000,
@@ -67,17 +67,41 @@ async function getOkatsuDownloadByUrl(youtubeUrl) {
     throw new Error('Okatsu returned no download');
 }
 
-async function songCommand(sock, chatId, message) {
+function messageText(message) {
+    const content = message?.message?.ephemeralMessage?.message
+        || message?.message?.viewOnceMessage?.message
+        || message?.message?.viewOnceMessageV2?.message
+        || message?.message
+        || {};
+    return String(content.conversation
+        || content.extendedTextMessage?.text
+        || content.imageMessage?.caption
+        || content.videoMessage?.caption
+        || '').trim();
+}
+
+function isYoutubeUrl(value) {
+    return /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\//i.test(String(value || ''));
+}
+
+function safeFileName(value) {
+    return String(value || 'youtube-audio')
+        .normalize('NFKD')
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .slice(0, 80) || 'youtube-audio';
+}
+
+async function songCommand(sock, chatId, message, requestedQuery = '') {
     try {
         // Loading reactions
         const loadEmojis = ['📥', '⏳', '🎵'];
         for (const emoji of loadEmojis) {
-            await sock.sendMessage(chatId, { react: { text: emoji, key: message.key } });
+            try { await sock.sendMessage(chatId, { react: { text: emoji, key: message.key } }); } catch (_) {}
         }
 
-        const messageContent = message.message?.ephemeralMessage?.message || message.message?.viewOnceMessage?.message || message.message?.viewOnceMessageV2?.message || message.message;
-        const text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
-        const query = text.replace(/^\.song\s+/i, '').trim();
+        const text = messageText(message);
+        const query = String(requestedQuery || text.replace(/^\.song(?:\s+|$)/i, '')).trim();
 
         if (!query || query.toLowerCase() === '.song') {
             await sock.sendMessage(chatId, { text: 'Usage: .song <song name or YouTube link>' }, { quoted: message });
@@ -85,7 +109,7 @@ async function songCommand(sock, chatId, message) {
         }
 
         let video;
-        if (query.includes('youtube.com') || query.includes('youtu.be')) {
+        if (isYoutubeUrl(query)) {
             video = { url: query, title: 'YouTube Audio', thumbnail: 'https://i.postimg.cc/y6GV9P3H/file-000000004c307206bc366893b817568c-(1).png' };
         } else {
             const search = await yts(query);
@@ -96,10 +120,9 @@ async function songCommand(sock, chatId, message) {
             video = search.videos[0];
         }
 
-        // Inform user
+        // Inform user without depending on the thumbnail host.
         await sock.sendMessage(chatId, {
-            image: { url: video.thumbnail },
-            caption: `🎵 Downloading: *${video.title}*\n⏱ Duration: ${video.timestamp || 'N/A'}`
+            text: `🎵 *Buscando audio*\n\n*${video.title}*\n⏱ Duración: ${video.timestamp || 'N/D'}\n\n⏳ Descargando...`
         }, { quoted: message });
 
         // Try multiple APIs with fallback chain
@@ -108,6 +131,11 @@ async function songCommand(sock, chatId, message) {
         let finalTitle = video.title;
         
         const apiMethods = [
+            // Primary route: this provider is also used by the working video command.
+            { name: 'cnv.cx / yt-dlp', method: async () => ({
+                download: await getDirectUrl(video.url, 'bestaudio[ext=m4a]/bestaudio/best'),
+                title: video.title
+            }) },
             { name: 'EliteProTech', method: () => getEliteProTechDownloadByUrl(video.url) },
             { name: 'Yupra', method: () => getYupraDownloadByUrl(video.url) },
             { name: 'Okatsu', method: () => getOkatsuDownloadByUrl(video.url) },
@@ -135,15 +163,7 @@ async function songCommand(sock, chatId, message) {
                 
                 if (!audioUrl) continue;
                 
-                const audioResponse = await axios.get(audioUrl, {
-                    responseType: 'arraybuffer',
-                    timeout: 120000,
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0',
-                        'Accept': '*/*'
-                    }
-                });
-                audioBuffer = Buffer.from(audioResponse.data);
+                audioBuffer = await downloadDirectFile(audioUrl);
                 
                 if (audioBuffer && audioBuffer.length > 0) {
                     downloadSuccess = true;
@@ -173,7 +193,7 @@ async function songCommand(sock, chatId, message) {
         await sock.sendMessage(chatId, {
             audio: finalBuffer,
             mimetype: 'audio/mpeg',
-            fileName: `${(finalTitle || 'youtube-audio').replace(/[^\w\s-]/g, '').trim() || 'youtube-audio'}.mp3`,
+            fileName: `${safeFileName(finalTitle)}.mp3`,
             ptt: false
         }, { quoted: message });
 
