@@ -2326,6 +2326,33 @@ class BotSession {
 
 
 // =================== MENU GENERATOR ===================
+function ctaUrlButton(displayText, url) {
+    if (!url || !/^https?:\/\//i.test(String(url))) return null;
+    return {
+        name: 'cta_url',
+        buttonParamsJson: JSON.stringify({
+            display_text: displayText,
+            url: String(url),
+            merchant_url: String(url)
+        })
+    };
+}
+
+function menuLinkButtons(title = '') {
+    const buttons = [];
+    const isAdminMenu = /admin/i.test(String(title));
+    const adminUrl = settings.adminUrl || (isAdminMenu && settings.webUrl ? `${settings.webUrl.replace(/\/$/, '')}#admin` : '');
+    const primaryUrl = isAdminMenu && adminUrl ? ctaUrlButton('🛡️ Panel admin', adminUrl) : ctaUrlButton('🌐 Abrir web', settings.webUrl);
+    if (primaryUrl) buttons.push(primaryUrl);
+    const telegram = ctaUrlButton('✈️ Telegram', settings.telegramChannel);
+    if (telegram) buttons.push(telegram);
+    if (!isAdminMenu) {
+        const whatsapp = ctaUrlButton('📢 WhatsApp', settings.whatsappChannel);
+        if (whatsapp && buttons.length < 3) buttons.push(whatsapp);
+    }
+    return buttons.slice(0, 2);
+}
+
 async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
     const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
     const categoryButton = {
@@ -2360,20 +2387,12 @@ async function sendOfficialChannelMenu(sock, jid, caption, quoted) {
             }]
         })
     };
-    const channelButton = {
-        name: 'cta_url',
-        buttonParamsJson: JSON.stringify({
-            display_text: 'Ver canal',
-            url: settings.whatsappChannel,
-            merchant_url: settings.whatsappChannel
-        })
-    };
     const content = {
         interactiveMessage: {
             body: { text: caption },
             footer: { text: 'NIKU MD • Comunidad oficial' },
             nativeFlowMessage: {
-                buttons: [categoryButton, channelButton],
+                buttons: [categoryButton, ...menuLinkButtons('MENÚ PRINCIPAL')],
                 messageVersion: 1
             }
         }
@@ -2440,8 +2459,12 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
             sections
         })
     };
-    const channelButton = { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: 'Ver canal', url: settings.whatsappChannel, merchant_url: settings.whatsappChannel }) };
-    const content = { interactiveMessage: { body: { text: `${title}\n\nSelecciona una opción para ejecutarla directamente:` }, footer: { text: 'NIKU MD • Menú interactivo' }, nativeFlowMessage: { buttons: [menuButton, channelButton], messageVersion: 1 } } };
+    const content = { interactiveMessage: { body: { text: `${title}\n\nSelecciona una opción para ejecutarla directamente:` }, footer: { text: 'NIKU MD • Menú interactivo' }, nativeFlowMessage: { buttons: [menuButton, ...menuLinkButtons(title)], messageVersion: 1 } } };
+    const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
+    if (fs.existsSync(menuImagePath)) {
+        const imageContent = await generateWAMessageContent({ image: fs.readFileSync(menuImagePath), mimetype: 'image/jpeg' }, { upload: sock.waUploadToServer });
+        content.interactiveMessage.header = { title: 'NIKU MD', hasMediaAttachment: true, imageMessage: imageContent.imageMessage };
+    }
     const userJid = sock.user?.id;
     const fullMessage = generateWAMessageFromContent(jid, content, { logger: sock.logger, userJid, messageId: generateMessageIDV2(userJid), timestamp: new Date() });
     const additionalNodes = [{ tag: 'biz', attrs: {}, content: [{ tag: 'interactive', attrs: { type: 'native_flow', v: '1' }, content: [{ tag: 'native_flow', attrs: { v: '9', name: 'mixed' } }] }] }];
