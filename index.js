@@ -11,6 +11,7 @@ const P = require('pino');
 const os = require('os');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
+const createSingleQrDelivery = require('./lib/singleQrDelivery');
 const githubBackup = require('./lib/githubBackup');
 const antiPorn = require('./lib/antiPorn');
 const { answerLocal } = require('./lib/localAI');
@@ -1217,6 +1218,7 @@ class BotSession {
         this.subbotOwner = botData.subbots[userId]?.ownerJid || null;
         this.pairRequesterJid = null;
         this.requesterSock = null;
+        this.subbotQrDelivery = createSingleQrDelivery();
         this.promoState = {};
     }
 
@@ -2142,10 +2144,12 @@ class BotSession {
                     if (socketId) io.to(socketId).emit('qr', qr);
                     if (this.subbotMode === 'qr' && this.requesterSock && this.pairRequesterJid) {
                         try {
-                            const qrImage = await QRCode.toBuffer(qr, { type: 'png', width: 720, margin: 2 });
-                            await this.requesterSock.sendMessage(this.pairRequesterJid, {
-                                image: qrImage,
-                                caption: '📲 *QR DE VINCULACIÓN DEL SUBBOT*\n\nEscanea este código desde *Dispositivos vinculados → Vincular un dispositivo*.\n\n⏳ El QR cambia y caduca rápidamente.'
+                            await this.subbotQrDelivery.sendOnce(async () => {
+                                const qrImage = await QRCode.toBuffer(qr, { type: 'png', width: 720, margin: 2 });
+                                await this.requesterSock.sendMessage(this.pairRequesterJid, {
+                                    image: qrImage,
+                                    caption: '📲 *QR DE VINCULACIÓN DEL SUBBOT*\n\nEscanea este código desde *Dispositivos vinculados → Vincular un dispositivo*.\n\n⏳ Se envía una sola imagen para evitar mensajes repetidos. Si el QR caduca, vuelve a escribir *.qr* para solicitar uno nuevo.'
+                                });
                             });
                         } catch (qrError) {
                             this.sendLog(`No se pudo enviar el QR del subbot: ${qrError.message}`, 'error');
