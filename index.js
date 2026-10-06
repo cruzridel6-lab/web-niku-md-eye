@@ -872,9 +872,14 @@ function profileIdentityNumbers(key, profile) {
     const numbers = new Set();
     const add = value => { const number = publicNumber(value); if (number) numbers.add(number); };
     add(key); add(profile?.phoneNumber);
-    for (const [phone, lid] of Object.entries(botData.phoneAliases || {})) {
-        if (numbers.has(publicNumber(phone))) add(lid);
-        if (numbers.has(publicNumber(lid))) add(phone);
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (const [phone, lid] of Object.entries(botData.phoneAliases || {})) {
+            const phoneNumber = publicNumber(phone); const lidNumber = publicNumber(lid);
+            if (numbers.has(phoneNumber) && lidNumber && !numbers.has(lidNumber)) { numbers.add(lidNumber); changed = true; }
+            if (numbers.has(lidNumber) && phoneNumber && !numbers.has(phoneNumber)) { numbers.add(phoneNumber); changed = true; }
+        }
     }
     return numbers;
 }
