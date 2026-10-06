@@ -1,7 +1,7 @@
 const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
 const { classImagePath, commandImagePath, shopImagePath, dungeonImagePath, sendImageCaption } = require('../lib/rpgMedia');
-const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
+const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
 const { sendActionButtons } = require('../lib/interactiveActions');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
@@ -483,7 +483,7 @@ function tutorialText(user, prefix = '.') {
     const missionLine = mission
         ? `${mission.claimed ? '✅' : '📍'} ${mission.title}: *${Math.min(Number(mission.progress) || 0, Number(mission.target) || 1)}/${mission.target}*${mission.claimed ? ' — completada' : `\n   ${mission.objective}`}`
         : '📍 Misión de bienvenida: elige una clase para activarla.';
-    return `🧭 *TUTORIAL DEL AVENTURERO*\n\n1️⃣ *Completa tu personaje*\nUsa *${prefix}perfil* y elige tu clase con *${prefix}clase*.\n\n2️⃣ *Haz tu primer combate*\nUsa *${prefix}combate iniciar* y después *${prefix}combate atacar*.\n\n3️⃣ *Revisa tu progreso*\nConsulta *${prefix}nivel*, *${prefix}inventario* y *${prefix}logros*.\n\n4️⃣ *Explora el reino*\nPrueba *${prefix}misiones*, *${prefix}raid* y *${prefix}mercado*.\n\n🎯 *MISIÓN DE BIENVENIDA*\n${missionLine}\n🎁 Recompensa: *500 monedas de oro + 40 XP*\n\nEscribe *${prefix}tutorial* cuando necesites volver a esta guía.`;
+    return `🧭 *TUTORIAL DEL AVENTURERO*\n\n1️⃣ *Completa tu personaje*\nUsa *${prefix}perfil* y elige tu clase con *${prefix}clase*.\n\n2️⃣ *Haz tu primer combate*\nUsa *${prefix}combate iniciar* y después *${prefix}combate atacar*.\n\n3️⃣ *Revisa tu progreso*\nConsulta *${prefix}nivel*, *${prefix}inventario* y *${prefix}logros*.\n\n4️⃣ *Explora el reino*\nPrueba *${prefix}misiones*, *${prefix}raid* y *${prefix}mercado*.\n\n🎯 *MISIÓN DE BIENVENIDA*\n${missionLine}\n🎁 Recompensa: *500 monedas de oro + 40 XP*\n\n${recommendedNextStep(user, prefix)}\n\nEscribe *${prefix}tutorial* cuando necesites volver a esta guía.`;
 }
 
 const investmentTimers = new Map();
@@ -563,7 +563,14 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
     await resumeInvestmentsForChat(sock, chatId, botData, saveBotData);
-    if (canonical === 'tutorial') return reply(sock, chatId, msg, tutorialText(user, prefix));
+    if (canonical === 'tutorial') {
+        const sent = await reply(sock, chatId, msg, tutorialText(user, prefix));
+        const buttons = user.rpg?.class
+            ? [{ label: '🧑‍🌾 Mercader', command: `${prefix}mercader` }, { label: '📜 Misiones', command: `${prefix}misiones` }, { label: '🎒 Inventario', command: `${prefix}inventario` }]
+            : [{ label: '🧙 Elegir clase', command: `${prefix}clase guerrero` }, { label: '🧙 Ver perfil', command: `${prefix}perfil` }, { label: '📜 Tutorial', command: `${prefix}tutorial` }];
+        await sendActionButtons(sock, chatId, '🎮 Continúa tu aventura:', buttons, sent || msg);
+        return sent;
+    }
     const expansionCanonical = canonical === 'merchant' && ['ver', 'listado', 'publicar', 'comprar'].includes(String(args[0] || '').toLowerCase()) ? 'market' : canonical;
     const expansionResult = await handleExpansion({ sock, chatId, msg, canonical: expansionCanonical, args, user, jid, botData, save, prefix });
     if (expansionResult) return expansionResult;
@@ -923,7 +930,13 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (canonical === 'mission') {
         const action = String(args[0] || '').toLowerCase();
         if (action === 'diarias' || action === 'diaria' || action === 'semanales' || action === 'semanal' || !action) {
-            return commandReply(sock, chatId, msg, 'mission', `📜 *MISIONES DEL AVENTURERO*\n\n${missionText(user, prefix)}`);
+            const sent = await commandReply(sock, chatId, msg, 'mission', `📜 *MISIONES DEL AVENTURERO*\n\n${missionText(user, prefix)}`);
+            await sendActionButtons(sock, chatId, '🎯 Elige tu próxima actividad:', [
+                { label: '💼 Trabajar', command: `${prefix}work` },
+                { label: '🌿 Recolectar', command: `${prefix}recolectar` },
+                { label: '🧭 Explorar', command: `${prefix}explorar` }
+            ], sent || msg);
+            return sent;
         }
         const welcome = user.rpg?.welcomeMission;
         const welcomeText = welcome ? `🎯 *MISIÓN DE BIENVENIDA*\n${welcome.title}\n${welcome.objective}\nProgreso: *${Math.min(Number(welcome.progress) || 0, Number(welcome.target) || 1)}/${welcome.target}*\n${welcome.claimed ? '✅ Recompensa entregada: 500 monedas de oro + 40 XP' : '🎁 Completa tu primer combate para recibir 500 monedas de oro + 40 XP.'}` : '';
@@ -1002,12 +1015,12 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const waitKey = isMine ? 'lastMine' : isFish ? 'lastFish' : 'lastHunt';
         const waitMs = isMine ? 45e3 : isFish ? 60e3 : 50e3;
         const wait = cooldown(user, waitKey, waitMs);
-        if (wait) return commandReply(sock, chatId, msg, canonical, `⏳ Tu personaje necesita descansar. Vuelve en *${timeLeft(wait)}*.`);
-        if (user.rpg.energy < (isMine ? 5 : isFish ? 6 : 7)) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía para esta actividad. Tienes *${user.rpg.energy}/${user.rpg.maxEnergy}*.`);
+        if (wait) return commandReply(sock, chatId, msg, canonical, `⏳ Tu personaje necesita descansar. Vuelve en *${timeLeft(wait)}*.\n👉 Mientras esperas, revisa *${prefix}misiones* o *${prefix}inventario*.`);
+        if (user.rpg.energy < (isMine ? 5 : isFish ? 6 : 7)) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía.\nNecesitas: *${isMine ? 5 : isFish ? 6 : 7}*\nTienes: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n\n✅ Solución: espera a que se recupere o consulta los tiempos con *${prefix}einfo*.`);
         const limit = consumeAction(user, canonical, isMine ? 40 : isFish ? 30 : 30);
         if (!limit.ok) return commandReply(sock, chatId, msg, canonical, `🛡️ Alcanzaste el límite diario de *${limit.limit}* acciones para este comando. Vuelve mañana.`);
         const energy = consumeEnergy(user, isMine ? 5 : isFish ? 6 : 7);
-        if (!energy.ok) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía. Necesitas *${isMine ? 5 : isFish ? 6 : 7}* y tienes *${energy.energy}/${energy.maxEnergy}*.`);
+        if (!energy.ok) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía.\nNecesitas: *${isMine ? 5 : isFish ? 6 : 7}*\nTienes: *${energy.energy}/${energy.maxEnergy}*\n\n✅ Solución: espera la recuperación y vuelve a usar *${prefix}${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}*.`);
         const tool = toolState(user, toolKey);
         if (!tool) {
             const names = { pico: '⛏️ pico', cana: '🎣 caña de pescar', espada: '⚔️ espada' };
@@ -1214,7 +1227,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const streak = wait ? 0 : (Number(user.streak) || 0) + 1;
         const reward = 30000 + (streak - 1) * 5000;
         Object.assign(user, { coins: user.coins + reward, streak, lastDaily: Date.now() }); save();
-        return reply(sock, chatId, msg, `🎁 El gremio te entregó *${fmt(reward)} ${COIN}* por completar tu recompensa diaria.\n🔥 Racha actual: *${streak} días*`);
+        return reply(sock, chatId, msg, `🎁 El gremio te entregó *${fmt(reward)} ${COIN}* por completar tu recompensa diaria.\n🔥 Racha actual: *${streak} días*\n\n${recommendedNextStep(user, prefix)}`);
     }
     if (canonical === 'work' || canonical === 'crime' || canonical === 'slut') {
         const config = canonical === 'work' ? { key: 'lastWork', wait: 60e3, gain: [1, 10000], loss: [1000, 5000], chance: .25, label: 'trabajo' } : canonical === 'crime' ? { key: 'lastCrime', wait: 5 * 60e3, gain: [3000, 18000], loss: [3000, 15000], chance: .25, label: 'crimen' } : { key: 'lastSlut', wait: 4 * 60e3, gain: [1000, 11000], loss: [2000, 8000], chance: .30, label: 'trabajo de riesgo' };
