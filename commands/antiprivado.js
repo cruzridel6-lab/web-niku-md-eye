@@ -21,8 +21,30 @@ module.exports.aliases = ['antiprivate', 'antipv'];
 
 module.exports.isDangerousPrivateCommand = function isDangerousPrivateCommand(text) {
     const normalized = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return /(^|\s)\.(?:bug|payload|crash|freeze|nuke|spam|locspam|vcardspam|buttonspam|pollspam|contactspam|lag|hack)\b/.test(normalized)
-        || /\b(?:bug\s*payload|crash\s*payload|freeze\s*payload|payload\s*bug)\b/.test(normalized);
+    const dangerous = [
+        'bug', 'payload', 'crash', 'freeze', 'nuke', 'spam', 'locspam', 'vcardspam',
+        'buttonspam', 'pollspam', 'contactspam', 'callbomb', 'smsbomb', 'lag', 'hack',
+        'bomb', 'flood', 'massmention', 'mentionall', 'sendall', 'destroy', 'kill'
+    ];
+    const command = normalized.match(/(^|\s)\.([a-z0-9_-]+)/)?.[2] || '';
+    const distance = (left, right) => {
+        const row = Array.from({ length: right.length + 1 }, (_, i) => i);
+        for (let i = 1; i <= left.length; i++) {
+            let diagonal = row[0]; row[0] = i;
+            for (let j = 1; j <= right.length; j++) {
+                const next = row[j];
+                row[j] = left[i - 1] === right[j - 1]
+                    ? diagonal
+                    : Math.min(row[j] + 1, row[j - 1] + 1, diagonal + 1);
+                diagonal = next;
+            }
+        }
+        return row[right.length];
+    };
+    const similarCommand = command && dangerous.some(item => command === item || (item.length >= 4 && distance(command, item) <= 1));
+    const payloadWords = /\b(?:bug|crash|freeze|nuke|spam|bomb|hack|lag|flood)\s*(?:payload|attack|bomber|bomb|spam)\b/.test(normalized);
+    const hostileChars = /\u0000/.test(String(text || '')) || (String(text || '').length > 2500 && (String(text || '').match(/[\u034f\u200e\u200f\u200b]/g) || []).length > 100);
+    return Boolean(similarCommand || payloadWords || hostileChars);
 };
 
 module.exports.enforcePrivate = async function enforcePrivate(sock, msg, from, text, botData, isExempt = false, log = () => {}) {
