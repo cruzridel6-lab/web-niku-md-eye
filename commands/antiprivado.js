@@ -1,26 +1,25 @@
 'use strict';
 
-module.exports = async function antiPrivadoCommand(sock, chatId, msg, isAdmin, botData, saveBotData, args = []) {
-    if (!isAdmin) return sock.sendMessage(chatId, { text: '❌ Solo el propietario o un administrador autorizado puede usar este comando.' }, { quoted: msg });
-    const action = String(args[0] || '').toLowerCase();
-    if (['on', '1', 'activar', 'enable'].includes(action)) {
-        botData.antiPrivate = { enabled: true, enabledAt: new Date().toISOString() };
-        saveBotData();
-        return sock.sendMessage(chatId, { text: '🔒 *ANTIPRIVADO ACTIVADO*\n\nLos chats privados nuevos serán bloqueados automáticamente.\nEl mensaje recibido se eliminará cuando WhatsApp lo permita.\n\nEl propietario y el bot quedan exentos.' }, { quoted: msg });
-    }
-    if (['off', '0', 'desactivar', 'disable'].includes(action)) {
-        botData.antiPrivate = { enabled: false, disabledAt: new Date().toISOString() };
-        saveBotData();
-        return sock.sendMessage(chatId, { text: '🔓 *ANTIPRIVADO DESACTIVADO*\n\nLos chats privados volverán a procesarse normalmente.' }, { quoted: msg });
-    }
-    const enabled = Boolean(botData.antiPrivate?.enabled);
-    return sock.sendMessage(chatId, { text: `🔒 *ANTIPRIVADO*\n\nEstado: *${enabled ? 'ACTIVADO' : 'DESACTIVADO'}*\n\nUsa *.antiprivado on* o *.antiprivado off*.` }, { quoted: msg });
-};
+const inFlight = new Set();
+const recentActions = new Map();
+const ACTION_TTL = 15_000;
+const MAX_AUDIT = 500;
 
-module.exports.aliases = ['antiprivate', 'antipv'];
-
-module.exports.isDangerousPrivateCommand = function isDangerousPrivateCommand(text) {
-    const normalized = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function ensureConfig(botData) {
+    botData.antiPrivate ||= {};
+    botData.antiPrivate.stats ||= { blocked: 0, dangerous: 0, flood: 0, deleted: 0, lastAt: null };
+    botData.antiPrivate.audit ||= [];
+    return botData.antiPrivate;
+}
+function trimAudit(config) {
+    if (config.audit.length > MAX_AUDIT) config.audit.splice(MAX_AUDIT);
+}
+function normalizeText(text) {
+    return String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function dangerousReason(text) {
+    const raw = String(text || '');
+    const normalized = normalizeText(raw);
     const dangerous = [
         'bug', 'payload', 'crash', 'freeze', 'nuke', 'spam', 'locspam', 'vcardspam',
         'buttonspam', 'pollspam', 'contactspam', 'callbomb', 'smsbomb', 'lag', 'hack',
@@ -33,32 +32,68 @@ module.exports.isDangerousPrivateCommand = function isDangerousPrivateCommand(te
             let diagonal = row[0]; row[0] = i;
             for (let j = 1; j <= right.length; j++) {
                 const next = row[j];
-                row[j] = left[i - 1] === right[j - 1]
-                    ? diagonal
-                    : Math.min(row[j] + 1, row[j - 1] + 1, diagonal + 1);
+                row[j] = left[i - 1] === right[j - 1] ? diagonal : Math.min(row[j] + 1, row[j - 1] + 1, diagonal + 1);
                 diagonal = next;
             }
         }
         return row[right.length];
     };
-    const similarCommand = command && dangerous.some(item => command === item || (item.length >= 4 && distance(command, item) <= 1));
-    const payloadWords = /\b(?:bug|crash|freeze|nuke|spam|bomb|hack|lag|flood)\s*(?:payload|attack|bomber|bomb|spam)\b/.test(normalized);
-    const hostileChars = /\u0000/.test(String(text || '')) || (String(text || '').length > 2500 && (String(text || '').match(/[\u034f\u200e\u200f\u200b]/g) || []).length > 100);
-    return Boolean(similarCommand || payloadWords || hostileChars);
+    if (command && dangerous.some(item => command === item || (item.length >= 4 && distance(command, item) <= 1))) return 'comando-peligroso';
+    if (/\b(?:bug|crash|freeze|nuke|spam|bomb|hack|lag|flood)\s*(?:payload|attack|bomber|bomb|spam)\b/.test(normalized)) return 'payload';
+    if (/\u0000/.test(raw)) return 'caracter-nulo';
+    const invisible = (raw.match(/[\u034f\u200b\u200e\u200f\u202a-\u202e\u2060\ufeff]/g) || []).length;
+    if (raw.length > 1800 && invisible > 80) return 'caracteres-invisibles';
+    if (raw.length > 6000) return 'mensaje-excesivo';
+    if ((raw.match(/https?:\/\//gi) || []).length >= 5) return 'flood-enlaces';
+    if (/(.)\1{120,}/u.test(raw)) return 'flood-repeticion';
+    if ((raw.match(/\./g) || []).length > 40 && raw.length < 400) return 'flood-comandos';
+    return null;
+}
+
+module.exports = async function antiPrivadoCommand(sock, chatId, msg, isAdmin, botData, saveBotData, args = []) {
+    if (!isAdmin) return sock.sendMessage(chatId, { text: '❌ Solo el propietario o un administrador autorizado puede usar este comando.' }, { quoted: msg });
+    const config = ensureConfig(botData);
+    const action = String(args[0] || '').toLowerCase();
+    if (['on', '1', 'activar', 'enable'].includes(action)) {
+        config.enabled = true; config.enabledAt = new Date().toISOString(); saveBotData();
+        return sock.sendMessage(chatId, { text: '🔒 *ANTIPRIVADO REFORZADO ACTIVADO*\n\nBloqueo inmediato de privados no autorizados.\n✅ Borra mensaje\n✅ Bloquea contacto\n✅ Intenta eliminar chat\n✅ Detecta payload, flood, spam y variantes\n✅ Acciones paralelas para responder más rápido\n\nEl propietario queda exento.' }, { quoted: msg });
+    }
+    if (['off', '0', 'desactivar', 'disable'].includes(action)) {
+        config.enabled = false; config.disabledAt = new Date().toISOString(); saveBotData();
+        return sock.sendMessage(chatId, { text: '🔓 *ANTIPRIVADO DESACTIVADO*\n\nLos chats privados volverán a procesarse normalmente.' }, { quoted: msg });
+    }
+    const stats = config.stats;
+    return sock.sendMessage(chatId, { text: `🔒 *ANTIPRIVADO REFORZADO*\n\nEstado: *${config.enabled ? 'ACTIVADO' : 'DESACTIVADO'}*\n🚫 Bloqueos: *${stats.blocked}*\n⚠️ Firmas peligrosas: *${stats.dangerous}*\n🌊 Flood detectado: *${stats.flood}*\n🗑️ Mensajes borrados: *${stats.deleted}*\n\nUsa *.antiprivado on/off*.` }, { quoted: msg });
 };
 
+module.exports.aliases = ['antiprivate', 'antipv'];
+module.exports.isDangerousPrivateCommand = text => Boolean(dangerousReason(text));
 module.exports.enforcePrivate = async function enforcePrivate(sock, msg, from, text, botData, isExempt = false, log = () => {}) {
-    if (isExempt || !botData.antiPrivate?.enabled || String(from).endsWith('@g.us') || from === 'status@broadcast') return false;
-    const dangerous = module.exports.isDangerousPrivateCommand(text);
+    const config = ensureConfig(botData);
+    if (isExempt || !config.enabled || String(from).endsWith('@g.us') || from === 'status@broadcast') return false;
     const sender = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.participant || from;
     const target = String(sender).endsWith('@lid') && (msg?.key?.participantAlt || msg?.key?.senderPn) ? (msg.key.participantAlt || msg.key.senderPn) : sender;
-    try { await sock.sendMessage(from, { delete: msg.key }); } catch (error) { log(`Antiprivado no pudo borrar el mensaje: ${error.message}`, 'warning'); }
-    try { await sock.updateBlockStatus(target, 'block'); } catch (error) { log(`Antiprivado no pudo bloquear ${target}: ${error.message}`, 'warning'); }
+    const actionKey = `${from}:${msg?.key?.id || 'unknown'}`;
+    const now = Date.now();
+    for (const [key, expires] of recentActions) if (expires <= now) recentActions.delete(key);
+    if (inFlight.has(actionKey) || recentActions.has(actionKey)) return true;
+    inFlight.add(actionKey); recentActions.set(actionKey, now + ACTION_TTL);
+    const reason = dangerousReason(text);
+    config.stats.blocked += 1;
+    if (reason) config.stats.dangerous += 1;
+    if (reason?.startsWith('flood') || reason === 'mensaje-excesivo') config.stats.flood += 1;
+    config.stats.lastAt = new Date().toISOString();
+    config.audit.unshift({ at: config.stats.lastAt, jid: String(target), reason: reason || 'privado-no-autorizado' });
+    trimAudit(config);
     try {
-        if (typeof sock.chatModify === 'function') {
-            await sock.chatModify({ delete: true, lastMessages: [{ key: msg.key, messageTimestamp: msg.messageTimestamp || Math.floor(Date.now() / 1000) }] }, from);
-        }
-    } catch (error) { log(`Antiprivado no pudo borrar el chat ${from}: ${error.message}`, 'warning'); }
-    botData.antiPrivate.lastAction = { at: new Date().toISOString(), jid: String(target), dangerousCommand: dangerous };
+        const deletion = sock.sendMessage(from, { delete: msg.key }).then(() => { config.stats.deleted += 1; }).catch(error => log(`Antiprivado no pudo borrar: ${error.message}`, 'warning'));
+        const blocking = sock.updateBlockStatus(target, 'block').catch(error => log(`Antiprivado no pudo bloquear ${target}: ${error.message}`, 'warning'));
+        const chatDeletion = typeof sock.chatModify === 'function'
+            ? sock.chatModify({ delete: true, lastMessages: [{ key: msg.key, messageTimestamp: msg.messageTimestamp || Math.floor(now / 1000) }] }, from).catch(error => log(`Antiprivado no pudo eliminar chat ${from}: ${error.message}`, 'warning'))
+            : Promise.resolve();
+        await Promise.allSettled([deletion, blocking, chatDeletion]);
+    } finally {
+        inFlight.delete(actionKey);
+    }
     return true;
 };
