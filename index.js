@@ -751,6 +751,7 @@ function loadBotDataFromDisk() {
     }
     if (!botData || typeof botData !== 'object' || Array.isArray(botData)) botData = {};
     if (!Array.isArray(botData.comments)) botData.comments = [];
+    if (!botData.localAIMemory || typeof botData.localAIMemory !== 'object' || Array.isArray(botData.localAIMemory)) botData.localAIMemory = {};
     if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
     if (!botData.economyStats || typeof botData.economyStats !== 'object') botData.economyStats = { transferTaxes: 0, transferCount: 0 };
     botData.economyStats.abuseBlocked = Number(botData.economyStats.abuseBlocked) || 0;
@@ -1968,7 +1969,7 @@ class BotSession {
                                         case 'autoread': await commands.autoread(this.sock, from, msg); break;
 
                                         // ===== AI =====
-                                        case 'ai': case 'ia': case 'inteligencia': case 'pregunta': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
+                                        case 'ai': case 'ia': case 'inteligencia': case 'pregunta': case 'aprender': case 'recordar': case 'memoria': case 'olvidar': case 'forget': await commands.ai(this.sock, from, msg, isAdmin, this, args, botData, saveBotData, commandName); break;
                                         case 'chatbot': await commands.chatbot(this.sock, from, msg, this, args); break;
                                         case 'gali': await commands.gali(this.sock, from, msg, this, args); break;
 
