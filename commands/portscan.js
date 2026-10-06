@@ -117,6 +117,11 @@ async function scanPorts(host) {
 }
 
 module.exports = async function portscanCommand(sock, chatId, msg, q) {
+    if (!String(q || '').trim()) {
+        return sock.sendMessage(chatId, {
+            text: '🔎 *ESCÁNER DE PUERTOS*\n\nUsa el comando indicando un dominio, una URL o una IP.\n\nEjemplos:\n• *.portscan ejemplo.com*\n• *.portscan https://ejemplo.com*\n• *.portscan 8.8.8.8*\n\n_El escaneo revisa puertos TCP públicos._'
+        }, { quoted: msg });
+    }
     try {
         const hostname = normalizeTarget(q);
         await sock.sendMessage(chatId, {
