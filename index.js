@@ -63,6 +63,7 @@ const commands = {
     antibot: require('./commands/antibot'),
     estaf: require('./commands/estaf'),
     strictmode: require('./commands/strictmode'),
+    antiprivado: require('./commands/antiprivado'),
     kickoffline: require('./commands/kickoffline'),
     hidetag: require('./commands/hidetag'),
     tagall: require('./commands/tagall'),
@@ -740,7 +741,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
- let botData = { antilinkGroups: {}, antiSalesGroups: {}, antiStickerGroups: {}, antiBotGroups: {}, antiScamGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, pendingMarriages: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
+ let botData = { antilinkGroups: {}, antiSalesGroups: {}, antiStickerGroups: {}, antiBotGroups: {}, antiScamGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, pendingMarriages: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {}, antiPrivate: { enabled: false } };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -752,6 +753,8 @@ function loadBotDataFromDisk() {
     if (!botData || typeof botData !== 'object' || Array.isArray(botData)) botData = {};
     if (!Array.isArray(botData.comments)) botData.comments = [];
     if (!botData.localAIMemory || typeof botData.localAIMemory !== 'object' || Array.isArray(botData.localAIMemory)) botData.localAIMemory = {};
+    if (!botData.antiPrivate || typeof botData.antiPrivate !== 'object' || Array.isArray(botData.antiPrivate)) botData.antiPrivate = { enabled: false };
+    botData.antiPrivate.enabled = Boolean(botData.antiPrivate.enabled);
     if (!botData.economy || typeof botData.economy !== 'object') botData.economy = {};
     if (!botData.economyStats || typeof botData.economyStats !== 'object') botData.economyStats = { transferTaxes: 0, transferCount: 0 };
     botData.economyStats.abuseBlocked = Number(botData.economyStats.abuseBlocked) || 0;
@@ -1478,7 +1481,7 @@ class BotSession {
                         }
 
                         // AI auto-reply
-                        if (this.aiEnabled && !isMe && !isGroup && text && !text.startsWith('.')) {
+                        if (this.aiEnabled && !botData.antiPrivate?.enabled && !isMe && !isGroup && text && !text.startsWith('.')) {
                             try {
                                 const aiResponse = await this.getAIResponse(from, text);
                                 await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
@@ -1530,6 +1533,11 @@ class BotSession {
                             } catch (e) {
                                 isAdmin = false;
                             }
+                        }
+
+                        if (!isGroup && !isStatus && !isBotSender) {
+                            const blockedByAntiPrivate = await commands.antiprivado.enforcePrivate(this.sock, msg, from, text, botData, isOwner || isAdmin, this.sendLog.bind(this));
+                            if (blockedByAntiPrivate) { saveBotData(); return; }
                         }
 
                         if (isGroup && !isAdmin && botData.antiPornGroups?.[from]) {
@@ -1665,7 +1673,7 @@ class BotSession {
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public']);
-                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antibot', 'estaf', 'antiestafa', 'anticall', 'anti-call', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
+                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antibot', 'estaf', 'antiestafa', 'anticall', 'anti-call', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'antiprivado', 'antiprivate', 'antipv', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1798,7 +1806,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antibot', 'estaf', 'anticall', 'antiestiker', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antibot', 'estaf', 'anticall', 'antiestiker', 'antiprivado', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'ia', 'chatbot', 'gali']); break;
@@ -1905,6 +1913,7 @@ class BotSession {
                                         case 'quitaradvertencia': case 'quitaradvertencias': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['quitar', ...args]); break;
                                         case 'antiventas': case 'antisales': await commands.antisales(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'antibot': await commands.antibot(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'antiprivado': case 'antiprivate': case 'antipv': await commands.antiprivado(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'estaf': case 'antiestafa': await commands.estaf(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'modoestricto': case 'modoeatrito': case 'strictmode': await commands.strictmode(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'anti':
