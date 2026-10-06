@@ -2,6 +2,7 @@ const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
 const { classImagePath, commandImagePath, shopImagePath, dungeonImagePath, sendImageCaption } = require('../lib/rpgMedia');
 const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
+const { sendActionButtons } = require('../lib/interactiveActions');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
 const INVESTMENT_DURATION = 5 * 60 * 1000;
@@ -702,7 +703,14 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         user.coins -= stake;
         duels[id] = { id, challenger: jid, target: target.key, stake, status: 'pending', createdAt: now };
         save();
-        return commandReply(sock, chatId, msg, 'duel', `⚔️ *DESAFÍO PvP ENVIADO*\n\n📤 @${numberOf(jid)} retó a @${numberOf(target.key)}\n🪙 Apuesta: *${fmt(stake)} ${COIN}*\n⏳ Expira en 10 minutos\n\n@${numberOf(target.key)}, acepta con *${prefix}duelo aceptar*.\nEl retador puede cancelar con *${prefix}duelo cancelar*.`, { mentions: [jid, target.key] });
+        const challengeText = `⚔️ *DESAFÍO PvP ENVIADO*\n\n📤 @${numberOf(jid)} retó a @${numberOf(target.key)}\n🪙 Apuesta: *${fmt(stake)} ${COIN}*\n⏳ Expira en 10 minutos\n\n@${numberOf(target.key)}, acepta con *${prefix}duelo aceptar*.\nEl retador puede cancelar con *${prefix}duelo cancelar*.`;
+        const sent = await commandReply(sock, chatId, msg, 'duel', challengeText, { mentions: [jid, target.key] });
+        await sendActionButtons(sock, chatId, '⚔️ ¿Qué deseas hacer con este duelo?', [
+            { label: '✅ Aceptar', command: `${prefix}duelo aceptar` },
+            { label: '❌ Rechazar', command: `${prefix}duelo rechazar` },
+            { label: '↩️ Cancelar', command: `${prefix}duelo cancelar` }
+        ], sent || msg);
+        return sent;
     }
     if (canonical === 'characterClass') {
         const requested = String(args[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1156,7 +1164,15 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const rows = entries.slice((page - 1) * 10, page * 10);
         if (!rows.length) return reply(sock, chatId, msg, `❌ Página inválida. Usa una página entre 1 y ${pages}.`);
         const text = rows.map((x, i) => `${(page - 1) * 10 + i + 1}. @${numberOf(x.key)} — *${fmt(x.total)} ${COIN}*`).join('\n');
-        return reply(sock, chatId, msg, `🏆 *RANKING DE AVENTUREROS*\n\n${text}\n\n_Página ${page}/${pages}_`, { mentions: rows.map(x => x.key) });
+        const rankingText = `🏆 *RANKING DE AVENTUREROS*\n\n${text}\n\n_Página ${page}/${pages}_`;
+        const sent = await reply(sock, chatId, msg, rankingText, { mentions: rows.map(x => x.key) });
+        if (pages > 1) {
+            const buttons = [];
+            if (page > 1) buttons.push({ label: '◀️ Anterior', command: `${prefix}baltop ${page - 1}` });
+            if (page < pages) buttons.push({ label: 'Siguiente ▶️', command: `${prefix}baltop ${page + 1}` });
+            await sendActionButtons(sock, chatId, '🏆 Navega por el ranking:', buttons, sent || msg);
+        }
+        return sent;
     }
     if (canonical === 'loan') {
         const action = String(args[0] || 'estado').toLowerCase();
