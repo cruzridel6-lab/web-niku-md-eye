@@ -155,6 +155,10 @@ function sameIdentity(botData, left, right) {
                 result.add(numberOf(lid));
             }
         }
+        for (const [profileKey, profile] of Object.entries(botData?.profiles || {})) {
+            const profileIds = [numberOf(profileKey), numberOf(profile?.phoneNumber)].filter(Boolean);
+            if (profileIds.includes(key)) for (const id of profileIds) result.add(id);
+        }
         return result;
     };
     const leftIds = linked(left); const rightIds = linked(right);
@@ -597,6 +601,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const now = Date.now();
         let changed = false;
         for (const [id, duel] of Object.entries(duels)) {
+            const challengerAccount = findUser(state, duel.challenger, botData);
+            const targetAccount = findUser(state, duel.target, botData);
+            if (challengerAccount && duel.challenger !== challengerAccount.key) { duel.challenger = challengerAccount.key; changed = true; }
+            if (targetAccount && duel.target !== targetAccount.key) { duel.target = targetAccount.key; changed = true; }
             if (duel.status !== 'pending' || now - Number(duel.createdAt) <= 10 * 60e3) continue;
             const challenger = findUser(state, duel.challenger, botData);
             if (challenger) challenger.user.coins = (Number(challenger.user.coins) || 0) + Number(duel.stake || 0);
