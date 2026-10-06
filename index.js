@@ -1539,6 +1539,10 @@ class BotSession {
                             const blockedByAntiPrivate = await commands.antiprivado.enforcePrivate(this.sock, msg, from, text, botData, isOwner || isAdmin, this.sendLog.bind(this));
                             if (blockedByAntiPrivate) { saveBotData(); return; }
                         }
+                        if (isGroup && !isAdmin && !isBotSender) {
+                            const blockedByAntiPrivateGroup = await commands.antiprivado.enforceGroup(this.sock, msg, from, text, botData, false, this.sendLog.bind(this));
+                            if (blockedByAntiPrivateGroup) { saveBotData(); return; }
+                        }
 
                         if (isGroup && !isAdmin && botData.antiPornGroups?.[from]) {
                             const blockedByAntiPorn = await antiPorn.enforce({

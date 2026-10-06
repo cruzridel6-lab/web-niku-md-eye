@@ -66,6 +66,15 @@ module.exports = async function antiPrivadoCommand(sock, chatId, msg, isAdmin, b
     if (!isAdmin) return sock.sendMessage(chatId, { text: '❌ Solo el propietario o un administrador autorizado puede usar este comando.' }, { quoted: msg });
     const config = ensureConfig(botData);
     const action = String(args[0] || '').toLowerCase();
+    if (['grupo', 'group'].includes(action)) {
+        const groupAction = String(args[1] || '').toLowerCase();
+        if (!['on', '1', 'activar', 'enable', 'off', '0', 'desactivar', 'disable'].includes(groupAction)) {
+            return sock.sendMessage(chatId, { text: `🛡️ *ANTIPRIVADO EN GRUPOS*\n\nEstado: *${config.groupEnabled ? 'ACTIVADO' : 'DESACTIVADO'}*\n\nUsa *.antiprivado grupo on* o *.antiprivado grupo off*.` }, { quoted: msg });
+        }
+        config.groupEnabled = ['on', '1', 'activar', 'enable'].includes(groupAction);
+        saveBotData();
+        return sock.sendMessage(chatId, { text: config.groupEnabled ? '🛡️ *ANTIPRIVADO DE GRUPOS ACTIVADO*\n\nDetectará firmas peligrosas, borrará el mensaje y expulsará al remitente cuando el bot sea administrador.' : '🔓 *ANTIPRIVADO DE GRUPOS DESACTIVADO*' }, { quoted: msg });
+    }
     if (['on', '1', 'activar', 'enable'].includes(action)) {
         config.enabled = true; config.enabledAt = new Date().toISOString(); saveBotData();
         return sock.sendMessage(chatId, { text: '🔒 *ANTIPRIVADO REFORZADO ACTIVADO*\n\nBloqueo inmediato de privados no autorizados.\n✅ Borra mensaje\n✅ Bloquea contacto\n✅ Intenta eliminar chat\n✅ Detecta payload, flood, spam y variantes\n✅ Acciones paralelas para responder más rápido\n\nEl propietario queda exento.' }, { quoted: msg });
@@ -75,7 +84,7 @@ module.exports = async function antiPrivadoCommand(sock, chatId, msg, isAdmin, b
         return sock.sendMessage(chatId, { text: '🔓 *ANTIPRIVADO DESACTIVADO*\n\nLos chats privados volverán a procesarse normalmente.' }, { quoted: msg });
     }
     const stats = config.stats;
-    return sock.sendMessage(chatId, { text: `🔒 *ANTIPRIVADO REFORZADO*\n\nEstado: *${config.enabled ? 'ACTIVADO' : 'DESACTIVADO'}*\n🚫 Bloqueos: *${stats.blocked}*\n⚠️ Firmas peligrosas: *${stats.dangerous}*\n🌊 Flood detectado: *${stats.flood}*\n🗑️ Mensajes borrados: *${stats.deleted}*\n\nUsa *.antiprivado on/off*.` }, { quoted: msg });
+    return sock.sendMessage(chatId, { text: `🔒 *ANTIPRIVADO REFORZADO*\n\nPrivados: *${config.enabled ? 'ACTIVADOS' : 'DESACTIVADOS'}*\nGrupos: *${config.groupEnabled ? 'ACTIVADOS' : 'DESACTIVADOS'}*\n🚫 Bloqueos: *${stats.blocked}*\n⚠️ Firmas peligrosas: *${stats.dangerous}*\n🌊 Flood detectado: *${stats.flood}*\n🗑️ Mensajes borrados: *${stats.deleted}*\n\nUsa *.antiprivado on/off* o *.antiprivado grupo on/off*.` }, { quoted: msg });
 };
 
 module.exports.aliases = ['antiprivate', 'antipv'];
@@ -104,6 +113,31 @@ module.exports.enforcePrivate = async function enforcePrivate(sock, msg, from, t
             ? sock.chatModify({ delete: true, lastMessages: [{ key: msg.key, messageTimestamp: msg.messageTimestamp || Math.floor(now / 1000) }] }, from).catch(error => log(`Antiprivado no pudo eliminar chat ${from}: ${error.message}`, 'warning'))
             : Promise.resolve();
         await Promise.allSettled([deletion, blocking, chatDeletion]);
+    } finally {
+        inFlight.delete(actionKey);
+    }
+    return true;
+};
+
+module.exports.enforceGroup = async function enforceGroup(sock, msg, from, text, botData, isExempt = false, log = () => {}) {
+    const config = ensureConfig(botData);
+    if (isExempt || !config.groupEnabled || !String(from).endsWith('@g.us')) return false;
+    const reason = dangerousReason(text);
+    if (!reason) return false;
+    const sender = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.participant || '';
+    const target = String(sender).endsWith('@lid') && (msg?.key?.participantAlt || msg?.key?.senderPn) ? (msg.key.participantAlt || msg.key.senderPn) : sender;
+    const actionKey = `group:${from}:${msg?.key?.id || 'unknown'}`;
+    if (inFlight.has(actionKey) || recentActions.has(actionKey)) return true;
+    inFlight.add(actionKey); recentActions.set(actionKey, Date.now() + ACTION_TTL);
+    config.stats.dangerous += 1;
+    if (reason.startsWith('flood') || reason === 'mensaje-excesivo') config.stats.flood += 1;
+    config.stats.lastAt = new Date().toISOString();
+    config.audit.unshift({ at: config.stats.lastAt, jid: String(target), group: String(from), reason, action: 'delete-and-remove' });
+    trimAudit(config);
+    try {
+        const deletion = sock.sendMessage(from, { delete: msg.key }).then(() => { config.stats.deleted += 1; }).catch(error => log(`Antiprivado grupo no pudo borrar: ${error.message}`, 'warning'));
+        const removal = sock.groupParticipantsUpdate(from, [target], 'remove').catch(error => log(`Antiprivado grupo no pudo expulsar ${target}: ${error.message}`, 'warning'));
+        await Promise.allSettled([deletion, removal]);
     } finally {
         inFlight.delete(actionKey);
     }
