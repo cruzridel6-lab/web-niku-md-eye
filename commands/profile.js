@@ -7,7 +7,7 @@ const ALIASES = {
     marry: ['marry', 'casar', 'casarse', 'matrimonio'],
     divorce: ['divorce', 'divorciar', 'separarse'],
     history: ['history', 'historial', 'historialmatrimonial', 'marryhistory'],
-    pfp: ['pfp', 'getpfp', 'foto', 'avatar'],
+    pfp: ['pfp', 'getpfp', 'foto', 'fotoperfil', 'foto perfil', 'avatar'],
     setbirth: ['setbirth', 'setcumple', 'setbirthday', 'cumple', 'cumpleanos', 'cumpleaños', 'birthday'],
     setdesc: ['setbio', 'setdescription', 'setdescperfil'],
     setgenre: ['setgenre', 'setgenero']

@@ -50,3 +50,4 @@ async function dpCommand(sock, from, msg) {
 }
 
 module.exports = dpCommand;
+module.exports.aliases = ['fotoperfil', 'foto perfil'];
