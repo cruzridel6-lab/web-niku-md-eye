@@ -20,6 +20,7 @@ function normalizeText(text) {
 function dangerousReason(text) {
     const raw = String(text || '');
     const normalized = normalizeText(raw);
+    const compact = normalized.replace(/[\s._-]+/g, '');
     const dangerous = [
         'bug', 'payload', 'crash', 'freeze', 'nuke', 'spam', 'locspam', 'vcardspam',
         'buttonspam', 'pollspam', 'contactspam', 'callbomb', 'smsbomb', 'lag', 'hack',
@@ -39,6 +40,9 @@ function dangerousReason(text) {
         return row[right.length];
     };
     if (command && dangerous.some(item => command === item || (item.length >= 4 && distance(command, item) <= 1))) return 'comando-peligroso';
+    if (compact.includes('forcecloseios') || compact.includes('forcecloseandroid') || compact.includes('forcecloseandriod')) return 'force-close-ios-android';
+    if (compact.includes('blanksyxs7')) return 'blank-syxs7';
+    if (compact.includes('delayinvisible')) return 'delay-invisible';
     if (/\b(?:bug|crash|freeze|nuke|spam|bomb|hack|lag|flood)\s*(?:payload|attack|bomber|bomb|spam)\b/.test(normalized)) return 'payload';
     if (/\u0000/.test(raw)) return 'caracter-nulo';
     const invisible = (raw.match(/[\u034f\u200b\u200e\u200f\u202a-\u202e\u2060\ufeff]/g) || []).length;
