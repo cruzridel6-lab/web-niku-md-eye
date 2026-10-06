@@ -564,12 +564,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const save = () => saveBotData();
     await resumeInvestmentsForChat(sock, chatId, botData, saveBotData);
     if (canonical === 'tutorial') {
-        const sent = await reply(sock, chatId, msg, tutorialText(user, prefix));
-        const buttons = user.rpg?.class
-            ? [{ label: '🧑‍🌾 Mercader', command: `${prefix}mercader` }, { label: '📜 Misiones', command: `${prefix}misiones` }, { label: '🎒 Inventario', command: `${prefix}inventario` }]
-            : [{ label: '🧙 Elegir clase', command: `${prefix}clase guerrero` }, { label: '🧙 Ver perfil', command: `${prefix}perfil` }, { label: '📜 Tutorial', command: `${prefix}tutorial` }];
-        await sendActionButtons(sock, chatId, '🎮 Continúa tu aventura:', buttons, sent || msg);
-        return sent;
+        return reply(sock, chatId, msg, tutorialText(user, prefix));
     }
     const expansionCanonical = canonical === 'merchant' && ['ver', 'listado', 'publicar', 'comprar'].includes(String(args[0] || '').toLowerCase()) ? 'market' : canonical;
     const expansionResult = await handleExpansion({ sock, chatId, msg, canonical: expansionCanonical, args, user, jid, botData, save, prefix });

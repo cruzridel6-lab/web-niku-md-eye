@@ -1837,7 +1837,7 @@ class BotSession {
                                         case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antibot', 'estaf', 'anticall', 'antiestiker', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
-                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
+                                        case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'ia', 'chatbot', 'gali']); break;
                                         case 'economymenu': case 'gamemenu': case 'rpg': case 'rpgmenu': case 'economiarpg': case 'economyrpg': await sendRpgInteractiveMenu(this.sock, from, msg); break;
                                         case 'subbotmenu': case 'subbots': await sendSubmenuWithChannel(this.sock, from, '🤖 *VINCULACIÓN DE SUBBOTS*\n\n🔐 *.code número*\nGenera un código para vincular otro número como subbot.\n\n📲 *.qr*\nGenera un QR temporal para vincular otro número como subbot.\n\n🔒 Usa estos comandos en un chat privado.', msg); break;
                                         case 'tools': case 'toolsmenu': await sendCategoryMenu(this.sock, from, msg, '🛠️ MENÚ DE HERRAMIENTAS', ['ping', 'dp', 'vv', 'translate', 'base64', 'qr', 'shorturl', 'calc', 'weather', 'github', 'ipinfo', 'tempmail', 'fakeinfo', 'binlookup', 'whois', 'dnslookup', 'portscan', 'screenshot', 'define', 'google', 'wiki', 'yts', 'playstore', 'npm']); break;
@@ -2005,7 +2005,7 @@ class BotSession {
                                         case 'autoread': await commands.autoread(this.sock, from, msg); break;
 
                                         // ===== AI =====
-                                        case 'ai': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
+                                        case 'ai': case 'ia': case 'inteligencia': case 'pregunta': await commands.ai(this.sock, from, msg, isAdmin, this, args); break;
                                         case 'chatbot': await commands.chatbot(this.sock, from, msg, this, args); break;
                                         case 'gali': await commands.gali(this.sock, from, msg, this, args); break;
 
@@ -2482,7 +2482,8 @@ async function sendCategoryMenu(sock, from, msg, title, names) {
     const economyAliases = commands.economy?.aliases ? Object.values(commands.economy.aliases).flat() : [];
     const animeAliases = commands.anime?.aliases || [];
     const profileAliases = commands.profile?.aliases || [];
-    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name));
+    const commandAliases = Object.values(commands || {}).flatMap(command => Array.isArray(command?.aliases) ? command.aliases : []);
+    const available = names.filter(name => Object.prototype.hasOwnProperty.call(commands, name) || economyAliases.includes(name) || animeAliases.includes(name) || profileAliases.includes(name) || commandAliases.includes(name));
     if (!available.length) return sendSubmenuWithChannel(sock, from, `${title}\n\nNo hay comandos activos en esta categoría.`, msg);
     const rows = available.map(name => ({ command: name, title: `.${TOOL_DISPLAY_NAMES[name] || name}`, description: `Ejecutar ${TOOL_DISPLAY_NAMES[name] || name}` }));
     return sendInteractiveCommandMenu(sock, from, title, rows, msg);
