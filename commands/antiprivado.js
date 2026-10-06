@@ -43,6 +43,14 @@ function dangerousReason(text) {
     if (compact.includes('forcecloseios') || compact.includes('forcecloseandroid') || compact.includes('forcecloseandriod')) return 'force-close-ios-android';
     if (compact.includes('blanksyxs7')) return 'blank-syxs7';
     if (compact.includes('delayinvisible')) return 'delay-invisible';
+    if (compact.includes('crashiam') || compact.includes('crasiham')) return 'crashiam-file';
+    if (compact.includes('gcfrz')) return 'gcfrz-file';
+    if (compact.includes('losinvisible')) return 'los-invisible-file';
+    if (compact.includes('killsystem')) return 'kill-system-file';
+    if (compact.includes('stickercrash')) return 'sticker-crash-file';
+    if (compact.includes('xbetainvis')) return 'xbetainvis-file';
+    if (compact.includes('xdelay')) return 'xdelay-file';
+    if (compact.includes('xgc')) return 'xgc-file';
     if (/\b(?:bug|crash|freeze|nuke|spam|bomb|hack|lag|flood)\s*(?:payload|attack|bomber|bomb|spam)\b/.test(normalized)) return 'payload';
     if (/\u0000/.test(raw)) return 'caracter-nulo';
     const invisible = (raw.match(/[\u034f\u200b\u200e\u200f\u202a-\u202e\u2060\ufeff]/g) || []).length;
