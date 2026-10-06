@@ -3,15 +3,16 @@ module.exports = async function(sock, chatId, msg, session, args) {
     
     if (action === 'on') {
         session.aiEnabled = true;
-        await sock.sendMessage(chatId, { text: '\u1F916 Chatbot AI ON! The bot will auto-reply to personal messages.' }, { quoted: msg });
+        await sock.sendMessage(chatId, { text: '🤖 IA local activada. Responderé automáticamente en este chat privado, sin usar APIs externas.\n\nDesactivar: *.chatbot off*' }, { quoted: msg });
     } else if (action === 'off') {
         session.aiEnabled = false;
-        await sock.sendMessage(chatId, { text: '\u274C Chatbot AI OFF!' }, { quoted: msg });
+        await sock.sendMessage(chatId, { text: '⛔ IA automática desactivada. El comando *.ai* seguirá disponible bajo demanda.' }, { quoted: msg });
     } else {
         await sock.sendMessage(chatId, { 
-            text: `*\u1F3AE Chatbot Settings*\n\n` +
-                `Status: ${session.aiEnabled ? 'ON' : 'OFF'}\n\n` +
-                `Use .chatbot on/off` 
+            text: `🤖 *CONFIGURACIÓN DE IA LOCAL*\n\n` +
+                `Estado: ${session.aiEnabled ? 'ACTIVA' : 'DESACTIVADA'}\n` +
+                `Proveedor: local, sin API externa\n\n` +
+                `Usa *.chatbot on/off* para cambiar el modo automático.`
         }, { quoted: msg });
     }
 };
