@@ -17,6 +17,7 @@ const ECONOMY_LIMITS = {
     gamblingStake: 10000,
     sameRecipient: 8
 };
+const MAX_DUEL_STAKE = ECONOMY_LIMITS.duelStake;
 const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
 const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
 const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
@@ -451,6 +452,15 @@ function amount(value) {
     const parsed = Number(clean);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
+function duelStakeFromArgs(args, target) {
+    const raw = String(args?.[args.length - 1] || '').trim();
+    if (!raw || /^@/.test(raw)) return null;
+    const digits = numberOf(target?.key);
+    if (target && /^\d{7,20}$/.test(raw.replace(/^@/, '')) && raw.replace(/^@/, '') === digits) return null;
+    if (!/^\d+$/.test(raw)) return null;
+    const stake = Number(raw);
+    return Number.isSafeInteger(stake) && stake > 0 ? stake : null;
+}
 function dailyGuard(user) {
     const today = new Date().toISOString().slice(0, 10);
     user.economyGuard ||= { day: today, transferCoins: 0, transferCount: 0, duelStake: 0, gamblingStake: 0, recipients: {} };
@@ -647,7 +657,11 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             if (!pending) return commandReply(sock, chatId, msg, 'duel', `❌ No tienes duelos pendientes. Usa *${prefix}duelo @usuario <cantidad>* para retar a alguien.`);
             const challenger = findUser(state, pending.challenger, botData);
             const stake = Number(pending.stake) || 0;
-            if (!challenger || stake < MIN_BET) { delete duels[pending.id]; save(); return commandReply(sock, chatId, msg, 'duel', '❌ Ese duelo ya no es válido porque falta la cuenta del retador.'); }
+            if (!challenger || !Number.isSafeInteger(stake) || stake < MIN_BET || stake > MAX_DUEL_STAKE) {
+                if (challenger && Number.isSafeInteger(stake) && stake >= MIN_BET && stake <= MAX_DUEL_STAKE) challenger.user.coins = (Number(challenger.user.coins) || 0) + stake;
+                delete duels[pending.id]; save();
+                return commandReply(sock, chatId, msg, 'duel', `❌ Ese duelo tenía una apuesta inválida y fue cancelado. Límite actual: *${fmt(MAX_DUEL_STAKE)} ${COIN}*.`);
+            }
             if (user.coins < stake) return commandReply(sock, chatId, msg, 'duel', `❌ Necesitas *${fmt(stake)} ${COIN}* para aceptar el duelo. Tienes *${fmt(user.coins)}*.`);
             if (!consumeDailyLimit(botData, user, jid, 'duelStake', stake, ECONOMY_LIMITS.duelStake, 'duel_limit', { stake, challenger: pending.challenger })) {
                 save();
@@ -692,8 +706,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             return commandReply(sock, chatId, msg, 'duel', `⚔️ *DUELOS PENDIENTES*\n\n${text}\n\nAceptar: *${prefix}duelo aceptar*\nCancelar: *${prefix}duelo cancelar*`, { mentions: pending.flatMap(duel => [duel.challenger, duel.target]) });
         }
         const target = getDuelTarget(msg, q, state, botData);
-        const stake = amount(args[args.length - 1]);
-        if (!target || !stake || stake < MIN_BET) return commandReply(sock, chatId, msg, 'duel', `ℹ️ Uso: *${prefix}${HELP.duel}*\nMínimo: *${fmt(MIN_BET)} ${COIN}*`);
+        const stake = duelStakeFromArgs(args, target);
+        if (!target || !stake || stake < MIN_BET) return commandReply(sock, chatId, msg, 'duel', `ℹ️ Uso: *${prefix}${HELP.duel}*\nMínimo: *${fmt(MIN_BET)} ${COIN}* · Máximo: *${fmt(MAX_DUEL_STAKE)} ${COIN}*\nEscribe la apuesta como un número independiente, por ejemplo: *.duelo @usuario 500*.`);
+        if (stake > MAX_DUEL_STAKE) return commandReply(sock, chatId, msg, 'duel', `❌ La apuesta máxima es de *${fmt(MAX_DUEL_STAKE)} ${COIN}*. No se aceptan cantidades astronómicas ni formatos ambiguos.`);
         if (sameIdentity(botData, target.key, jid)) return commandReply(sock, chatId, msg, 'duel', '❌ No puedes retarte a ti mismo.');
         if (user.coins < stake) return commandReply(sock, chatId, msg, 'duel', `❌ No tienes suficientes ${COIN}. Necesitas *${fmt(stake)}* y tienes *${fmt(user.coins)}*.`);
         if (Object.values(duels).some(duel => duel.status === 'pending' && (sameIdentity(botData, duel.challenger, jid) || sameIdentity(botData, duel.target, jid) || sameIdentity(botData, duel.target, target.key)))) return commandReply(sock, chatId, msg, 'duel', '⚔️ Tú o ese jugador ya tienen un duelo pendiente.');
