@@ -60,6 +60,8 @@ const commands = {
     warn: require('./commands/warn'),
     antisales: require('./commands/antisales'),
     antisticker: require('./commands/antisticker'),
+    antibot: require('./commands/antibot'),
+    estaf: require('./commands/estaf'),
     strictmode: require('./commands/strictmode'),
     kickoffline: require('./commands/kickoffline'),
     hidetag: require('./commands/hidetag'),
@@ -748,7 +750,7 @@ for (const legacyDir of LEGACY_DATA_DIRS) {
     }
 }
 
- let botData = { antilinkGroups: {}, antiSalesGroups: {}, antiStickerGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, pendingMarriages: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
+ let botData = { antilinkGroups: {}, antiSalesGroups: {}, antiStickerGroups: {}, antiBotGroups: {}, antiScamGroups: {}, adminOnlyGroups: {}, groupAlerts: {}, groupWelcome: {}, groupBye: {}, groupWelcomeText: {}, groupByeText: {}, mutedUsers: {}, totalBots: 0, registeredBots: [], statusSettings: {}, antiDelete: {}, userNames: {}, phoneAliases: {}, antiCall: {}, broadcastHistory: [], comments: [], economy: {}, economyStats: { transferTaxes: 0, transferCount: 0, abuseBlocked: 0 }, economyAbuseAlerts: [], investments: {}, pvpDuels: {}, pvpDuelHistory: {}, rpgBattles: {}, rpgMarket: {}, rpgRaids: {}, adminReports: [], auctions: {}, profiles: {}, pendingMarriages: {}, premiumUsers: {}, premiumTokens: {}, superTokens: {}, bannedNumbers: {}, moderators: {}, rewardTokens: {}, clans: {}, clanWars: {}, subbots: {}, groupSchedules: {}, antiPornGroups: {} };
 function loadBotDataFromDisk() {
     for (const candidate of [DATA_FILE, DATA_BACKUP]) {
         if (!fs.existsSync(candidate)) continue;
@@ -774,6 +776,9 @@ function loadBotDataFromDisk() {
     if (!botData.groupWarnings || typeof botData.groupWarnings !== 'object' || Array.isArray(botData.groupWarnings)) botData.groupWarnings = {};
     if (!botData.antiSalesGroups || typeof botData.antiSalesGroups !== 'object' || Array.isArray(botData.antiSalesGroups)) botData.antiSalesGroups = {};
     if (!botData.antiStickerGroups || typeof botData.antiStickerGroups !== 'object' || Array.isArray(botData.antiStickerGroups)) botData.antiStickerGroups = {};
+    if (!botData.antiBotGroups || typeof botData.antiBotGroups !== 'object' || Array.isArray(botData.antiBotGroups)) botData.antiBotGroups = {};
+    if (!botData.antiScamGroups || typeof botData.antiScamGroups !== 'object' || Array.isArray(botData.antiScamGroups)) botData.antiScamGroups = {};
+    if (!botData.antiCall || typeof botData.antiCall !== 'object' || Array.isArray(botData.antiCall)) botData.antiCall = {};
     if (!botData.strictGroups || typeof botData.strictGroups !== 'object' || Array.isArray(botData.strictGroups)) botData.strictGroups = {};
     if (!botData.premiumUsers || typeof botData.premiumUsers !== 'object' || Array.isArray(botData.premiumUsers)) botData.premiumUsers = {};
     if (!botData.premiumTokens || typeof botData.premiumTokens !== 'object') botData.premiumTokens = {};
@@ -1577,6 +1582,30 @@ class BotSession {
                             if (blockedByAntiPorn) return;
                         }
 
+                        if (isGroup && !isAdmin && !isBotSender && botData.antiBotGroups?.[from] && commands.antibot.isBotSender(msg, sender, botData)) {
+                            try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (error) { this.sendLog(`Antibot no pudo borrar el mensaje: ${error.message}`, 'warning'); }
+                            try {
+                                await this.sock.groupParticipantsUpdate(from, [normalizedSender], 'remove');
+                                await this.sock.sendMessage(from, { text: '🤖 *ANTIBOT ACTIVADO*\n\nSe detectó una cuenta automatizada y fue expulsada del grupo.' });
+                            } catch (error) {
+                                await this.sock.sendMessage(from, { text: '⚠️ Detecté una cuenta automatizada y eliminé su mensaje, pero no pude expulsarla. Verifica que el bot sea administrador.' });
+                                this.sendLog(`Antibot no pudo expulsar a ${sender}: ${error.message}`, 'warning');
+                            }
+                            return;
+                        }
+
+                        if (isGroup && !isAdmin && !isBotSender && botData.antiScamGroups?.[from] && commands.estaf.isScamMessage(text || messageContent)) {
+                            try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (error) { this.sendLog(`Antiestafa no pudo borrar el mensaje: ${error.message}`, 'warning'); }
+                            try {
+                                await this.sock.groupParticipantsUpdate(from, [normalizedSender], 'remove');
+                                await this.sock.sendMessage(from, { text: '🚨 *ANTIESTAFA ACTIVADO*\n\nSe detectó un posible intento de fraude y el remitente fue expulsado.' });
+                            } catch (error) {
+                                await this.sock.sendMessage(from, { text: '⚠️ Detecté un posible intento de estafa y eliminé el mensaje, pero no pude expulsar al remitente. Verifica que el bot sea administrador.' });
+                                this.sendLog(`Antiestafa no pudo expulsar a ${sender}: ${error.message}`, 'warning');
+                            }
+                            return;
+                        }
+
                         if (isGroup && !isAdmin && !isBotSender && botData.antiSalesGroups?.[from] && commands.antisales.isSalesMessage(text || messageContent)) {
                             try { await this.sock.sendMessage(from, { delete: msg.key }); } catch (error) { this.sendLog(`Antiventas no pudo borrar el mensaje: ${error.message}`, 'warning'); }
                             try {
@@ -1672,7 +1701,7 @@ class BotSession {
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public']);
-                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
+                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antibot', 'estaf', 'antiestafa', 'anticall', 'anti-call', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1805,7 +1834,7 @@ class BotSession {
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
                                         case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antiestiker', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antibot', 'estaf', 'anticall', 'antiestiker', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'chatbot', 'gali']); break;
@@ -1911,6 +1940,8 @@ class BotSession {
                                         case 'advertencias': case 'warnings': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['lista', ...args]); break;
                                         case 'quitaradvertencia': case 'quitaradvertencias': await commands.warn(this.sock, from, msg, isAdmin, botData, saveBotData, ['quitar', ...args]); break;
                                         case 'antiventas': case 'antisales': await commands.antisales(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'antibot': await commands.antibot(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'estaf': case 'antiestafa': await commands.estaf(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'modoestricto': case 'modoeatrito': case 'strictmode': await commands.strictmode(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'anti':
                                             if (['sticker', 'stickers', 'estiker', 'antistiker', 'antisticker'].includes(String(args[0] || '').toLowerCase())) await commands.antisticker(this.sock, from, msg, isAdmin, botData, saveBotData, args.slice(1));
@@ -1962,7 +1993,7 @@ class BotSession {
                                         // ===== PROTECTION =====
                                         case 'antilink': await commands.antilink(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'antiporno': case 'antiporn': await commands.antiporn(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
-                                        case 'anticall': await commands.anticall(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
+                                        case 'anticall': case 'anti-call': await commands.anticall(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
                                         case 'antidelete': await commands.antidelete(this.sock, from, msg, isAdmin, botData, saveBotData, this.userId, args); break;
                                         case 'antistatus': await commands.antistatus(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'antibug': await commands.antibug(this.sock, from, msg, isOwner, botData, saveBotData, args); break;
