@@ -2,7 +2,7 @@ const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission, RECIPES } = require('../lib/rpgExpansion');
 const { classImagePath, commandImagePath, itemImagePath, shopImagePath, dungeonImagePath, sendImageCaption, sendItemCaption } = require('../lib/rpgMedia');
 const { showItemDetails } = require('../lib/rpgItemDetails');
-const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
+const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionAction, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
 const { CLASS_EQUIPMENT, DUNGEON_LOOT, MERCHANT_ITEMS, RPG_ITEMS } = require('../lib/rpgCatalog');
 const { sendActionButtons } = require('../lib/interactiveActions');
 const COIN = 'monedas de oro 🪙';
@@ -1067,27 +1067,18 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (canonical === 'mission') {
         const action = String(args[0] || '').toLowerCase();
         if (action === 'diarias' || action === 'diaria' || action === 'semanales' || action === 'semanal' || !action) {
+            const activeMissions = Object.values(ensureMissions(user)).filter(mission => !mission.claimed);
+            const buttons = [...new Map(activeMissions
+                .map(mission => {
+                    const nextAction = missionAction(mission.event);
+                    return nextAction ? [nextAction.command, nextAction] : null;
+                })
+                .filter(Boolean)).values()]
+                .map(nextAction => ({ label: nextAction.label, command: `${prefix}${nextAction.command}` }));
             const sent = await commandReply(sock, chatId, msg, 'mission', `📜 *MISIONES DEL AVENTURERO*\n\n${missionText(user, prefix)}`);
-            await sendActionButtons(sock, chatId, '💼 Empleos y encargos:', [
-                { label: '💼 Trabajar', command: `${prefix}work` },
-                { label: '🕵️ Encargo', command: `${prefix}crime` },
-                { label: '🎭 Actuar', command: `${prefix}slut` }
-            ], sent || msg);
-            await sendActionButtons(sock, chatId, '⛏️ Oficios del aventurero:', [
-                { label: '⛏️ Minar', command: `${prefix}minar` },
-                { label: '🎣 Pescar', command: `${prefix}pescar` },
-                { label: '🏹 Cazar', command: `${prefix}cazar` }
-            ], sent || msg);
-            await sendActionButtons(sock, chatId, '🧭 Exploración y mazmorras:', [
-                { label: '🧭 Explorar', command: `${prefix}explorar` },
-                { label: '🌿 Recolectar', command: `${prefix}recolectar` },
-                { label: '🏰 Mazmorra', command: `${prefix}mazmorra` }
-            ], sent || msg);
-            await sendActionButtons(sock, chatId, '🗂️ Más opciones RPG:', [
-                { label: '🎁 Recompensa diaria', command: `${prefix}daily` },
-                { label: '🛡️ Patrullar clan', command: `${prefix}patrullar` },
-                { label: '⚔️ Menú RPG completo', command: `${prefix}rpgmenu` }
-            ], sent || msg);
+            if (buttons.length) {
+                await sendActionButtons(sock, chatId, '🎯 Acciones para avanzar en tus misiones pendientes:', buttons, sent || msg);
+            }
             return sent;
         }
         const welcome = user.rpg?.welcomeMission;

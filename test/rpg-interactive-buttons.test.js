@@ -274,6 +274,25 @@ test('un clic real del botón Paladín llega como argumento y guarda la clase en
     assert.match(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /CLASE ELEGIDA/);
 });
 
+test('Misiones muestra solo acciones para objetivos pendientes, sin menús RPG genéricos', async () => {
+    const ctx = harness();
+    await runEconomyCommand(ctx, 'misiones');
+
+    assert.equal(ctx.relayed.length, 1, 'debe enviar un único mensaje de botones');
+    assert.deepEqual(decodedButtons(ctx).map(button => button.id), ['cmd_explorar', 'cmd_minar']);
+    assert.match(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /recompensas se entregan automáticamente/i);
+
+    ctx.relayed.length = 0;
+    for (const mission of Object.values(ctx.user.rpg.missions)) {
+        mission.progress = mission.target;
+        mission.claimed = true;
+    }
+    await runEconomyCommand(ctx, 'misiones');
+    assert.equal(ctx.relayed.length, 0, 'no muestra botones cuando ya no hay objetivos pendientes');
+    assert.match(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /completaste todos los objetivos/i);
+    assert.doesNotMatch(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /botones de abajo/i);
+});
+
 test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
     assert.match(source, /NIKU MD · REINO RPG/);
