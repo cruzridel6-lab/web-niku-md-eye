@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const createSingleQrDelivery = require('./lib/singleQrDelivery');
 const githubBackup = require('./lib/githubBackup');
+const telegramBackup = require('./lib/telegramBackup');
 const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
 const { sendActionButtons } = require('./lib/interactiveActions');
@@ -276,6 +277,10 @@ const tgBot = tgToken ? new TelegramBot(tgToken, {
         params: { timeout: 10 }
     }
 }) : null;
+
+// Separate token for encrypted state backups; this client never starts polling.
+const telegramBackupToken = String(process.env.TELEGRAM_TOKEN_BOT || '').trim();
+const telegramBackupBot = telegramBackupToken ? new TelegramBot(telegramBackupToken, { polling: false }) : null;
 
 if (tgBot) {
     tgBot.on('polling_error', (error) => {
@@ -810,7 +815,9 @@ function saveBotData() {
     fs.writeJsonSync(DATA_TEMP, botData, { spaces: 2 });
     if (fs.existsSync(DATA_FILE)) fs.copyFileSync(DATA_FILE, DATA_BACKUP);
     fs.renameSync(DATA_TEMP, DATA_FILE);
-    githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+    const backupOptions = { dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR };
+    githubBackup.scheduleBackup(backupOptions);
+    telegramBackup.scheduleBackup({ ...backupOptions, bot: telegramBackupBot });
 }
 
 const sessions = {};
@@ -1332,7 +1339,9 @@ class BotSession {
 
             this.sock.ev.on('creds.update', async (update) => {
                 await saveCreds(update);
-                githubBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
+                const backupOptions = { dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR };
+                githubBackup.scheduleBackup(backupOptions);
+                telegramBackup.scheduleBackup({ ...backupOptions, bot: telegramBackupBot });
             });
 
             this.sock.ev.on('call', async (calls) => {
@@ -2186,6 +2195,7 @@ class BotSession {
                     this.sendLog('Connected successfully! \u{2705}', 'success');
                     this.sendConnectionStatus();
                     this.startActiveCheck();
+                    telegramBackup.scheduleBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR, bot: telegramBackupBot });
 
                     const botNumber = jidNormalizedUser(this.sock.user.id);
                     const botNumberClean = botNumber.split('@')[0];
@@ -3069,17 +3079,28 @@ server.listen(PORT, async () => {
     console.log(`\u{1F311} niku666MDBOT v${settings.version} Server running on port ${PORT}`);
     console.log(`\u{1F4E1} Total commands loaded: 120+`);
     console.log(`\u{1F310} Web Dashboard: http://localhost:${PORT}`);
-    if (githubBackup.enabled()) {
+    const backupOptions = { dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR };
+    let restored = false;
+    if (telegramBackup.enabled() && telegramBackupBot) {
         try {
-            const restored = await githubBackup.restoreBackup({ dataFile: DATA_FILE, authDir: AUTH_DIR, uploadsDir: UPLOADS_DIR });
-            if (restored) loadBotDataFromDisk();
+            restored = await telegramBackup.restoreBackup({ ...backupOptions, bot: telegramBackupBot });
+        } catch (error) {
+            console.error('[Respaldo Telegram] No se pudo restaurar la copia cifrada:', error.response?.body?.description || error.message);
+        }
+    } else {
+        console.log(`[Respaldo Telegram] Desactivado; faltan variables: ${telegramBackup.missingVariables().join(', ')}.`);
+    }
+    if (!restored && githubBackup.enabled()) {
+        try {
+            restored = await githubBackup.restoreBackup(backupOptions);
         } catch (error) {
             console.error('[Backup] No se pudo restaurar el estado cifrado:', error.response?.data?.message || error.message);
         }
-    } else {
-        console.log('[Backup] GitHub cifrado no configurado; usando el almacenamiento local persistente.');
     }
+    if (restored) loadBotDataFromDisk();
+    if (!telegramBackup.enabled() && !githubBackup.enabled()) console.log('[Backup] No hay backup remoto cifrado configurado; se usará el almacenamiento local.');
     await loadExistingSessions();
+    telegramBackup.scheduleBackup({ ...backupOptions, bot: telegramBackupBot });
     broadcastDashboardStats();
 });
 
