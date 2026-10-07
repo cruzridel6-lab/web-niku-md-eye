@@ -1833,6 +1833,7 @@ class BotSession {
                                                 }
                                             }
                                             break;
+                                        case 'comprar': case 'buy':
                                         case 'balance': case 'bal': case 'coins':
                                         case 'baltop': case 'eboard': case 'economytop':
                                         case 'duel': case 'duelo': case 'pvp': case 'desafio': case 'desafío':
@@ -1852,6 +1853,7 @@ class BotSession {
                                         case 'tutorial': case 'guia': case 'guía': case 'guiaaventura':
                                         case 'titulos': case 'títulos': case 'titulo': case 'title':
                                         case 'mercadojugadores': case 'market':
+                                        case 'objeto': case 'item': case 'iteminfo':
                                         case 'temporada': case 'season': case 'rankingtemporada':
                                         case 'habilidades': case 'skills': case 'talentos':
                                         case 'pocion': case 'poción': case 'potion': case 'curar':

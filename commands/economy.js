@@ -1,5 +1,5 @@
 const profileCommand = require('./profile');
-const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
+const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission, RECIPES } = require('../lib/rpgExpansion');
 const { classImagePath, commandImagePath, itemImagePath, shopImagePath, dungeonImagePath, sendImageCaption, sendItemCaption } = require('../lib/rpgMedia');
 const { showItemDetails } = require('../lib/rpgItemDetails');
 const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
@@ -63,7 +63,7 @@ const ALIASES = {
     craft: ['craft', 'fabricar', 'forjar'],
     quest: ['quest', 'campaña', 'campana', 'historia'],
     title: ['title', 'titulo', 'título', 'titulos', 'títulos'],
-    market: ['market', 'mercadojugadores', 'subasta'],
+    market: ['market', 'mercado', 'mercadojugadores', 'subasta'],
     season: ['season', 'temporada', 'rankingtemporada'],
     skills: ['skills', 'habilidades', 'talentos'],
     potion: ['potion', 'pocion', 'poción', 'curar'],
@@ -80,7 +80,7 @@ const ALIASES = {
     mine: ['mine', 'minar', 'mineria'],
     fish: ['fish', 'pescar', 'pesca'],
     hunt: ['hunt', 'cazar', 'caza'],
-    merchant: ['mercader', 'mercado'],
+    merchant: ['mercader', 'comprar', 'buy'],
     repair: ['reparar', 'repair'],
     explore: ['explore', 'explorar', 'exploracion'],
     gather: ['gather', 'recolectar', 'recoleccion'],
@@ -106,7 +106,7 @@ const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'r
 const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
-    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario', duel: 'duelo @usuario <apuesta> · aceptar · rechazar · cancelar',
+    roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [comprar <nombre o ID>] · herramientas y equipo de clase', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario', duel: 'duelo @usuario <apuesta> · aceptar · rechazar · cancelar',
     withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro|tirador|paladin>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas', premiumStatus: 'premiumtiempo [@jugador]', itemInfo: 'objeto [nombre o ID]'
 };
 
@@ -278,8 +278,16 @@ function classAdvantageText(user, activity) {
     return `\n🛡️ Ventaja de ${CHARACTER_CLASSES[user.rpg.class].label}: *+${percent}% de recompensa*`;
 }
 function classEquipment(user) { return CLASS_EQUIPMENT[user.rpg?.class] || []; }
-function equipmentForUser(user, id) {
-    return classEquipment(user).find(item => item.id === id) || null;
+function normalizeShopItem(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+function equipmentForUser(user, value) {
+    const wanted = normalizeShopItem(value);
+    return classEquipment(user).find(item => [item.id, item.name].some(alias => normalizeShopItem(alias) === wanted)) || null;
+}
+function activityText(activities = []) {
+    const labels = { work: 'trabajo', dungeon: 'mazmorra', raid: 'raid', explore: 'exploración', crime: 'encargos', hunt: 'caza', gather: 'recolección', patrol: 'patrulla' };
+    return activities.map(activity => labels[activity] || activity).join(', ');
 }
 function equipmentRewardMultiplier(user, activity) {
     const owned = user.equipment || {};
@@ -381,8 +389,33 @@ function clanLevel(clan) { return Math.max(1, Math.floor(Math.sqrt((Number(clan?
 function clanPower(clan) { return (clan.members?.length || 0) * 100 + (Number(clan.xp) || 0) + (Number(clan.wins) || 0) * 250 + Math.floor(Math.random() * 101); }
 function clanWarList(wars) { return Object.values(wars || {}).filter(war => ['pending', 'accepted'].includes(war.status)); }
 function toolFor(value) {
-    const wanted = String(value || '').trim().toLowerCase();
-    return Object.entries(MERCHANT_ITEMS).find(([, item]) => item.aliases.includes(wanted))?.[0] || null;
+    const wanted = normalizeShopItem(value);
+    return Object.entries(MERCHANT_ITEMS).find(([id, item]) => [id, item.name, ...(item.aliases || [])].some(alias => normalizeShopItem(alias) === wanted))?.[0] || null;
+}
+function merchantShopText(user, prefix = '.') {
+    const tools = Object.entries(MERCHANT_ITEMS).map(([id, item]) => {
+        const current = user.tools?.[id];
+        const durability = current?.durability > 0 ? ` · tienes ${current.durability}/${item.durability}` : '';
+        return `• *${item.name}* (\`${id}\`) — ${fmt(item.price)} oro · ${item.durability} usos${durability}`;
+    });
+    const gear = classEquipment(user).map(item => `• *${item.name}* (\`${item.id}\`) — ${fmt(item.price)} oro · +${Math.round(item.bonus * 100)}% en ${activityText(item.activities)}`);
+    const classLabel = CHARACTER_CLASSES[user.rpg?.class]?.label || 'tu clase';
+    return [
+        '╭━━〔 🧑‍🌾 MERCADER RPG 〕━━╮',
+        '',
+        '🛠️ *HERRAMIENTAS*',
+        ...tools,
+        '',
+        `⚔️ *EQUIPO DE ${classLabel.toUpperCase()}*`,
+        ...(gear.length ? gear : [`• Elige una clase con *${prefix}clase* para ver su equipo exclusivo.`]),
+        '',
+        `🛒 Compra: *${prefix}comprar <nombre o ID>*`,
+        `   Ejemplo: *${prefix}comprar pico* o *${prefix}comprar mandoble_dragon*`,
+        `   También: *${prefix}mercader comprar <nombre o ID>*`,
+        `📦 Vender botín: *${prefix}mercader vender*`,
+        `🏪 Mercado entre jugadores: *${prefix}mercado ver/publicar/comprar*`,
+        '╰━━━━━━━━━━━━━━━━━━━━━━━━╯'
+    ].join('\n');
 }
 function toolState(user, key) {
     user.tools ||= {};
@@ -607,7 +640,7 @@ async function resumeInvestmentsForChat(sock, chatId, botData, saveBotData) {
 }
 
 async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotData, prefix = '.') {
-    if (command === 'economy' || command === 'economymenu' || command === 'rpg' || command === 'rpgmenu' || command === 'economiarpg' || command === 'economyrpg') return reply(sock, chatId, msg, menu(prefix));
+    if (command === 'economy' || command === 'economymenu' || command === 'rpg' || command === 'rpgmenu' || command === 'economiarpg' || command === 'economyrpg') return reply(sock, chatId, msg, `${menu(prefix)}\n\n🛒 Compra al mercader con *${prefix}comprar <nombre o ID>*; abre *${prefix}mercader* para ver el catálogo.`);
     if (PROFILE_RPG_COMMANDS.has(String(command || '').toLowerCase())) return profileCommand(sock, chatId, msg, command, q, botData, saveBotData, prefix);
     const canonical = Object.keys(ALIASES).find(key => ALIASES[key].includes(command)) || command;
     if (!ALIASES[canonical]) return reply(sock, chatId, msg, menu(prefix));
@@ -658,8 +691,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (canonical === 'tutorial') {
         return reply(sock, chatId, msg, tutorialText(user, prefix));
     }
-    const expansionCanonical = canonical === 'merchant' && ['ver', 'listado', 'publicar', 'comprar'].includes(String(args[0] || '').toLowerCase()) ? 'market' : canonical;
-    const expansionResult = await handleExpansion({ sock, chatId, msg, canonical: expansionCanonical, args, user, jid, botData, save, prefix });
+    const expansionResult = await handleExpansion({ sock, chatId, msg, canonical, args, user, jid, botData, save, prefix });
     if (expansionResult) return expansionResult;
     const mention = [jid];
     const commandAchievements = addStat(user, 'commandsUsed', 1);
@@ -929,34 +961,37 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             save();
             return reply(sock, chatId, msg, `✅ El mercader compró *${amountToSell}x ${loot.name}* por *${fmt(payout)} ${COIN}*.\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*`);
         }
-        const selected = toolFor(args[0]);
-        const gear = classEquipment(user).find(item => item.id === String(args[0] || '').toLowerCase());
+        if (merchantAction === 'publicar') return reply(sock, chatId, msg, `🏪 El mercado entre jugadores está separado del mercader. Usa *${prefix}mercado publicar <objeto> <precio>* o *${prefix}mercado ver*.`);
+        if (['ver', 'listado', 'catalogo', 'catálogo', 'shop'].includes(merchantAction)) return sendImageCaption(sock, chatId, msg, shopImagePath(), merchantShopText(user, prefix));
+        const requestedItem = ['comprar', 'buy'].includes(merchantAction) ? args.slice(1).join(' ') : args.join(' ');
+        if (!requestedItem) return sendImageCaption(sock, chatId, msg, shopImagePath(), merchantShopText(user, prefix));
+        const selected = toolFor(requestedItem);
+        const gear = equipmentForUser(user, requestedItem);
         if (gear) {
             user.equipment ||= {};
             if (user.equipment[gear.id]) return reply(sock, chatId, msg, `✅ Ya tienes equipado ${gear.name}. Su bonificación está activa.`);
-            if (user.coins < gear.price) return reply(sock, chatId, msg, `❌ ${gear.name} cuesta *${fmt(gear.price)} ${COIN}*.\nTienes: *${fmt(user.coins)} ${COIN}*.`);
+            if (user.coins < gear.price) return reply(sock, chatId, msg, `╭━━〔 🪙 ORO INSUFICIENTE 〕━━╮\n│ ${gear.name}\n│ Precio: *${fmt(gear.price)} ${COIN}*\n│ Tu saldo: *${fmt(user.coins)} ${COIN}*\n│ Te faltan: *${fmt(gear.price - user.coins)}*\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
             user.coins -= gear.price;
             user.equipment[gear.id] = { purchasedAt: new Date().toISOString(), price: gear.price };
             const gearAchievements = addStat(user, 'gearBought', 1);
             save();
-            return sendItemCaption(sock, chatId, msg, gear.id, `✅ *EQUIPAMIENTO ADQUIRIDO*\n\n${gear.name}\n💸 Precio: *${fmt(gear.price)} ${COIN}*\n⚔️ Bonificación: *+${Math.round(gear.bonus * 100)}%* en ${gear.activities.join(', ')}\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*${achievementText(gearAchievements)}`);
+            return sendItemCaption(sock, chatId, msg, gear.id, `✅ *COMPRA COMPLETADA*\n\n${gear.name}\n💸 Precio: *${fmt(gear.price)} ${COIN}*\n⚔️ Equipo activado: *+${Math.round(gear.bonus * 100)}%* en ${activityText(gear.activities)}\n🪙 Saldo: *${fmt(user.coins)} ${COIN}*${achievementText(gearAchievements)}`);
         }
         if (!selected) {
-            const offers = Object.entries(MERCHANT_ITEMS).map(([key, item]) => {
-                const current = user.tools?.[key];
-                const durability = current?.durability > 0 ? ` · tienes ${current.durability}/${item.durability}` : '';
-                return `🛍️ *${item.name}* — *${fmt(item.price)} ${COIN}* · ${item.durability} usos${durability}`;
-            }).join('\n');
-            const gearOffers = classEquipment(user).map(item => `⚔️ *${item.name}*${item.type ? ` · ${item.type}` : ''} — *${fmt(item.price)} ${COIN}* · +${Math.round(item.bonus * 100)}% en ${item.activities.join(', ')}${item.dungeonDrop ? ' · drop de mazmorra' : ''}\nComprar: *${prefix}mercader ${item.id}*`).join('\n');
-            return sendImageCaption(sock, chatId, msg, shopImagePath(), `🧑‍🌾 *MERCADER RPG*\n\n${offers}\n\n👑 *EQUIPAMIENTO DE ${CHARACTER_CLASSES[user.rpg.class]?.label || 'TU CLASE'}*\n${gearOffers || 'Elige una clase para desbloquear armas y armaduras.'}\n\n📦 Vender drops: *${prefix}mercader vender*\n\n⛏️ Minar requiere pico\n⚔️ Cazar requiere espada\n🎣 Pescar requiere caña`);
+            const wanted = normalizeShopItem(requestedItem);
+            const recipe = Object.entries(RECIPES).find(([id, item]) => [id, item.name].some(alias => normalizeShopItem(alias) === wanted));
+            if (recipe) return reply(sock, chatId, msg, `🔨 *${recipe[1].name}* no se compra en el mercader; se fabrica.\nUsa: *${prefix}fabricar ${recipe[0]}*\nConsulta todas las recetas con *${prefix}fabricar*.`);
+            const otherClassGear = Object.entries(CLASS_EQUIPMENT).flatMap(([classId, items]) => items.map(item => ({ ...item, classId }))).find(item => [item.id, item.name].some(alias => normalizeShopItem(alias) === wanted));
+            if (otherClassGear) return reply(sock, chatId, msg, `🔒 *${otherClassGear.name}* es exclusivo de la clase *${CHARACTER_CLASSES[otherClassGear.classId]?.label || otherClassGear.classId}*. Tu clase actual es *${CHARACTER_CLASSES[user.rpg.class]?.label || 'sin elegir'}*.`);
+            return reply(sock, chatId, msg, `❌ No reconocí *${requestedItem}* en la tienda.\nUsa *${prefix}mercader* para ver herramientas y equipo de tu clase. Compra con *${prefix}comprar <nombre o ID>*.\nEl equipo básico se fabrica con *${prefix}fabricar*; el mercado entre jugadores es *${prefix}mercado*.`);
         }
         const item = MERCHANT_ITEMS[selected];
-        if (user.coins < item.price) return reply(sock, chatId, msg, `❌ No tienes suficientes ${COIN}.\nNecesitas: *${fmt(item.price)}*\nTienes: *${fmt(user.coins)}*`);
+        if (user.coins < item.price) return reply(sock, chatId, msg, `╭━━〔 🪙 ORO INSUFICIENTE 〕━━╮\n│ ${item.name}\n│ Precio: *${fmt(item.price)} ${COIN}*\n│ Tu saldo: *${fmt(user.coins)} ${COIN}*\n│ Te faltan: *${fmt(item.price - user.coins)}*\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
         user.tools ||= {};
         user.coins -= item.price;
         user.tools[selected] = { durability: item.durability, maxDurability: item.durability, boughtAt: new Date().toISOString() };
         save();
-        return sendItemCaption(sock, chatId, msg, selected, `✅ Compraste ${item.name}\n\n💸 Precio: *${fmt(item.price)} ${COIN}*\n🔧 Durabilidad: *${item.durability}/${item.durability} usos*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*`);
+        return sendItemCaption(sock, chatId, msg, selected, `✅ *COMPRA COMPLETADA*\n\n${item.name}\n💸 Precio: *${fmt(item.price)} ${COIN}*\n🔧 Durabilidad: *${item.durability}/${item.durability} usos*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*\nÚsala con *${prefix}${selected === 'pico' ? 'minar' : selected === 'cana' ? 'pescar' : 'cazar'}*.`);
     }
 
     if (canonical === 'repair') {
