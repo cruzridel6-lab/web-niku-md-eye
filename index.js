@@ -367,10 +367,19 @@ function premiumEntryActive(entry) {
 function isPremiumWhatsApp(chatId) {
     const normalized = normalizePremiumJid(chatId);
     if (!normalized) return false;
-    const number = normalized.split('@')[0];
+    const identities = new Set([normalized]);
+    for (const [phone, lid] of Object.entries(botData.phoneAliases || {})) {
+        const phoneJid = normalizePremiumJid(phone);
+        const lidJid = normalizePremiumJid(lid);
+        if (phoneJid && lidJid && (identities.has(phoneJid) || identities.has(lidJid))) {
+            identities.add(phoneJid);
+            identities.add(lidJid);
+        }
+    }
+    const identityNumbers = new Set([...identities].map(jid => jid.split('@')[0]));
     const owners = String(settings.ownerNumber || '').split(',').map(value => value.replace(/\D/g, '')).filter(Boolean);
-    if (owners.includes(number)) return true;
-    return premiumEntryActive(botData.premiumUsers?.[normalized]);
+    if (owners.some(number => identityNumbers.has(number))) return true;
+    return [...identities].some(jid => premiumEntryActive(botData.premiumUsers?.[jid]));
 }
 
 function hashPremiumToken(token) {
@@ -1683,7 +1692,7 @@ class BotSession {
                             // Los comandos de soporte y canje deben funcionar en privado para cualquier usuario.
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
-                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public']);
+                            const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public', 'tiendapremium', 'premiumshop', 'comprarpremium']);
                             const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antibot', 'estaf', 'antiestafa', 'anticall', 'anti-call', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'antiprivado', 'antiprivate', 'antipv', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
@@ -1828,6 +1837,8 @@ class BotSession {
                                         case 'economy':
                                         case 'subastas': case 'subasta': case 'subastar': case 'publicarsubasta': case 'pujar': case 'bid': case 'mispujas': case 'missubastas': case 'cancelarsubasta': case 'subastaayuda':
                                             await commands.auction.runAuction(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.', { onChanged: broadcastPublicAuctions }); break;
+                                        case 'tiendapremium': case 'premiumshop': case 'comprarpremium':
+                                            await commands.economy(this.sock, from, msg, commandName, q, botData, saveBotData, settings.prefix || '.'); break;
                                         case 'profile': case 'perfil': case 'user': case 'marry': case 'casar': case 'casarse': case 'matrimonio': case 'divorce': case 'divorciar': case 'separarse':
                                         case 'history': case 'historial': case 'historialmatrimonial': case 'marryhistory': case 'pfp': case 'getpfp': case 'foto': case 'avatar':
                                         case 'setbio': case 'setdescription': case 'setdescperfil': case 'setbirth': case 'setcumple': case 'setbirthday': case 'cumple': case 'cumpleanos': case 'cumpleaños': case 'birthday': case 'setgenre': case 'setgenero': case 'setgender':
@@ -2460,7 +2471,7 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
 
 async function sendRpgInteractiveMenu(sock, jid, msg) {
     await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
-        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['pfp', '🖼️ Foto', 'Ver foto de perfil'], ['setbio', '✍️ Biografía', 'Editar descripción'], ['setbirth', '🎂 Cumpleaños', 'Guardar cumpleaños'], ['setgenero', '⚧️ Género', 'Configurar género'], ['marry', '💍 Casarse', 'Forjar vínculo'], ['divorce', '💔 Divorciarse', 'Terminar vínculo'], ['historial', '📜 Historial', 'Historial matrimonial'], ['registrarse', '📝 Registrarse', 'Crear personaje'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Mochila y equipamiento'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['pocion', '🧪 Poción', 'Curar al aventurero'], ['titulos', '🏷️ Títulos', 'Títulos del aventurero'], ['temporada', '🏆 Temporada', 'Ranking de temporada'], ['fabricar', '🔨 Fabricar', 'Crear objetos'], ['mercader', '🧑‍🌾 Mercader', 'Comprar herramientas y equipo'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Inversión de 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros'], ['balance', '💰 Balance', 'Ver monedas de oro'], ['nivel', '⭐ Nivel', 'Ver experiencia'], ['estadisticas', '📊 Estadísticas', 'Estadísticas RPG'], ['rpgstatus', '📈 Poder', 'Estado del aventurero'], ['minar', '⛏️ Minar', 'Extraer recursos'], ['pescar', '🎣 Pescar', 'Pescar recursos'], ['cazar', '🏹 Cazar', 'Cazar monstruos'], ['mazmorra', '🏰 Mazmorra', 'Explorar la mazmorra'], ['reparar', '🔧 Reparar', 'Reparar la mazmorra'], ['explorar', '🧭 Explorar', 'Explorar regiones'], ['recolectar', '🌿 Recolectar', 'Recolectar recursos'], ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'], ['campaña', '📜 Campaña', 'Misiones de historia'], ['clan', '⚔️ Clan', 'Clanes y guerras'], ['daily', '🎁 Daily', 'Recompensa diaria'], ['work', '💼 Work', 'Misión del gremio'], ['deposit', '🏦 Depositar', 'Guardar monedas'], ['withdraw', '💳 Retirar', 'Sacar monedas'], ['pay', '💸 Pagar', 'Enviar monedas'], ['coinflip', '🎰 Coinflip', 'Apostar monedas'], ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'], ['crime', '🕵️ Crime', 'Encargo clandestino'], ['rob', '🦹 Robar', 'Golpe de pícaro'], ['premio', '🎁 Premio', 'Reclamar regalo'], ['einfo', '⏱️ Einfo', 'Tiempos de economía']
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['pfp', '🖼️ Foto', 'Ver foto de perfil'], ['setbio', '✍️ Biografía', 'Editar descripción'], ['setbirth', '🎂 Cumpleaños', 'Guardar cumpleaños'], ['setgenero', '⚧️ Género', 'Configurar género'], ['tiendapremium', '👑 Tienda Premium', 'Comprar días con monedas de oro'], ['marry', '💍 Casarse', 'Forjar vínculo'], ['divorce', '💔 Divorciarse', 'Terminar vínculo'], ['historial', '📜 Historial', 'Historial matrimonial'], ['registrarse', '📝 Registrarse', 'Crear personaje'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Mochila y equipamiento'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['pocion', '🧪 Poción', 'Curar al aventurero'], ['titulos', '🏷️ Títulos', 'Títulos del aventurero'], ['temporada', '🏆 Temporada', 'Ranking de temporada'], ['fabricar', '🔨 Fabricar', 'Crear objetos'], ['mercader', '🧑‍🌾 Mercader', 'Comprar herramientas y equipo'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Inversión de 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros'], ['balance', '💰 Balance', 'Ver monedas de oro'], ['nivel', '⭐ Nivel', 'Ver experiencia'], ['estadisticas', '📊 Estadísticas', 'Estadísticas RPG'], ['rpgstatus', '📈 Poder', 'Estado del aventurero'], ['minar', '⛏️ Minar', 'Extraer recursos'], ['pescar', '🎣 Pescar', 'Pescar recursos'], ['cazar', '🏹 Cazar', 'Cazar monstruos'], ['mazmorra', '🏰 Mazmorra', 'Explorar la mazmorra'], ['reparar', '🔧 Reparar', 'Reparar la mazmorra'], ['explorar', '🧭 Explorar', 'Explorar regiones'], ['recolectar', '🌿 Recolectar', 'Recolectar recursos'], ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'], ['campaña', '📜 Campaña', 'Misiones de historia'], ['clan', '⚔️ Clan', 'Clanes y guerras'], ['daily', '🎁 Daily', 'Recompensa diaria'], ['work', '💼 Work', 'Misión del gremio'], ['deposit', '🏦 Depositar', 'Guardar monedas'], ['withdraw', '💳 Retirar', 'Sacar monedas'], ['pay', '💸 Pagar', 'Enviar monedas'], ['coinflip', '🎰 Coinflip', 'Apostar monedas'], ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'], ['crime', '🕵️ Crime', 'Encargo clandestino'], ['rob', '🦹 Robar', 'Golpe de pícaro'], ['premio', '🎁 Premio', 'Reclamar regalo'], ['einfo', '⏱️ Einfo', 'Tiempos de economía']
     ].map(([command, title, description]) => ({ command, title, description })), msg);
 }
 

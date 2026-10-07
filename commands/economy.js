@@ -11,6 +11,11 @@ const MIN_INVESTMENT = 500;
 const MAX_INVESTMENT = 20000;
 const TRANSFER_TAX_RATE = 0.05;
 const MIN_TRANSFER_TAX = 25;
+const PREMIUM_SHOP_PACKAGES = Object.freeze({
+    '1': Object.freeze({ days: 1, price: 300000 }),
+    '2': Object.freeze({ days: 2, price: 500000 }),
+    '4': Object.freeze({ days: 4, price: 1000000 })
+});
 const ECONOMY_LIMITS = {
     transferCoins: 50000,
     transferCount: 10,
@@ -90,7 +95,8 @@ const ALIASES = {
     withdraw: ['withdraw', 'with', 'retirar', 'wd'],
     work: ['work', 'w'],
     investment: ['invertir', 'inversion', 'inversión'],
-    loan: ['prestamo', 'préstamo', 'loan']
+    loan: ['prestamo', 'préstamo', 'loan'],
+    premiumShop: ['tiendapremium', 'premiumshop', 'comprarpremium']
 };
 const PROFILE_RPG_COMMANDS = new Set(['registrarse', 'registrar', 'register', 'registro', 'profile', 'perfil', 'user', 'marry', 'casar', 'divorce', 'divorciar', 'history', 'historial', 'historialmatrimonial', 'marryhistory', 'pfp', 'getpfp', 'foto', 'avatar', 'setbio', 'setdescription', 'setdescperfil', 'setbirth', 'setcumple', 'setbirthday', 'setgenre', 'setgenero']);
 
@@ -115,6 +121,17 @@ function normalizeJid(jid) {
     return String(jid || '').split(':')[0].replace(/[^0-9@.a-z_-]/gi, '');
 }
 function numberOf(jid) { return normalizeJid(jid).split('@')[0]; }
+function premiumIdentityKeys(botData, jid) {
+    const raw = normalizeJid(jid);
+    const identities = new Set(raw ? [raw] : []);
+    const number = numberOf(raw);
+    const isLid = /@lid$/i.test(raw);
+    for (const [phone, lid] of Object.entries(botData.phoneAliases || {})) {
+        if (isLid && normalizeJid(lid).toLowerCase() === raw.toLowerCase()) identities.add(`${numberOf(phone)}@s.whatsapp.net`);
+        else if (!isLid && numberOf(phone) === number && lid) identities.add(normalizeJid(lid));
+    }
+    return [...identities].filter(Boolean);
+}
 function sameIdentity(botData, left, right) {
     const a = numberOf(left); const b = numberOf(right);
     if (!a || !b) return false;
@@ -431,6 +448,12 @@ function amount(value) {
     const parsed = Number(clean);
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
+function premiumShopText(prefix = '.') {
+    const packages = Object.entries(PREMIUM_SHOP_PACKAGES)
+        .map(([id, offer]) => `• *${id} día${offer.days === 1 ? '' : 's'}* — *${fmt(offer.price)} monedas de oro*`)
+        .join('\n');
+    return `👑 *TIENDA PREMIUM*\n\n${packages}\n\nCompra con *${prefix}comprarpremium <1|2|4>* o *${prefix}tiendapremium comprar <1|2|4>*.\nSe descuenta de las monedas de tu bolsa. Si ya tienes Premium activo, los días se suman a tu vencimiento actual.`;
+}
 function duelStakeFromArgs(args, target) {
     const raw = String(args?.[args.length - 1] || '').trim();
     if (!raw || /^@/.test(raw)) return null;
@@ -465,7 +488,7 @@ function consumeDailyLimit(botData, user, jid, field, amountValue, limit, type, 
     return true;
 }
 function menu(prefix = '.') {
-    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 🖼️ ${prefix}pfp · Foto de perfil\n│ ✍️ ${prefix}setbio · Descripción del perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ⚧️ ${prefix}setgenre · Género\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de monedas de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 📊 ${prefix}estadisticas · Estadísticas RPG\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏛️ ${prefix}subastas · Casa de subastas RPG\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 🏦 ${prefix}prestamo · Préstamo RPG\n│ 💸 ${prefix}pay · Entregar monedas\n│ 📈 ${prefix}invertir · Inversión de 5 minutos\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🧪 ${prefix}pocion · Curar al aventurero\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
+    return `╭───〔 ⚔️ ECONOMÍA RPG 〕───╮\n│\n│ 🧙 ${prefix}perfil · Ficha del aventurero\n│ 📝 ${prefix}registrarse nombre · Crear personaje\n│ 🖼️ ${prefix}pfp · Foto de perfil\n│ ✍️ ${prefix}setbio · Descripción del perfil\n│ 🎂 ${prefix}setbirth · Cumpleaños\n│ ⚧️ ${prefix}setgenre · Género\n│ 💍 ${prefix}marry · Forjar vínculo\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 💰 ${prefix}balance · Bolsa del aventurero\n│ 🏆 ${prefix}baltop · Ranking de aventureros\n│ 🌍 ${prefix}nekotop · Top global de monedas de oro\n│ ⭐ ${prefix}nivel · Ver XP y nivel\n│ 📊 ${prefix}estadisticas · Estadísticas RPG\n│ ⚔️ ${prefix}combate · Luchar contra enemigos\n│ 🐉 ${prefix}raid · Raid cooperativa contra jefes\n│ 🎒 ${prefix}inventario · Ver mochila y equipo\n│ ✨ ${prefix}habilidades · Habilidades de clase\n│ 🔨 ${prefix}fabricar · Crear objetos\n│ 📜 ${prefix}campaña · Misiones de historia\n│ 🛒 ${prefix}mercado · Mercado entre jugadores\n│ 🏛️ ${prefix}subastas · Casa de subastas RPG\n│ 🏷️ ${prefix}titulos · Títulos del aventurero\n│ 🏆 ${prefix}temporada · Ranking de temporada\n│ 🏆 ${prefix}logros · Ver logros\n│ 🧑‍🌾 ${prefix}mercader · Comprar herramientas\n│ 👑 ${prefix}tiendapremium · Comprar Premium con oro\n│ 🧭 ${prefix}explorar · Explorar regiones\n│ 🌿 ${prefix}recolectar · Recolectar recursos\n│ 🛡️ ${prefix}patrullar · Patrullar el clan\n│ ⛏️ ${prefix}minar · Minería RPG\n│ 🎣 ${prefix}pescar · Pesca RPG\n│ 🏹 ${prefix}cazar · Caza RPG\n│ 🏰 ${prefix}mazmorra · Mazmorra diaria\n│ 🔧 ${prefix}reparar · Reparar mazmorra\n│ 📜 ${prefix}misiones · Ver misión\n│ ⚔️ ${prefix}clan · Clanes y guerras\n│ 🎁 ${prefix}daily · Recompensa del gremio\n│ 💼 ${prefix}work · Misión del gremio\n│ 🏦 ${prefix}deposit · Guardar en el cofre\n│ 💳 ${prefix}withdraw · Sacar del cofre\n│ 🏦 ${prefix}prestamo · Préstamo RPG\n│ 💸 ${prefix}pay · Entregar monedas\n│ 📈 ${prefix}invertir · Inversión de 5 minutos\n│ 🎰 ${prefix}coinflip · Fortuna de la taberna\n│ 🎡 ${prefix}roulette · Ruleta del reino\n│ 🕵️ ${prefix}crime · Encargo clandestino\n│ 🦹 ${prefix}rob · Golpe de pícaro\n│ 🎭 ${prefix}slut · Actuación del trovador\n│ 🧪 ${prefix}pocion · Curar al aventurero\n│ 🎁 ${prefix}premio · Reclamar regalo\n│ ⏱️ ${prefix}einfo · Tiempos de aventura\n│\n╰────────────────────────╯`;
 }
 function tutorialText(user, prefix = '.') {
     const mission = user.rpg?.welcomeMission;
@@ -551,6 +574,36 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     ensureFeatureState(user);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
+    if (canonical === 'premiumShop') {
+        const buyAlias = String(command || '').toLowerCase() === 'comprarpremium';
+        const action = String(args[0] || '').toLowerCase();
+        const requestedPackage = buyAlias ? args[0] : (['comprar', 'buy'].includes(action) ? args[1] : '');
+        if (!requestedPackage) return reply(sock, chatId, msg, premiumShopText(prefix));
+        const offer = PREMIUM_SHOP_PACKAGES[String(requestedPackage)];
+        if (!offer) return reply(sock, chatId, msg, `❌ Paquete no válido. Elige *1*, *2* o *4* días.\n\n${premiumShopText(prefix)}`);
+
+        botData.premiumUsers ||= {};
+        if (Array.isArray(botData.premiumUsers) || typeof botData.premiumUsers !== 'object') botData.premiumUsers = {};
+        const identityKeys = premiumIdentityKeys(botData, jid);
+        const currentEntries = identityKeys.map(key => [key, botData.premiumUsers[key]]).filter(([, entry]) => entry !== undefined && entry !== null);
+        const hasPermanentPremium = currentEntries.some(([, entry]) => entry === true || (entry && typeof entry === 'object' && !entry.expiresAt));
+        if (hasPermanentPremium) return reply(sock, chatId, msg, '✅ Tu cuenta ya tiene Premium permanente. No necesitas comprar más días.');
+
+        const now = Date.now();
+        const activeExpiries = currentEntries.map(([, entry]) => new Date(entry?.expiresAt).getTime()).filter(expiry => Number.isFinite(expiry) && expiry > now);
+        const baseTime = activeExpiries.length ? Math.max(...activeExpiries) : now;
+        const coins = Math.max(0, Math.floor(Number(user.coins) || 0));
+        if (coins < offer.price) return reply(sock, chatId, msg, `❌ Te faltan monedas para ese paquete.\n💰 Precio: *${fmt(offer.price)} ${COIN}*\n🪙 Tienes en la bolsa: *${fmt(coins)} ${COIN}*`);
+
+        const premiumKey = identityKeys.find(key => /@s\.whatsapp\.net$/i.test(key)) || identityKeys[0] || normalizeJid(jid);
+        const expiresAt = new Date(baseTime + offer.days * 24 * 60 * 60 * 1000).toISOString();
+        user.coins = coins - offer.price;
+        for (const key of identityKeys) if (key !== premiumKey) delete botData.premiumUsers[key];
+        botData.premiumUsers[premiumKey] = { grantedAt: new Date(now).toISOString(), expiresAt, source: 'gold_shop' };
+        save();
+        const expiryText = new Date(expiresAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+        return reply(sock, chatId, msg, `✅ *COMPRA PREMIUM COMPLETADA*\n\n👑 Paquete: *${offer.days} día${offer.days === 1 ? '' : 's'}*\n🪙 Pagaste: *${fmt(offer.price)} ${COIN}*\n💰 Saldo restante: *${fmt(user.coins)} ${COIN}*\n📅 Premium activo hasta: *${expiryText}*${activeExpiries.length ? '\n\n⏳ El tiempo se añadió al Premium que ya tenías.' : ''}`);
+    }
     await resumeInvestmentsForChat(sock, chatId, botData, saveBotData);
     if (canonical === 'tutorial') {
         return reply(sock, chatId, msg, tutorialText(user, prefix));
@@ -1339,5 +1392,6 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
 module.exports = runEconomy;
 module.exports.aliases = ALIASES;
 module.exports.menu = menu;
+module.exports.premiumShopPackages = PREMIUM_SHOP_PACKAGES;
 module.exports.achievements = ACHIEVEMENTS.map(({ id, title, reward }) => ({ id, title, reward }));
 module.exports.items = Object.fromEntries(Object.entries(MERCHANT_ITEMS).map(([key, item]) => [key, { name: item.name, durability: item.durability }]));
