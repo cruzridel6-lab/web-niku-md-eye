@@ -1007,7 +1007,7 @@ function adminUsersSnapshot() {
             item.xp = Math.max(item.xp, Math.floor(Number(wallet?.rpg?.xp) || 0));
             if (!item.classKey && wallet?.rpg?.class) {
                 item.classKey = String(wallet.rpg.class);
-                item.classLabel = ({ guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador' })[item.classKey] || '🧭 Sin clase';
+                item.classLabel = ({ guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador', paladin: '🛡️ Paladín' })[item.classKey] || '🧭 Sin clase';
             }
             Object.entries(wallet?.rpg?.achievements || {}).forEach(([id, entry]) => {
                 const meta = achievementCatalog.find(value => value.id === id) || { id, title: id, reward: Number(entry?.reward) || 0 };
@@ -1854,7 +1854,7 @@ class BotSession {
                                                 if (starterGranted) publishStarterPackEvent(sender);
                                                 const wallet = Object.entries(botData.economy?.[from]?.users || {}).find(([key]) => publicNumber(key) === publicNumber(sender))?.[1];
                                                 if (!wasRegistered && isRegistered && !wallet?.rpg?.class) {
-                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 monedas de oro*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*` }, { quoted: msg });
+                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 monedas de oro*\n⛏️ Pico · ⚔️ Espada · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n🛡️ *Paladín* — defensor sagrado. Ventaja: +15% en mazmorras y +10% en *.work*.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*\n*.clase paladin*` }, { quoted: msg });
                                                 }
                                             }
                                             break;

@@ -252,7 +252,7 @@ async function showProfile(sock, chatId, msg, jid, profile, botData) {
     const economy = economyFor(botData, chatId, jid);
     const rpg = economy.rpg || { level: 1, xp: 0, class: '' };
     const classKey = rpg.class || rpg.classKey || economy.classKey || profile.rpg?.class || profile.rpg?.classKey || profile.classKey || '';
-    const classes = { guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador' };
+    const classes = { guerrero: '⚔️ Guerrero', mago: '🔮 Mago', picaro: '🗡️ Pícaro', tirador: '🏹 Tirador', paladin: '🛡️ Paladín' };
     const characterClass = classes[classKey] || '🧭 Sin clase — usa .clase para elegir';
     const partner = profile.partner ? `💍 ${spouseWord(profile.genre)} con *${targetName(botData, profile.partner)}*` : '💍 Sin pareja';
     const birth = profile.birth || profile.birthday || profile.birthDate || economy.birth || economy.birthday || '';

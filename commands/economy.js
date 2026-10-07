@@ -30,7 +30,8 @@ const CHARACTER_CLASSES = {
     guerrero: { label: '⚔️ Guerrero', description: 'Resistente y experto en combate cuerpo a cuerpo.', advantage: 'obtiene +25% de monedas en las misiones de .work.' },
     mago: { label: '🔮 Mago', description: 'Dominador de hechizos, sabiduría y poder arcano.', advantage: 'recibe +15% de monedas al completar trabajos mágicos.' },
     picaro: { label: '🗡️ Pícaro', description: 'Ágil, sigiloso y experto en golpes precisos.', advantage: 'obtiene +30% de botín en .crime y +10% en .work.' },
-    tirador: { label: '🏹 Tirador', description: 'Especialista en ataques a distancia, puntería y cacería.', advantage: 'obtiene +30% de recompensa al .cazar y +15% en encargos.' }
+    tirador: { label: '🏹 Tirador', description: 'Especialista en ataques a distancia, puntería y cacería.', advantage: 'obtiene +30% de recompensa al .cazar y +15% en encargos.' },
+    paladin: { label: '🛡️ Paladín', description: 'Defensor sagrado que protege al grupo y mantiene el frente.', advantage: 'obtiene +15% de monedas en las mazmorras y +10% en .work.' }
 };
 const RAID_BOSSES = {
     dragon_ancestral: { name: '🐉 Dragón Ancestral', hp: 24000, reward: 60000, xp: 180, description: 'Una bestia milenaria que respira fuego sobre todo el grupo.' },
@@ -97,7 +98,7 @@ const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
     roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [pico|espada|cana]', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario', duel: 'duelo @usuario <apuesta> · aceptar · rechazar · cancelar',
-    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro|tirador|paladin>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -245,7 +246,8 @@ function classRewardMultiplier(user, activity) {
         guerrero: { work: 1.25 },
         mago: { work: 1.15 },
         picaro: { work: 1.10, crime: 1.30 },
-        tirador: { work: 1.15, crime: 1.15, hunt: 1.30 }
+        tirador: { work: 1.15, crime: 1.15, hunt: 1.30 },
+        paladin: { work: 1.10, dungeon: 1.15 }
     };
     return bonuses[classKey]?.[activity] || 1;
 }
@@ -276,7 +278,7 @@ function lootById(id) {
     return { ...item, id: raw, name: `${info.icon} ${info.label} ${item.name}`, sellPrice: Math.floor(item.sellPrice * info.multiplier) };
 }
 function raidClassMultiplier(user) {
-    return ({ guerrero: 1.25, mago: 1.15, picaro: 1.20, tirador: 1.20 })[user.rpg?.class] || 1;
+    return ({ guerrero: 1.25, mago: 1.15, picaro: 1.20, tirador: 1.20, paladin: 1.20 })[user.rpg?.class] || 1;
 }
 function raidTimeLeft(raid) { return timeLeft(Math.max(0, Number(raid.expiresAt) - Date.now())); }
 function raidParticipantsText(raid) {
@@ -710,7 +712,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const requested = String(args[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         if (!requested || !CHARACTER_CLASSES[requested]) {
             const options = Object.entries(CHARACTER_CLASSES).map(([key, value]) => `${value.label} — *${key}*\n${value.description}\n✨ Ventaja: ${value.advantage}`).join('\n\n');
-            return reply(sock, chatId, msg, `🧙 *ELECCIÓN DE CLASE*\n\n${options}\n\nElige una clase con:\n*${prefix}clase guerrero*\n*${prefix}clase mago*\n*${prefix}clase picaro*\n*${prefix}clase tirador*`);
+            return reply(sock, chatId, msg, `🧙 *ELECCIÓN DE CLASE*\n\n${options}\n\nElige una clase con:\n*${prefix}clase guerrero*\n*${prefix}clase mago*\n*${prefix}clase picaro*\n*${prefix}clase tirador*\n*${prefix}clase paladin*`);
         }
         if (user.rpg.class) return reply(sock, chatId, msg, `🛡️ Tu personaje ya pertenece a la clase *${CHARACTER_CLASSES[user.rpg.class]?.label || user.rpg.class}*. La clase se elige una sola vez.`);
         user.rpg.class = requested;
@@ -957,9 +959,11 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         dungeon.integrity = Math.max(0, dungeon.integrity - 35);
         mission.progress += kills;
         const dungeonAchievements = addStat(user, 'dungeonKills', kills);
+        const dungeonClassMultiplier = classRewardMultiplier(user, 'dungeon');
         const dungeonMultiplier = equipmentRewardMultiplier(user, 'dungeon');
+        const rewardClassText = classAdvantageText(user, 'dungeon');
         const rewardEquipmentText = equipmentAdvantageText(user, 'dungeon');
-        const reward = Math.floor(random(DUNGEON_REWARDS) * dungeonMultiplier);
+        const reward = Math.floor(random(DUNGEON_REWARDS) * dungeonClassMultiplier * dungeonMultiplier);
         user.coins += reward;
         const gearPool = classEquipment(user).filter(item => item.dungeonDrop && !user.equipment?.[item.id]);
         const droppedGear = gearPool.length && Math.random() < 0.04 ? random(gearPool) : null;
@@ -1005,7 +1009,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             : droppedLoot
                 ? `📦 *DROP:* ${droppedLoot._rare.label}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot._rare.id}* o subastarlo con *${prefix}subastar ${droppedLoot._rare.id} <precio>*`
                 : '🔍 No encontraste un drop vendible esta vez.';
-        return sendImageCaption(sock, chatId, msg, dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${rewardEquipmentText}\n${dropText}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${levelUpText(xpEvent)}`);
+        return sendImageCaption(sock, chatId, msg, dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${rewardClassText}${rewardEquipmentText}\n${dropText}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${levelUpText(xpEvent)}`);
     }
 
     if (canonical === 'level') {
