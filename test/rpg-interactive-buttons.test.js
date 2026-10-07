@@ -244,15 +244,21 @@ test('extrae la acción de clase de respuestas nativas encapsuladas y de botones
     }), 'cmd_clase guerrero');
     assert.equal(extractInteractiveResponseId({ buttonsResponseMessage: { selectedButtonId: 'cmd_clase mago' } }), 'cmd_clase mago');
     assert.equal(extractInteractiveResponseId({ listResponseMessage: { singleSelectReply: { selectedRowId: 'cmd_clase picaro' } } }), 'cmd_clase picaro');
+    assert.equal(extractInteractiveResponseId({
+        deviceSentMessage: { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: JSON.stringify({ data: { id: 'cmd_clase tirador' } }) } } } }
+    }), 'cmd_clase tirador');
 });
 
 test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
     assert.match(source, /NIKU MD · REINO RPG/);
-    assert.match(source, /Accesos rápidos para comenzar la aventura/);
     assert.doesNotMatch(source, /Sin canción seleccionada/i);
     assert.match(source, /classChoices\.slice\(0, 3\)/);
     assert.match(source, /classChoices\.slice\(3\)/);
+    assert.match(source, /Escribe manualmente/);
+    assert.doesNotMatch(source, /label: '📝 Registrarse'/);
+    assert.doesNotMatch(source, /\['registrarse', '📝 Registrarse'/);
+    assert.doesNotMatch(source, /Accesos rápidos para comenzar la aventura/);
 });
 
 test('el menú RPG incluye todos los oficios, mazmorra, clase y consumibles', () => {

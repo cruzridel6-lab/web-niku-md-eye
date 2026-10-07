@@ -2244,7 +2244,7 @@ class BotSession {
                             `🌌 *¡PORTAL VINCULADO!* ✅\n` +
                             `Tu WhatsApp ya está conectado. El reino te espera, aventurero.\n\n` +
                             `🧭 *TU PRIMERA MISIÓN*\n` +
-                            `1. *${welcomePrefix}registrarse Tu Nombre* — crea tu personaje.\n` +
+                            `1. Escribe manualmente *${welcomePrefix}registrarse Tu Nombre* — crea tu personaje.\n` +
                             `2. *${welcomePrefix}clase* — elige tu camino de combate.\n` +
                             `3. *${welcomePrefix}rpgmenu* — abre el mapa de comandos RPG.\n\n` +
                             `🎁 *PACK DEL AVENTURERO*\n` +
@@ -2266,12 +2266,6 @@ class BotSession {
                                 caption: welcomeText
                             });
                         }
-                        await sendActionButtons(this.sock, botNumber, '⚔️ Accesos rápidos para comenzar la aventura:', [
-                            { label: '📝 Registrarse', command: `${welcomePrefix}registrarse` },
-                            { label: '🧙 Ver clases', command: `${welcomePrefix}clase` },
-                            { label: '🎮 Menú RPG', command: `${welcomePrefix}rpgmenu` }
-                        ]);
-
                         try {
                             const channelLink = settings.whatsappChannel;
                             if (channelLink) {
@@ -2461,7 +2455,6 @@ async function sendRpgInteractiveMenu(sock, jid, msg) {
         ['marry', '💍 Casarse', 'Proponer, aceptar o rechazar'],
         ['divorce', '💔 Divorciarse', 'Confirmar antes de terminar vínculo'],
         ['historial', '📜 Historial', 'Historial matrimonial'],
-        ['registrarse', '📝 Registrarse', 'Crear personaje'],
         ['clase', '🧭 Elegir clase', 'Escoge uno de los cinco caminos'],
         ['combate', '⚔️ Combate', 'Luchar con acciones interactivas'],
         ['raid', '🐉 Raid', 'Crear, unirte y combatir en grupo'],
