@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { normalizeActionCommand, parseCommandInput } = require('../lib/commandParser');
+const { extractInteractiveResponseId } = require('../lib/interactiveActions');
 const { sendGroupAdminMenu, CONTROL_DEFINITIONS } = require('../lib/groupAdminMenu');
 
 const GROUP = 'admin-menu-tests@g.us';
@@ -83,14 +84,44 @@ const ACTION_HANDLERS = {
     horario: require('../commands/groupschedule')
 };
 
-async function runAction(ctx, command, prefix = '.') {
-    const parsed = parseCommandInput(`${prefix}${command}`, prefix);
+test('el parser separa el comando y entrega solo sus argumentos al handler', () => {
+    assert.deepEqual(parseCommandInput('!antilink on', '!'), {
+        commandBody: 'antilink on',
+        commandText: '!antilink on',
+        cmd: '!antilink on',
+        args: ['on'],
+        commandName: 'antilink',
+        q: 'on'
+    });
+    assert.deepEqual(parseCommandInput('!adminmenu protecciones', '!').args, ['protecciones']);
+});
+
+async function runAction(ctx, commandOrResponse, prefix = '.') {
+    const selectedId = typeof commandOrResponse === 'string'
+        ? commandOrResponse
+        : extractInteractiveResponseId(commandOrResponse);
+    const normalized = normalizeActionCommand(selectedId, prefix);
+    const actionText = normalized.toLowerCase().startsWith(prefix.toLowerCase()) ? normalized : `${prefix}${normalized}`;
+    const parsed = parseCommandInput(actionText, prefix);
     const handler = ACTION_HANDLERS[parsed.commandName];
     assert.equal(typeof handler, 'function', `${parsed.commandName} debe resolver a un handler real`);
     const common = [ctx.sock, GROUP, ctx.msg, true, ctx.botData, ctx.save];
-    if (parsed.commandName === 'anticall') return handler(...common, SESSION, parsed.args.slice(1));
-    if (parsed.commandName === 'horario') return handler(...common, parsed.args.slice(1), SESSION);
-    return handler(...common, parsed.args.slice(1));
+    if (parsed.commandName === 'anticall') return handler(...common, SESSION, parsed.args);
+    if (parsed.commandName === 'horario') return handler(...common, parsed.args, SESSION);
+    return handler(...common, parsed.args);
+}
+
+async function clickControlButton(ctx, route, command) {
+    ctx.relayed.length = 0;
+    await sendGroupAdminMenu(ctx.sock, GROUP, ctx.msg, route, ctx.botData, '.', true, SESSION);
+    const expectedId = `cmd_${command}`;
+    const selectedId = buttonCommands(ctx).find(id => id === expectedId);
+    assert.ok(selectedId, `${route}: el panel debe tener el botón ${expectedId}`);
+    return runAction(ctx, {
+        interactiveResponseMessage: {
+            nativeFlowResponseMessage: { paramsJson: JSON.stringify({ id: selectedId }) }
+        }
+    });
 }
 
 async function assertControlStatus(ctx, route, expected) {
@@ -107,20 +138,20 @@ test('todos los controles de protección y ajustes activan, guardan y desactivan
         const off = definition.actions?.find(([, command]) => /\boff$/.test(command))?.[1] || `${definition.command} ${definition.args || ''}off`;
         assert.ok(on && off, `${route}: debe ofrecer acciones on y off`);
 
-        await runAction(ctx, on);
+        await clickControlButton(ctx, route, on);
         assert.ok(ctx.saves > 0, `${route}: activar debe persistir el estado`);
         await assertControlStatus(ctx, route, 'ACTIVADO');
 
-        await runAction(ctx, off);
+        await clickControlButton(ctx, route, off);
         assert.ok(ctx.saves > 1, `${route}: desactivar debe persistir el estado`);
         await assertControlStatus(ctx, route, 'DESACTIVADO');
     }
 
     const schedule = context();
-    await runAction(schedule, 'horario on');
+    await clickControlButton(schedule, 'horario', 'horario on');
     assert.equal(schedule.botData.groupSchedules[GROUP].enabled, true);
     await assertControlStatus(schedule, 'horario', 'ACTIVADO');
-    await runAction(schedule, 'horario off');
+    await clickControlButton(schedule, 'horario', 'horario off');
     assert.equal(schedule.botData.groupSchedules[GROUP].enabled, false);
     await assertControlStatus(schedule, 'horario', 'DESACTIVADO');
 });
