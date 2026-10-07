@@ -16,7 +16,7 @@ const githubBackup = require('./lib/githubBackup');
 const telegramBackup = require('./lib/telegramBackup');
 const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
-const { sendActionButtons } = require('./lib/interactiveActions');
+const { sendActionButtons, extractInteractiveResponseId } = require('./lib/interactiveActions');
 const { answerLocal } = require('./lib/localAI');
 
 const PREMIUM_COMMANDS = new Set([
@@ -1417,17 +1417,8 @@ class BotSession {
 
                         let type = Object.keys(messageContent)[0];
                         let text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
-                        const selectedRowId = messageContent.listResponseMessage?.singleSelectReply?.selectedRowId ||
-                            messageContent.buttonsResponseMessage?.selectedButtonId ||
-                            messageContent.templateButtonReplyMessage?.selectedId;
-                        const flowParams = messageContent.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson;
-                        if (!selectedRowId && flowParams) {
-                            try {
-                                const parsed = JSON.parse(flowParams);
-                                if (parsed.id) text = parsed.id;
-                            } catch (e) {}
-                        }
-                        if (selectedRowId) text = selectedRowId;
+                        const selectedActionId = extractInteractiveResponseId(msg.message);
+                        if (selectedActionId) text = selectedActionId;
                         if (text.startsWith('menu_')) text = `${settings.prefix || '.'}${text.slice(5)}`;
                         if (text.startsWith('cmd_')) text = `${settings.prefix || '.'}${text.slice(4)}`;
 

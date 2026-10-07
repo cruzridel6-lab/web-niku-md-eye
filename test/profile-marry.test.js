@@ -30,6 +30,17 @@ function buttonIds(ctx) {
         .map(button => JSON.parse(button.buttonParamsJson).id);
 }
 
+test('el registro se completa escribiendo el nombre y no muestra botones de alta', async () => {
+    const ctx = harness();
+    const player = '15550000099@s.whatsapp.net';
+    await profileCommand(ctx.sock, 'grupo@g.us', message(player), 'registrarse', 'Carlos', ctx.botData, () => {}, '.');
+
+    assert.equal(ctx.botData.profiles[player].name, 'Carlos');
+    assert.equal(ctx.botData.profiles[player].registered, true);
+    assert.match(ctx.messages.at(-1).text, /registro completado/i);
+    assert.deepEqual(buttonIds(ctx), []);
+});
+
 test('acepta una solicitud de matrimonio normal y elimina la invitación pendiente', async () => {
     const ctx = harness();
     const proposer = '15550000001@s.whatsapp.net';

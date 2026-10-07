@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const runEconomy = require('../commands/economy');
 const { runAuction } = require('../commands/auction');
-const { sendActionButtons } = require('../lib/interactiveActions');
+const { sendActionButtons, extractInteractiveResponseId } = require('../lib/interactiveActions');
 
 const CHAT = 'interactive-tests@g.us';
 const BUYER = '15550000081@s.whatsapp.net';
@@ -233,6 +233,17 @@ test('el selector de clase muestra botones para las cinco clases y permite elegi
 
     await runEconomyCommand(ctx, 'clase', 'paladin');
     assert.equal(ctx.user.rpg.class, 'paladin');
+});
+
+test('extrae la acción de clase de respuestas nativas encapsuladas y de botones heredados', () => {
+    assert.equal(extractInteractiveResponseId({
+        ephemeralMessage: { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: JSON.stringify({ id: 'cmd_clase paladin' }) } } } }
+    }), 'cmd_clase paladin');
+    assert.equal(extractInteractiveResponseId({
+        interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: { id: 'cmd_clase guerrero' } } }
+    }), 'cmd_clase guerrero');
+    assert.equal(extractInteractiveResponseId({ buttonsResponseMessage: { selectedButtonId: 'cmd_clase mago' } }), 'cmd_clase mago');
+    assert.equal(extractInteractiveResponseId({ listResponseMessage: { singleSelectReply: { selectedRowId: 'cmd_clase picaro' } } }), 'cmd_clase picaro');
 });
 
 test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {
