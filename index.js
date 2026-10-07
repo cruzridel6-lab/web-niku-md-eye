@@ -14,6 +14,7 @@ const QRCode = require('qrcode');
 const createSingleQrDelivery = require('./lib/singleQrDelivery');
 const githubBackup = require('./lib/githubBackup');
 const antiPorn = require('./lib/antiPorn');
+const profileRegistration = require('./lib/profileRegistration');
 const { answerLocal } = require('./lib/localAI');
 
 const PREMIUM_COMMANDS = new Set([
@@ -878,50 +879,18 @@ function getDashboardStats() {
 }
 function publicNumber(jid) { return String(jid || '').split('@')[0].split(':')[0].replace(/\D/g, ''); }
 function sessionNumber(session) { return publicNumber(session?.phoneNumber || session?.sock?.user?.id); }
-function profileIdentityNumbers(key, profile) {
-    const numbers = new Set();
-    const add = value => { const number = publicNumber(value); if (number) numbers.add(number); };
-    add(key); add(profile?.phoneNumber);
-    let changed = true;
-    while (changed) {
-        changed = false;
-        for (const [phone, lid] of Object.entries(botData.phoneAliases || {})) {
-            const phoneNumber = publicNumber(phone); const lidNumber = publicNumber(lid);
-            if (numbers.has(phoneNumber) && lidNumber && !numbers.has(lidNumber)) { numbers.add(lidNumber); changed = true; }
-            if (numbers.has(lidNumber) && phoneNumber && !numbers.has(phoneNumber)) { numbers.add(phoneNumber); changed = true; }
-        }
-    }
-    return numbers;
-}
 function bannedSnapshot() {
     return Object.entries(botData.bannedNumbers || {}).map(([number, entry]) => ({
         number,
         bannedAt: entry?.bannedAt || null
     })).sort((a, b) => String(b.bannedAt).localeCompare(String(a.bannedAt)));
 }
-function registeredProfileFor(jid) {
-    const wanted = publicNumber(jid);
-    if (!wanted) return null;
-    const match = Object.entries(botData.profiles || {}).find(([key, profile]) => profileIdentityNumbers(key, profile).has(wanted) && profile?.registered && profile?.name);
-    return match ? match[1] : null;
-}
 function registeredProfileForMessage(msg, fallbackJid) {
-    const candidates = [
-        fallbackJid,
-        msg?.key?.participant,
-        msg?.key?.participantAlt,
-        msg?.key?.senderPn,
-        msg?.key?.remoteJid
-    ].filter(Boolean);
-    for (const candidate of candidates) {
-        const profile = registeredProfileFor(candidate);
-        if (profile?.registered) return profile;
-    }
-    return null;
+    return profileRegistration.registeredProfileForMessage(botData, msg, fallbackJid);
 }
 function publicPlayer(jid) {
     const number = publicNumber(jid);
-    const profile = Object.entries(botData.profiles || {}).find(([key, value]) => profileIdentityNumbers(key, value).has(number) && value?.registered && value?.name);
+    const profile = Object.entries(botData.profiles || {}).find(([key, value]) => profileRegistration.profileIdentityNumbers(key, value, botData.phoneAliases).has(number) && value?.registered && value?.name);
     if (profile) return String(profile[1].name).slice(0, 32);
     return number ? `Jugador ${number.slice(-4)}` : 'Jugador';
 }
@@ -1522,14 +1491,7 @@ class BotSession {
                         const normalizedSender = jidNormalizedUser(sender);
                         const senderClean = normalizedSender.split('@')[0];
                         const isBotSender = Boolean(isMe || (normalizedSender && botNumber && normalizedSender === botNumber));
-                        const alternatePhoneJid = msg.key.participantAlt || msg.key.senderPn;
-                        if (/@s\.whatsapp\.net$/i.test(String(alternatePhoneJid || '')) && /@lid$/i.test(String(sender || ''))) {
-                            const alternateNumber = publicNumber(alternatePhoneJid);
-                            if (alternateNumber && botData.phoneAliases[alternateNumber] !== sender) {
-                                botData.phoneAliases[alternateNumber] = sender;
-                                saveBotData();
-                            }
-                        }
+                        if (profileRegistration.rememberPhoneAlias(botData, msg, sender)) saveBotData();
 
                         const ownerNumbers = String(settings.ownerNumber).split(',').map(n => n.replace(/\D/g, ''));
                         const isOwner = isMe || ownerNumbers.some(on => senderClean === on) || senderClean === botNumberClean;
