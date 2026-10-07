@@ -33,12 +33,12 @@ Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automa
 - **Antiporno local:** `.antiporno on/off` elimina enlaces y texto sexual, analiza imágenes, stickers y el primer fotograma de videos con NSFWJS/TensorFlow.js dentro del servidor, y expulsa al remitente sin enviar archivos a una IA externa.
 - **SuperToken:** el panel muestra los comandos Premium incluidos y permite generar un SuperToken temporal para habilitarlos mediante `.reclamar <supertoken>`.
 - **Moderación:** la ruta `/moderacion` tiene login independiente, permisos limitados por casillas y herramientas para SuperTokens, bloqueos, usuarios y sesiones.
-- **Premium:** se eliminó la compra mediante `.tienda`; el acceso Premium solo se concede mediante SuperToken o desde Administración.
+- **Premium:** `.tiendapremium` permite comprar pases de 1, 2 o 4 días con Niku Coins; `.premiumtiempo` consulta el vencimiento propio y, mencionando a un jugador, el de esa cuenta. Las compras se suman al tiempo Premium vigente.
 - **Economía RPG:** `rpgmenu`, `economymenu` y `economiarpg` abren el mismo sistema RPG. Perfiles, vínculos, niveles, clanes, misiones, herramientas, combates y economía comparten esta categoría y sus respuestas usan narrativa de aventurero.
 - **Clases y progresión:** cada perfil muestra nivel y XP; el jugador puede elegir una sola clase con `.clase guerrero`, `.clase mago`, `.clase picaro`, `.clase tirador` o `.clase paladin` (también acepta `.clase paladín`). Paladín obtiene +15% en mazmorras y cuenta con habilidades de curación y defensa sagrada.
 - **Selección posterior al registro:** después de `.registrarse`, el bot muestra las descripciones y ventajas de Guerrero, Mago, Pícaro, Tirador y Paladín. El panel de usuarios RPG actualiza en vivo el nombre, la clase, el nivel y la experiencia.
-- **Equipamiento, fabricación y botín:** cada clase dispone de cuatro piezas de equipo; las dos nuevas pueden aparecer como drops únicos en las mazmorras. Fabrica `.fabricar espada_abismal`, `.fabricar armadura_escamas` o `.fabricar amuleto_lunar`; gestiona armas, armaduras y accesorios con `.inventario equipar <id>` y `.inventario quitar <id>`. Las piezas activas mejoran combate o recompensas según su tipo.
-- **Subasta RPG:** `.subastar <id> <precio> [minutos]` admite drops de mazmorra en cualquier rareza, botines de minería/pesca/caza, equipo de clase, equipo fabricado, materiales, pociones y herramientas con su durabilidad. Ejemplos: `.subastar gema_lunar:legendario 9000`, `.subastar sword_iron 1500` y `.subastar espada 1500`. El equipo de clase solo se puede comprar con esa misma clase; las cancelaciones y cierres sin pujas devuelven el objeto.
+- **Equipamiento, fabricación y botín:** cada clase dispone de piezas de equipo; las nuevas pueden aparecer como drops únicos en las mazmorras. Fabrica `.fabricar espada_abismal`, `.fabricar armadura_escamas` o `.fabricar amuleto_lunar`; gestiona armas, armaduras y accesorios con `.inventario equipar <id>` y `.inventario quitar <id>`. Usa `.objeto <nombre o ID>` para ver la imagen, estadísticas, clase y cómo obtener cada pieza.
+- **Subasta RPG:** `.subastar <id> <precio> [minutos]` admite drops de mazmorra en cualquier rareza, botines de minería/pesca/caza, equipo de clase, equipo fabricado, materiales, pociones y herramientas con su durabilidad. Ejemplos: `.subastar gema_lunar:legendario 9000`, `.subastar sword_iron 1500` y `.subastar espada 1500`. Las publicaciones, pujas y devoluciones de equipo muestran su imagen cuando está disponible; el equipo de clase solo se puede comprar con esa misma clase. La espada de herramienta (`espada`) es distinta de la Espada de hierro equipable (`sword_iron`).
 - **Raids cooperativas:** en un grupo, un jugador puede consultar los jefes con `.raid jefes`, crear una raid con `.raid crear`, unirse con `.raid unirse` y atacar con `.raid atacar`. Hay tres jefes épicos, máximo 8 participantes, 10 minutos de duración, daño con bonificaciones de clase/equipo y recompensas compartidas de monedas y XP. Usa `.raid estado` para consultar la vida del jefe.
 - **Logros y títulos:** además de los logros de raid, ahora hay hitos de exploración, botín raro/legendario, equipo encontrado en mazmorras y compras de arsenal. Se consultan con `.logros`; los títulos, con `.titulos`.
 - **Rankings públicos compactos:** la web muestra logros, Niku Coins, PvP e historial en una sola tarjeta con pestañas y scroll interno, evitando que la página se alargue innecesariamente.
@@ -46,7 +46,7 @@ Compartimos actualizaciones, código, **VIM, Methods, Bots**, recursos de automa
 
 ## Instalación rápida
 
-> Requiere **Node.js 18+**, FFmpeg y Python disponible como `python` para `youtube-dl-exec`.
+> Requiere **Node.js 20+**, FFmpeg y Python disponible como `python` para `youtube-dl-exec`.
 
 ```bash
 git clone https://github.com/cruzridel6-lab/web-niku-md-eye.git

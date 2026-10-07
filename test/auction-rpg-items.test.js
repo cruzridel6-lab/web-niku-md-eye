@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { runAuction, settleAuction } = require('../commands/auction');
+const { itemImagePath } = require('../lib/rpgMedia');
 
 function setup(users) {
     const botData = { economy: { room: { users } }, auctions: {} };
@@ -30,9 +31,11 @@ test('se pueden subastar objetos fabricados y al cancelar vuelven a la bolsa', a
     const ctx = setup({ [seller]: { coins: 0, rpg: { inventory: { sword_iron: 1 } } } });
     await runAuction(ctx.sock, 'room', ctx.msgFor(seller), 'subastar', 'sword_iron 1500', ctx.botData, ctx.save);
     const auction = Object.values(ctx.botData.auctions)[0];
+    assert.equal(ctx.sent.at(-1).image.url, itemImagePath('sword_iron'));
     assert.equal(auction.inventoryType, 'rpgInventory');
     assert.equal(ctx.botData.economy.room.users[seller].rpg.inventory.sword_iron, undefined);
     await runAuction(ctx.sock, 'room', ctx.msgFor(seller), 'cancelarsubasta', auction.id, ctx.botData, ctx.save);
+    assert.equal(ctx.sent.at(-1).image.url, itemImagePath('sword_iron'));
     assert.equal(ctx.botData.economy.room.users[seller].rpg.inventory.sword_iron, 1);
 });
 
@@ -64,7 +67,9 @@ test('las piezas exclusivas se transfieren al comprador de la clase adecuada', a
     await runAuction(ctx.sock, 'room', ctx.msgFor(seller), 'subastar', 'lanza_titan 1000', ctx.botData, ctx.save);
     const auction = Object.values(ctx.botData.auctions)[0];
     assert.equal(auction.inventoryType, 'classEquipment');
+    assert.equal(ctx.sent.at(-1).image.url, itemImagePath('lanza_titan'));
     await runAuction(ctx.sock, 'room', ctx.msgFor(buyer), 'pujar', `${auction.id} 1000`, ctx.botData, ctx.save);
+    assert.equal(ctx.sent.at(-1).image.url, itemImagePath('lanza_titan'));
     auction.expiresAt = Date.now() - 1;
     settleAuction(ctx.botData, auction);
     assert.equal(ctx.botData.economy.room.users[buyer].equipment.lanza_titan.source, 'dungeon');
