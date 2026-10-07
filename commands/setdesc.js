@@ -1,6 +1,6 @@
-module.exports = async function(sock, chatId, msg, isAdmin, q) {
+module.exports = async function(sock, chatId, msg, isAdmin, q, prefix = '.') {
     if (!isAdmin) return await sock.sendMessage(chatId, { text: '\u274C Only admin!' }, { quoted: msg });
-    if (!q) return await sock.sendMessage(chatId, { text: '\u26A0\uFE0F .setdesc <description>' }, { quoted: msg });
+    if (!q) return await sock.sendMessage(chatId, { text: `✍️ Usa *${prefix}setdesc <descripción>* para cambiarla.` }, { quoted: msg });
     
     try {
         await sock.groupUpdateDescription(chatId, q);

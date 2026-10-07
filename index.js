@@ -1650,7 +1650,18 @@ class BotSession {
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
                             if (!this.isPublic && !isAuthorized && !isAdmin && !['report', 'reporte', 'reclamar', 'public'].includes(commandName)) return;
                             const registrationCommands = new Set(['registrarse', 'registrar', 'register', 'registro', 'report', 'reporte', 'reclamar', 'public', 'tiendapremium', 'premiumshop', 'comprarpremium', 'premiumtiempo', 'premiumtime', 'tiempopremium', 'objeto', 'item', 'iteminfo']);
-                            const adminCommands = new Set(['admin', 'adminmenu', 'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antibot', 'estaf', 'antiestafa', 'anticall', 'anti-call', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'antiprivado', 'antiprivate', 'antipv', 'modoestricto', 'modoeatrito', 'strictmode', 'advertir', 'advertencia', 'advertencias', 'warn', 'warning', 'warnings', 'quitaradvertencia', 'quitaradvertencias']);
+                            const adminCommands = new Set([
+                                'admin', 'adminmenu', 'groupmenu',
+                                'open', 'abrir', 'close', 'cerrar', 'horario', 'schedule', 'groupschedule',
+                                'antilink', 'antiporno', 'antiporn', 'antiventas', 'antisales', 'antibot', 'estaf', 'antiestafa',
+                                'anticall', 'anti-call', 'anti', 'antiestiker', 'antistiker', 'antisticker', 'anti-sticker', 'antistatus',
+                                'antiprivado', 'antiprivate', 'antipv', 'modoestricto', 'modoeatrito', 'strictmode',
+                                'onlyadmin', 'adminonly', 'alertas', 'alerts', 'avisos', 'welcome', 'bienvenida', 'bye', 'despedida',
+                                'setwelcome', 'setbye', 'setdespedida', 'testwelcome', 'testbye', 'setdesc', 'setppgc',
+                                'groupinfo', 'ginfo', 'add', 'promote', 'demote', 'kick', 'mute', 'unmute', 'mutelist', 'listmute', 'silenciados',
+                                'advertir', 'advertencia', 'warn', 'warning', 'advertencias', 'warnings', 'quitaradvertencia', 'quitaradvertencias',
+                                'grouplink', 'gclink', 'link', 'enlace', 'revoke', 'tagall', 'hidetag', 'notify', 'tag', 'n', 'avisar'
+                            ]);
                             const registeredProfile = registeredProfileForMessage(msg, sender);
                             if (!registrationCommands.has(commandName) && !adminCommands.has(commandName) && !registeredProfile?.registered && !hasPremiumAccess) {
                                 await this.sock.sendMessage(from, { text: `╭━━━〔 🔐 *REGISTRO NIKU MD* 〕━━━╮
@@ -1782,8 +1793,8 @@ class BotSession {
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
-                                        case 'groupmenu': await sendGroupAdminMenu(this.sock, from, msg, q, botData, prefix, isAdmin, this.userId); break;
-                                        case 'admin': case 'adminmenu': await sendGroupAdminMenu(this.sock, from, msg, q, botData, prefix, isAdmin, this.userId); break;
+                                        case 'groupmenu': await sendGroupAdminMenu(this.sock, from, msg, q, botData, commandPrefix, isAdmin, this.userId); break;
+                                        case 'admin': case 'adminmenu': await sendGroupAdminMenu(this.sock, from, msg, q, botData, commandPrefix, isAdmin, this.userId); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'ia', 'chatbot', 'gali']); break;
@@ -1810,8 +1821,8 @@ class BotSession {
                                         case 'alertas': case 'alerts': case 'avisos': await commands.alertas(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'welcome': case 'bienvenida': await commands.welcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
                                         case 'bye': case 'despedida': await commands.bye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
-                                        case 'setwelcome': await commands.setwelcome(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
-                                        case 'setbye': case 'setdespedida': await commands.setbye(this.sock, from, msg, isAdmin, botData, saveBotData, args); break;
+                                        case 'setwelcome': await commands.setwelcome(this.sock, from, msg, isAdmin, botData, saveBotData, args, commandPrefix); break;
+                                        case 'setbye': case 'setdespedida': await commands.setbye(this.sock, from, msg, isAdmin, botData, saveBotData, args, commandPrefix); break;
                                         case 'testwelcome': await commands.testwelcome(this.sock, from, msg, isAdmin, botData); break;
                                         case 'testbye': await commands.testbye(this.sock, from, msg, isAdmin, botData); break;
                                         case 'profilemenu': await commands.economy(this.sock, from, msg, 'rpgmenu', q, botData, saveBotData, settings.prefix || '.'); break;
@@ -1909,8 +1920,8 @@ class BotSession {
                                         case 'mutelist': case 'listmute': case 'silenciados': case 'muteds': await commands.mutelist(this.sock, from, msg, isAdmin, botData); break;
                                         case 'join': await commands.join(this.sock, from, msg, q); break;
                                         case 'leave': await commands.leave(this.sock, from, msg, isAdmin); break;
-                                        case 'setdesc': await commands.setdesc(this.sock, from, msg, isAdmin, q); break;
-                                        case 'setppgc': await commands.setppgc(this.sock, from, msg, isAdmin); break;
+                                        case 'setdesc': await commands.setdesc(this.sock, from, msg, isAdmin, q, commandPrefix); break;
+                                        case 'setppgc': await commands.setppgc(this.sock, from, msg, isAdmin, commandPrefix); break;
                                         case 'getbio': await commands.getbio(this.sock, from, msg, q); break;
                                         case 'getdp': await commands.getdp(this.sock, from, msg, q); break;
                                         case 'tagadmin': await commands.tagadmin(this.sock, from, msg, isAdmin); break;
