@@ -453,6 +453,15 @@ function investmentQuickAmounts(balance) {
     return [...new Set([MIN_INVESTMENT, Math.floor(available / 4), Math.floor(available / 2)])]
         .filter(value => value >= MIN_INVESTMENT && value <= available);
 }
+async function sendClassChoiceButtons(sock, chatId, msg, prefix, quoted) {
+    const choices = Object.entries(CHARACTER_CLASSES).map(([key, value]) => ({ label: value.label, command: `${prefix}clase ${key}` }));
+    const groups = [choices.slice(0, 3), choices.slice(3, 6)];
+    for (let index = 0; index < groups.length; index++) {
+        const group = groups[index];
+        if (!group.length) continue;
+        await sendActionButtons(sock, chatId, index === 0 ? '🧭 Toca una clase para elegir tu camino:' : '🧭 Otras clases disponibles:', group, quoted || msg);
+    }
+}
 function toolState(user, key) {
     user.tools ||= {};
     const item = MERCHANT_ITEMS[key];
@@ -900,7 +909,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const requested = String(args[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         if (!requested || !CHARACTER_CLASSES[requested]) {
             const options = Object.entries(CHARACTER_CLASSES).map(([key, value]) => `${value.label} — *${key}*\n${value.description}\n✨ Ventaja: ${value.advantage}`).join('\n\n');
-            return reply(sock, chatId, msg, `🧙 *ELECCIÓN DE CLASE*\n\n${options}\n\nElige una clase con:\n*${prefix}clase guerrero*\n*${prefix}clase mago*\n*${prefix}clase picaro*\n*${prefix}clase tirador*\n*${prefix}clase paladin*`);
+            const sent = await reply(sock, chatId, msg, `🧙 *ELECCIÓN DE CLASE*\n\n${options}\n\nToca un botón para elegir o escribe uno de estos comandos:\n*${prefix}clase guerrero* · *${prefix}clase mago* · *${prefix}clase picaro* · *${prefix}clase tirador* · *${prefix}clase paladin*.`);
+            await sendClassChoiceButtons(sock, chatId, msg, prefix, sent || msg);
+            return sent;
         }
         if (user.rpg.class) return reply(sock, chatId, msg, `🛡️ Tu personaje ya pertenece a la clase *${CHARACTER_CLASSES[user.rpg.class]?.label || user.rpg.class}*. La clase se elige una sola vez.`);
         user.rpg.class = requested;

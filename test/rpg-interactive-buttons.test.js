@@ -165,3 +165,30 @@ test('las respuestas rápidas conservan el comando aunque el prefijo configurado
     const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
     assert.match(source, /settings\.prefix \|\| '\.'/);
 });
+
+
+test('el selector de clase muestra botones para las cinco clases y permite elegir Paladín', async () => {
+    const ctx = harness({ classKey: '' });
+    await runEconomyCommand(ctx, 'clase');
+
+    const ids = ctx.relayed.flatMap((_, index) => decodedButtons(ctx, index)).map(button => button.id);
+    assert.deepEqual(ids, [
+        'cmd_clase guerrero',
+        'cmd_clase mago',
+        'cmd_clase picaro',
+        'cmd_clase tirador',
+        'cmd_clase paladin'
+    ]);
+
+    await runEconomyCommand(ctx, 'clase', 'paladin');
+    assert.equal(ctx.user.rpg.class, 'paladin');
+});
+
+test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+    assert.match(source, /NIKU MD · REINO RPG/);
+    assert.match(source, /Accesos rápidos para comenzar la aventura/);
+    assert.doesNotMatch(source, /Sin canción seleccionada/i);
+    assert.match(source, /classChoices\.slice\(0, 3\)/);
+    assert.match(source, /classChoices\.slice\(3\)/);
+});

@@ -1,4 +1,5 @@
 const { classImagePath, sendImageCaption } = require('../lib/rpgMedia');
+const { sendActionButtons } = require('../lib/interactiveActions');
 
 const ALIASES = {
     register: ['registrarse', 'registrar', 'register', 'registro'],
@@ -249,10 +250,20 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
         return reply(sock, chatId, msg, `💔 @${numberOf(own)} y @${numberOf(partner)} se han divorciado.`, { mentions: [own, partner] });
     }
     if (canonical === 'marry') {
-        const explicitTargetRaw = contextTarget(msg) || String(q || '').match(/@?\d{7,16}/)?.[0];
-        const explicitTarget = explicitTargetRaw ? canonicalIdentityJid(botData, explicitTargetRaw) : '';
+        const requestedAction = String(q || '').trim().toLowerCase();
         const pendingMatch = pendingMarriageFor(botData, own);
         const pending = pendingMatch?.pending;
+        if (['rechazar', 'rechazo', 'declinar', 'no'].includes(requestedAction)) {
+            if (!pending || Number(pending.expires) <= Date.now()) {
+                if (pendingMatch) { delete botData.pendingMarriages[pendingMatch.key]; save(); }
+                return reply(sock, chatId, msg, '💔 No tienes una propuesta pendiente que puedas rechazar.');
+            }
+            delete botData.pendingMarriages[pendingMatch.key];
+            save();
+            return reply(sock, chatId, msg, `💔 @${numberOf(own)} rechazó la propuesta de @${numberOf(pending.from)}.`, { mentions: [own, pending.from] });
+        }
+        const explicitTargetRaw = contextTarget(msg) || String(q || '').match(/@?\d{7,16}/)?.[0];
+        const explicitTarget = explicitTargetRaw ? canonicalIdentityJid(botData, explicitTargetRaw) : '';
         const accepting = pending && pending.expires > Date.now() && (!explicitTarget || sameIdentity(botData, explicitTarget, pending.from));
         const target = canonicalIdentityJid(botData, accepting ? pending.from : findTarget(msg, q, own));
         if (!target || sameIdentity(botData, target, own)) return reply(sock, chatId, msg, `💍 Menciona o responde al usuario. Ejemplo: *${prefix}marry @usuario*`);
@@ -270,7 +281,12 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
         botData.pendingMarriages[target] = { from: own, expires: Date.now() + 30 * 60 * 1000 };
         const expirationTimer = setTimeout(() => { const current = botData.pendingMarriages[target]; if (current?.from === own) { delete botData.pendingMarriages[target]; save(); } }, 30 * 60 * 1000);
         expirationTimer.unref?.();
-        return reply(sock, chatId, msg, `💌 @${numberOf(target)}, @${numberOf(own)} te propone matrimonio. Responde mencionándolo con *${prefix}marry* para aceptar.`, { mentions: [target, own] });
+        const sent = await reply(sock, chatId, msg, `💌 @${numberOf(target)}, @${numberOf(own)} te propone matrimonio. Pulsa *Aceptar* o *Rechazar* abajo; también puedes usar *${prefix}marry aceptar* o *${prefix}marry rechazar*.`, { mentions: [target, own] });
+        await sendActionButtons(sock, chatId, '💍 Responde a la propuesta de matrimonio:', [
+            { label: '💍 Aceptar', command: `${prefix}marry aceptar` },
+            { label: '💔 Rechazar', command: `${prefix}marry rechazar` }
+        ], sent || msg);
+        return sent;
     }
     return reply(sock, chatId, msg, profileMenu(prefix));
 }

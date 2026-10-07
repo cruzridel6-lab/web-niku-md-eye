@@ -15,6 +15,7 @@ const createSingleQrDelivery = require('./lib/singleQrDelivery');
 const githubBackup = require('./lib/githubBackup');
 const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
+const { sendActionButtons } = require('./lib/interactiveActions');
 const { answerLocal } = require('./lib/localAI');
 
 const PREMIUM_COMMANDS = new Set([
@@ -1829,7 +1830,16 @@ class BotSession {
                                                 if (starterGranted) publishStarterPackEvent(sender);
                                                 const wallet = Object.entries(botData.economy?.[from]?.users || {}).find(([key]) => publicNumber(key) === publicNumber(sender))?.[1];
                                                 if (!wasRegistered && isRegistered && !wallet?.rpg?.class) {
-                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 monedas de oro*\n⛏️ Pico · ⚔️ Espada de herramienta · 🎣 Caña de pescar\n\n✅ *Ya casi terminamos.* Ahora selecciona tu clase para completar tu personaje:\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% de monedas en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n🛡️ *Paladín* — defensor sagrado. Ventaja: +15% en mazmorras y +10% en *.work*.\n\nElige una con:\n*.clase guerrero*\n*.clase mago*\n*.clase picaro*\n*.clase tirador*\n*.clase paladin*` }, { quoted: msg });
+                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 monedas de oro*\n⛏️ Pico · ⚔️ Espada de herramienta · 🎣 Caña de pescar\n\n🧭 *Tu aventura necesita una clase.* Pulsa uno de los botones para elegir tu camino; también puedes usar *${settings.prefix || '.'}clase <nombre>*.\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n🛡️ *Paladín* — defensor sagrado. Ventaja: +15% en mazmorras y +10% en *.work*.` }, { quoted: msg });
+                                                    const classChoices = [
+                                                        { label: '⚔️ Guerrero', command: `${settings.prefix || '.'}clase guerrero` },
+                                                        { label: '🔮 Mago', command: `${settings.prefix || '.'}clase mago` },
+                                                        { label: '🗡️ Pícaro', command: `${settings.prefix || '.'}clase picaro` },
+                                                        { label: '🏹 Tirador', command: `${settings.prefix || '.'}clase tirador` },
+                                                        { label: '🛡️ Paladín', command: `${settings.prefix || '.'}clase paladin` }
+                                                    ];
+                                                    await sendActionButtons(this.sock, from, '🧭 Elige tu clase para completar el personaje:', classChoices.slice(0, 3), msg);
+                                                    await sendActionButtons(this.sock, from, '🧭 También puedes elegir una de estas clases:', classChoices.slice(3), msg);
                                                 }
                                             }
                                             break;
@@ -2229,21 +2239,19 @@ class BotSession {
 
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
-                        const welcomeText = `◬━━━〈 *Niku MD BOT* 〉━━━◬\n\n` +
-                            `*🌑 CONECTADO CORRECTAMENTE* ✅\n\n` +
-                            `Tu WhatsApp ha sido vinculado al sistema de automatización de Niku MD.\n\n` +
-                            `*📱 INFORMACIÓN DEL BOT:*\n` +
-                            `• *Usuario:* ${botName}\n` +
-                            `• *Estado:* Activo 24/7\n` +
-                            `• *Comandos:* ${commandCount} herramientas disponibles\n\n` +
-                            `*🎵 CANCIÓN ACTUAL:*\n` +
-                            `> Sin canción seleccionada\n\n` +
-                            `🎁 *PACK INICIAL PARA PRINCIPIANTES:*\n` +
-                            `🪙 1.000 monedas de oro\n` +
-                            `⛏️ Pico · ⚔️ Espada de herramienta · 🎣 Caña de pescar\n` +
-                            `🔐 Regístrate con *.registrarse Tu Nombre* para recibirlo.\n\n` +
-                            `Escribe *.menu* para explorar todas las funciones.\n\n` +
-                            `> © NIKU MD BOT v${settings.version || '3.0.0'}`;
+                        const welcomePrefix = settings.prefix || '.';
+                        const welcomeText = `╭━━━〔 ⚔️ *NIKU MD · REINO RPG* 〕━━━╮\n\n` +
+                            `🌌 *¡PORTAL VINCULADO!* ✅\n` +
+                            `Tu WhatsApp ya está conectado. El reino te espera, aventurero.\n\n` +
+                            `🧭 *TU PRIMERA MISIÓN*\n` +
+                            `1. *${welcomePrefix}registrarse Tu Nombre* — crea tu personaje.\n` +
+                            `2. *${welcomePrefix}clase* — elige tu camino de combate.\n` +
+                            `3. *${welcomePrefix}rpgmenu* — abre el mapa de comandos RPG.\n\n` +
+                            `🎁 *PACK DEL AVENTURERO*\n` +
+                            `Al registrarte recibirás *1.000 monedas de oro*, un pico, una espada de herramienta y una caña de pescar.\n\n` +
+                            `⚔️ Elige tu clase después de crear el personaje.\n` +
+                            `📜 *${commandCount}* comandos disponibles · Bot activo 24/7\n\n` +
+                            `╰━━━〔 🪙 *NIKU MD · v${settings.version || '3.0.0'}* 〕━━━╯`;
 
                         const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
                         if (fs.existsSync(menuImagePath)) {
@@ -2258,6 +2266,11 @@ class BotSession {
                                 caption: welcomeText
                             });
                         }
+                        await sendActionButtons(this.sock, botNumber, '⚔️ Accesos rápidos para comenzar la aventura:', [
+                            { label: '📝 Registrarse', command: `${welcomePrefix}registrarse` },
+                            { label: '🧙 Ver clases', command: `${welcomePrefix}clase` },
+                            { label: '🎮 Menú RPG', command: `${welcomePrefix}rpgmenu` }
+                        ]);
 
                         try {
                             const channelLink = settings.whatsappChannel;
