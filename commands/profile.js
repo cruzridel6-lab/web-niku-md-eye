@@ -9,7 +9,7 @@ const ALIASES = {
     pfp: ['pfp', 'getpfp', 'foto', 'fotoperfil', 'foto perfil', 'avatar'],
     setbirth: ['setbirth', 'setcumple', 'setbirthday', 'cumple', 'cumpleanos', 'cumpleaños', 'birthday'],
     setdesc: ['setbio', 'setdescription', 'setdescperfil'],
-    setgenre: ['setgenre', 'setgenero']
+    setgenre: ['setgenre', 'setgenero', 'setgender']
 };
 const ALIAS_TO_COMMAND = Object.fromEntries(Object.entries(ALIASES).flatMap(([key, values]) => values.map(value => [value, key])));
 const profileAliases = Object.values(ALIASES).flat();
@@ -183,7 +183,7 @@ function economyFor(botData, chatId, jid) {
     return matches.find(user => user?.rpg?.class || user?.rpg?.classKey || user?.classKey) || (key ? users[key] : matches[0] || {});
 }
 function profileMenu(prefix = '.') {
-    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenre · Género\n│\n╰────────────────────╯`;
+    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenero hombre|mujer|otro · Género\n│\n╰────────────────────╯`;
 }
 
 async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {
@@ -224,7 +224,7 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     }
     if (canonical === 'setgenre') {
         const value = String(q || '').trim().toLowerCase();
-        if (!['hombre', 'mujer', 'otro'].includes(value)) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}setgenre hombre|mujer|otro*`);
+        if (!['hombre', 'mujer', 'otro'].includes(value)) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}setgenero hombre|mujer|otro* (también puedes usar *${prefix}setgender*).`);
         ownProfile.genre = value; save(); return reply(sock, chatId, msg, `✅ Género actualizado a *${displayGenre(value)}*.`);
     }
     if (canonical === 'setbirth') {
