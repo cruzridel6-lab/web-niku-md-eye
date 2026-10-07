@@ -1,4 +1,3 @@
-const pendingMarriages = new Map();
 const { classImagePath, sendImageCaption } = require('../lib/rpgMedia');
 
 const ALIASES = {
@@ -24,8 +23,8 @@ function canonicalJid(jid) {
 }
 function rememberMessageIdentity(botData, msg, chatId) {
     botData.phoneAliases ||= {};
-    const lid = msg?.key?.participant || (!msg?.key?.fromMe && String(chatId || '').endsWith('@lid') ? chatId : '');
-    const phone = msg?.key?.participantAlt || msg?.key?.senderPn;
+    const lid = !msg?.key?.fromMe ? [msg?.key?.participant, msg?.key?.remoteJid, chatId].find(value => /@lid$/i.test(String(value || ''))) : '';
+    const phone = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.remoteJidAlt;
     if (/@lid$/i.test(String(lid)) && /@s\.whatsapp\.net$/i.test(String(phone))) {
         const number = numberOf(phone);
         if (number && botData.phoneAliases[number] !== lid) botData.phoneAliases[number] = lid;
@@ -40,14 +39,26 @@ function resolvePhoneNumber(botData, jid) {
     const profile = Object.entries(botData?.profiles || {}).find(([key, value]) => numberOf(key) === wanted || numberOf(value?.phoneNumber) === wanted);
     return numberOf(profile?.[1]?.phoneNumber || profile?.[0]) || wanted;
 }
+function canonicalIdentityJid(botData, jid) {
+    const raw = String(jid || '').trim();
+    if (!raw) return '';
+    if (/@lid$/i.test(raw)) {
+        const alias = Object.entries(botData?.phoneAliases || {}).find(([, lid]) => String(lid).toLowerCase() === raw.toLowerCase());
+        if (alias) return canonicalJid(alias[0]);
+        const profile = Object.entries(botData?.profiles || {}).find(([key, value]) => String(key).toLowerCase() === raw.toLowerCase() && value?.phoneNumber);
+        if (profile) return canonicalJid(profile[1].phoneNumber);
+        return raw;
+    }
+    return canonicalJid(resolvePhoneNumber(botData, raw) || raw);
+}
 function jidOf(msg, chatId, botData) {
-    const candidate = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId);
-    return canonicalJid(resolvePhoneNumber(botData, candidate) || candidate);
+    const candidate = msg?.key?.participantAlt || msg?.key?.senderPn || msg?.key?.remoteJidAlt || msg?.key?.participant || (msg?.key?.fromMe ? msg?.key?.remoteJid : chatId);
+    return canonicalIdentityJid(botData, candidate);
 }
 function reply(sock, chatId, msg, text, extra = {}) { return sock.sendMessage(chatId, { text, ...extra }, { quoted: msg }); }
 function contextTarget(msg) {
     const context = msg?.message?.extendedTextMessage?.contextInfo || {};
-    return context.mentionedJid?.[0] || context.participant || context.quotedMessage?.key?.participant || context.quotedMessage?.key?.sender || null;
+    return context.mentionedJid?.[0] || context.participantAlt || context.participant || context.quotedMessage?.key?.participantAlt || context.quotedMessage?.key?.participant || context.quotedMessage?.key?.sender || null;
 }
 function findTarget(msg, q, own) {
     const context = contextTarget(msg);
@@ -55,11 +66,25 @@ function findTarget(msg, q, own) {
     const match = String(q || '').match(/@?(\d{7,16})/);
     return match ? `${match[1]}@s.whatsapp.net` : own;
 }
+function sameIdentity(botData, left, right) {
+    const a = canonicalIdentityJid(botData, left);
+    const b = canonicalIdentityJid(botData, right);
+    return Boolean(a && b && a === b);
+}
+function pendingMarriageFor(botData, jid) {
+    const match = Object.entries(botData.pendingMarriages || {}).find(([recipient]) => sameIdentity(botData, recipient, jid));
+    return match ? { key: match[0], pending: match[1] } : null;
+}
+function existingProfile(botData, jid) {
+    return Object.entries(botData.profiles || {}).find(([key]) => sameIdentity(botData, key, jid))?.[1] || null;
+}
 function ensure(botData, jid, name = 'Usuario') {
     botData.profiles ||= {};
-    const key = canonicalJid(jid);
+    const key = canonicalIdentityJid(botData, jid);
     if (!botData.profiles[key]) {
-        const legacyKey = Object.keys(botData.profiles).find(item => numberOf(item) && numberOf(item) === numberOf(key));
+        const raw = String(jid || '').trim();
+        const legacyNumber = /@lid$/i.test(raw) ? numberOf(raw) : numberOf(key);
+        const legacyKey = Object.keys(botData.profiles).find(item => numberOf(item) && numberOf(item) === legacyNumber);
         if (legacyKey) botData.profiles[key] = botData.profiles[legacyKey];
     }
     botData.profiles[key] ||= { name, registered: false, description: '', genre: '', birth: '', partner: null, history: [] };
@@ -224,20 +249,22 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
         return reply(sock, chatId, msg, `💔 @${numberOf(own)} y @${numberOf(partner)} se han divorciado.`, { mentions: [own, partner] });
     }
     if (canonical === 'marry') {
-        const explicitTarget = contextTarget(msg) || String(q || '').match(/@?\d{7,16}/)?.[0];
-        const pending = botData.pendingMarriages[own];
-        const accepting = pending && pending.expires > Date.now() && (!explicitTarget || numberOf(explicitTarget) === numberOf(pending.from));
-        const target = accepting ? pending.from : findTarget(msg, q, own);
-        if (!target || target === own) return reply(sock, chatId, msg, `💍 Menciona o responde al usuario. Ejemplo: *${prefix}marry @usuario*`);
-        const targetProfile = ensure(botData, target);
+        const explicitTargetRaw = contextTarget(msg) || String(q || '').match(/@?\d{7,16}/)?.[0];
+        const explicitTarget = explicitTargetRaw ? canonicalIdentityJid(botData, explicitTargetRaw) : '';
+        const pendingMatch = pendingMarriageFor(botData, own);
+        const pending = pendingMatch?.pending;
+        const accepting = pending && pending.expires > Date.now() && (!explicitTarget || sameIdentity(botData, explicitTarget, pending.from));
+        const target = canonicalIdentityJid(botData, accepting ? pending.from : findTarget(msg, q, own));
+        if (!target || sameIdentity(botData, target, own)) return reply(sock, chatId, msg, `💍 Menciona o responde al usuario. Ejemplo: *${prefix}marry @usuario*`);
+        const targetProfile = existingProfile(botData, target) || (accepting ? ensure(botData, target) : null);
         if (ownProfile.partner) return reply(sock, chatId, msg, `💍 Ya estás ${spouseWord(ownProfile.genre)} con ${targetName(botData, ownProfile.partner)}.`);
-        if (targetProfile.partner) return reply(sock, chatId, msg, '💍 Esa persona ya tiene pareja.');
-        if (accepting && pending.from === target) {
+        if (targetProfile?.partner) return reply(sock, chatId, msg, '💍 Esa persona ya tiene pareja.');
+        if (accepting && sameIdentity(botData, pending.from, target)) {
             const startedAt = Date.now(); const start = new Date(startedAt).toLocaleString('es-ES');
             ownProfile.partner = target; targetProfile.partner = own;
             ownProfile.history.push({ partner: target, start, startedAt, end: null });
             targetProfile.history.push({ partner: own, start, startedAt, end: null });
-            delete botData.pendingMarriages[own]; save();
+            delete botData.pendingMarriages[pendingMatch.key]; save();
             return reply(sock, chatId, msg, `💍 ¡Se han casado @${numberOf(own)} y @${numberOf(target)}!\n\nQue disfruten su nueva etapa.`, { mentions: [own, target] });
         }
         botData.pendingMarriages[target] = { from: own, expires: Date.now() + 30 * 60 * 1000 };
