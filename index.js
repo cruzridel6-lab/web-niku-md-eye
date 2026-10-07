@@ -16,6 +16,7 @@ const githubBackup = require('./lib/githubBackup');
 const telegramBackup = require('./lib/telegramBackup');
 const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
+const { grantStarterPackToWallet } = require('./lib/starterPack');
 const { sendActionButtons, extractInteractiveResponseId } = require('./lib/interactiveActions');
 const { normalizeActionCommand, parseCommandInput } = require('./lib/commandParser');
 const { sendGroupAdminMenu } = require('./lib/groupAdminMenu');
@@ -463,21 +464,18 @@ function createSuperToken(days = 30) {
     return { token, expiresAt: superTokensStore()[hashPremiumToken(token)].expiresAt };
 }
 function grantStarterPack(chatId, playerJid) {
+    botData.economy ||= {};
     const jid = jidNormalizedUser(playerJid || chatId);
-    botData.economy[chatId] ||= { users: {} };
-    botData.economy[chatId].users ||= {};
-    botData.economy[chatId].users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
-    const wallet = botData.economy[chatId].users[jid];
-    if (wallet.starterPackClaimed) return false;
-    wallet.coins = Math.max(0, Number(wallet.coins) || 0) + 1000;
-    wallet.tools ||= {};
-    wallet.tools.pico = { durability: 15, maxDurability: 15 };
-    wallet.tools.espada = { durability: 12, maxDurability: 12 };
-    wallet.tools.cana = { durability: 15, maxDurability: 15 };
-    wallet.starterPackClaimed = true;
-    wallet.starterPackGrantedAt = new Date().toISOString();
-    saveBotData();
-    return true;
+    const state = botData.economy[chatId] ||= { users: {} };
+    state.users ||= {};
+    const identities = profileRegistration.profileIdentityNumbers(jid, null, botData.phoneAliases);
+    const walletJid = Object.keys(state.users).find(key =>
+        [...profileRegistration.profileIdentityNumbers(key, null, botData.phoneAliases)].some(number => identities.has(number))
+    ) || jid;
+    state.users[walletJid] ||= { coins: 0, bank: 0, lastSeen: 0 };
+    const granted = grantStarterPackToWallet(state.users[walletJid]);
+    if (granted) saveBotData();
+    return granted;
 }
 function publishStarterPackEvent(jid) {
     const starterEvent = { type: 'coins', player: publicPlayer(jid), amount: 1000, source: 'pack inicial', timestamp: new Date().toISOString() };
@@ -1505,8 +1503,7 @@ class BotSession {
                         if (!isAdmin && isGroup) {
                             try {
                                 const groupMetadata = await this.sock.groupMetadata(from);
-                                const participant = groupMetadata.participants.find(p => jidNormalizedUser(p.id) === normalizedSender);
-                                isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
+                                isAdmin = profileRegistration.isGroupAdminParticipant(groupMetadata.participants, sender, botData);
                             } catch (e) {
                                 isAdmin = false;
                             }

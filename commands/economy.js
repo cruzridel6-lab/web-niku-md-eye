@@ -5,6 +5,7 @@ const { showItemDetails } = require('../lib/rpgItemDetails');
 const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionAction, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
 const { CLASS_EQUIPMENT, DUNGEON_LOOT, MERCHANT_ITEMS, RPG_ITEMS } = require('../lib/rpgCatalog');
 const { sendActionButtons } = require('../lib/interactiveActions');
+const { grantStarterPackToWallet } = require('../lib/starterPack');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
 const INVESTMENT_DURATION = 5 * 60 * 1000;
@@ -149,6 +150,11 @@ function sameIdentity(botData, left, right) {
     };
     const leftIds = linked(left); const rightIds = linked(right);
     return [...leftIds].some(value => rightIds.has(value));
+}
+function hasRegisteredProfile(botData, jid) {
+    return Object.entries(botData?.profiles || {}).some(([key, profile]) =>
+        profile?.registered && sameIdentity(botData, key, jid)
+    );
 }
 function syncClassToRegisteredProfile(botData, jid, user) {
     botData.profiles ||= {};
@@ -682,6 +688,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     ensureFeatureState(user);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
+    if (hasRegisteredProfile(botData, jid) && grantStarterPackToWallet(user)) {
+        save();
+        await reply(sock, chatId, msg, '🎁 *PACK INICIAL ENTREGADO EN ESTE CHAT*\n\nRecibiste *1.000 monedas de oro*, un ⛏️ pico, una ⚔️ espada y una 🎣 caña de pescar. Ya puedes usarlos en tus aventuras.');
+    }
     const grantActivityProgress = (activity, xpAmount = 5, triggerEvent = true) => {
         const achievements = addStat(user, 'commandsUsed', 1);
         const xpEvent = addXp(user, xpAmount);

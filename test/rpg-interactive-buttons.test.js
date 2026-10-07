@@ -259,6 +259,38 @@ test('el paquete inicial y el selector de clase están integrados en el mismo me
     ]);
 });
 
+test('un perfil registrado recibe el pack en la billetera de juego y puede recolectar con el pico', async () => {
+    const ctx = harness({ coins: 80 });
+    ctx.botData.profiles[BUYER] = { name: 'Aventurero', registered: true, phoneNumber: BUYER };
+    ctx.botData.economy['chat-de-registro@g.us'] = {
+        users: {
+            [BUYER]: {
+                coins: 1000,
+                bank: 0,
+                tools: {
+                    pico: { durability: 15, maxDurability: 15 },
+                    espada: { durability: 12, maxDurability: 12 },
+                    cana: { durability: 15, maxDurability: 15 }
+                },
+                starterPackClaimed: true
+            }
+        }
+    };
+
+    await runEconomyCommand(ctx, 'gather');
+
+    assert.equal(ctx.user.tools.pico.durability, 14, 'el comando de recolectar debe encontrar y consumir el pico inicial');
+    assert.equal(ctx.user.tools.espada.durability, 12);
+    assert.equal(ctx.user.tools.cana.durability, 15);
+    assert.equal(ctx.user.starterPackClaimed, true);
+    assert.ok(ctx.user.coins >= 1080, 'se entregan 1.000 monedas antes de la recompensa por recolectar');
+    assert.ok(ctx.sent.some(payload => /PACK INICIAL ENTREGADO EN ESTE CHAT/.test(payload.text || '')));
+
+    const coinsAfterFirstUse = ctx.user.coins;
+    await runEconomyCommand(ctx, 'balance');
+    assert.equal(ctx.user.coins, coinsAfterFirstUse, 'el pack no debe volver a entregarse en la misma billetera');
+});
+
 test('extrae la acción de clase de respuestas nativas encapsuladas y de botones heredados', () => {
     assert.equal(extractInteractiveResponseId({
         ephemeralMessage: { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: JSON.stringify({ id: 'cmd_clase paladin' }) } } } }

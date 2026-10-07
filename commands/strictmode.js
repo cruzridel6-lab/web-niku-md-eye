@@ -27,7 +27,11 @@ async function strictModeCommand(sock, from, msg, isAdmin, botData, saveBotData,
         return sock.sendMessage(from, { text: '🛡️ *MODO ESTRICTO ACTIVADO*\n\n✅ Antienlace: borrar y expulsar\n✅ Antiventas: borrar y expulsar\n✅ Antispam de stickers: 5 permitidos, 3 advertencias = expulsión\n✅ Las advertencias del grupo quedan activas\n\nDesactivar: *.modoestricto off*' }, { quoted: msg });
     }
     if (['off', 'desactivar', 'disable'].includes(action)) {
-        const previous = botData.strictGroups[from]?.previous;
+        const strictState = botData.strictGroups[from];
+        if (!strictState) {
+            return sock.sendMessage(from, { text: 'ℹ️ *Modo estricto ya está desactivado.* No cambié las demás protecciones del grupo.' }, { quoted: msg });
+        }
+        const previous = strictState.previous;
         if (previous?.antilink) botData.antilinkGroups[from] = previous.antilink;
         else delete botData.antilinkGroups[from];
         if (previous?.antiSales) botData.antiSalesGroups[from] = true;

@@ -5,6 +5,7 @@ const path = require('node:path');
 const { normalizeActionCommand, parseCommandInput } = require('../lib/commandParser');
 const { extractInteractiveResponseId } = require('../lib/interactiveActions');
 const { sendGroupAdminMenu, CONTROL_DEFINITIONS } = require('../lib/groupAdminMenu');
+const { isGroupAdminParticipant } = require('../lib/profileRegistration');
 
 const GROUP = 'admin-menu-tests@g.us';
 const SESSION = 'admin-session-1';
@@ -96,6 +97,13 @@ test('el parser separa el comando y entrega solo sus argumentos al handler', () 
     assert.deepEqual(parseCommandInput('!adminmenu protecciones', '!').args, ['protecciones']);
 });
 
+test('reconoce como admin el LID vinculado al número telefónico del participante', () => {
+    const botData = { phoneAliases: { '15550000001': '987654321@lid' } };
+    const participants = [{ id: '15550000001@s.whatsapp.net', admin: 'admin' }];
+    assert.equal(isGroupAdminParticipant(participants, '987654321@lid', botData), true);
+    assert.equal(isGroupAdminParticipant([{ id: '15550000002@s.whatsapp.net', admin: 'admin' }], '987654321@lid', botData), false);
+});
+
 async function runAction(ctx, commandOrResponse, prefix = '.') {
     const selectedId = typeof commandOrResponse === 'string'
         ? commandOrResponse
@@ -154,6 +162,38 @@ test('todos los controles de protección y ajustes activan, guardan y desactivan
     await clickControlButton(schedule, 'horario', 'horario off');
     assert.equal(schedule.botData.groupSchedules[GROUP].enabled, false);
     await assertControlStatus(schedule, 'horario', 'DESACTIVADO');
+});
+
+test('Modo Estricto desde los botones activa sus tres protecciones y restaura el estado previo', async () => {
+    const ctx = context();
+    ctx.botData.antilinkGroups = { [GROUP]: 'del' };
+    ctx.botData.antiSalesGroups = {};
+    ctx.botData.antiStickerGroups = { [GROUP]: { enabled: false, users: {} } };
+
+    await clickControlButton(ctx, 'modoestricto', 'modoestricto on');
+    assert.ok(ctx.botData.strictGroups[GROUP]);
+    assert.equal(ctx.botData.antilinkGroups[GROUP], 'kick');
+    assert.equal(ctx.botData.antiSalesGroups[GROUP], true);
+    assert.equal(ctx.botData.antiStickerGroups[GROUP].enabled, true);
+
+    await clickControlButton(ctx, 'modoestricto', 'modoestricto off');
+    assert.equal(ctx.botData.strictGroups[GROUP], undefined);
+    assert.equal(ctx.botData.antilinkGroups[GROUP], 'del', 'restaura el modo antienlace anterior');
+    assert.equal(ctx.botData.antiSalesGroups[GROUP], undefined, 'no deja antiventas activado si estaba apagado');
+    assert.equal(ctx.botData.antiStickerGroups[GROUP].enabled, false, 'restaura el antisticker anterior');
+});
+
+test('desactivar Modo Estricto cuando ya está apagado conserva las protecciones individuales', async () => {
+    const ctx = context();
+    ctx.botData.antilinkGroups = { [GROUP]: 'del' };
+    ctx.botData.antiSalesGroups = { [GROUP]: true };
+    ctx.botData.antiStickerGroups = { [GROUP]: { enabled: true, users: {} } };
+
+    await clickControlButton(ctx, 'modoestricto', 'modoestricto off');
+
+    assert.equal(ctx.botData.antilinkGroups[GROUP], 'del');
+    assert.equal(ctx.botData.antiSalesGroups[GROUP], true);
+    assert.equal(ctx.botData.antiStickerGroups[GROUP].enabled, true);
 });
 
 test('acciones que requieren datos muestran cómo continuar y no mutan valores vacíos', async () => {
