@@ -68,7 +68,7 @@ async function registrationProgress(sock, chatId, msg, name) {
         `╭─〔 🧾 NUEVO AVENTURERO 〕─╮\n\n🪄 Creando tu personaje…\n▰▰▱`,
         `╭─〔 🧾 NUEVO AVENTURERO 〕─╮\n\n✨ Activando tu perfil…\n▰▰▰`
     ]) {
-        await wait(260);
+        await wait(400);
         try { await sock.sendMessage(chatId, { text, edit: progress.key }); } catch { /* Sigue el registro aunque la edición no esté disponible. */ }
     }
     return progress;
