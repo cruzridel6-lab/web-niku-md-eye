@@ -5,6 +5,7 @@ const path = require('node:path');
 const runEconomy = require('../commands/economy');
 const { runAuction } = require('../commands/auction');
 const { sendActionButtons, extractInteractiveResponseId } = require('../lib/interactiveActions');
+const { normalizeActionCommand, parseCommandInput } = require('../lib/commandParser');
 
 const CHAT = 'interactive-tests@g.us';
 const BUYER = '15550000081@s.whatsapp.net';
@@ -247,6 +248,30 @@ test('extrae la acción de clase de respuestas nativas encapsuladas y de botones
     assert.equal(extractInteractiveResponseId({
         deviceSentMessage: { message: { interactiveResponseMessage: { nativeFlowResponseMessage: { paramsJson: JSON.stringify({ data: { id: 'cmd_clase tirador' } }) } } } }
     }), 'cmd_clase tirador');
+});
+
+test('un clic real del botón Paladín llega como argumento y guarda la clase en lugar de repetir el selector', async () => {
+    const ctx = harness({ classKey: '' });
+    const response = {
+        ephemeralMessage: {
+            message: {
+                interactiveResponseMessage: {
+                    nativeFlowResponseMessage: {
+                        paramsJson: JSON.stringify({ id: 'cmd_clase paladin', display_text: '🛡️ Paladín' })
+                    }
+                }
+            }
+        }
+    };
+    const actionText = normalizeActionCommand(extractInteractiveResponseId(response), '.');
+    const parsed = parseCommandInput(actionText, '.');
+
+    assert.equal(parsed.commandName, 'clase');
+    assert.equal(parsed.q, 'paladin');
+    await runEconomyCommand(ctx, parsed.commandName, parsed.q, '.');
+
+    assert.equal(ctx.user.rpg.class, 'paladin');
+    assert.match(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /CLASE ELEGIDA/);
 });
 
 test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {

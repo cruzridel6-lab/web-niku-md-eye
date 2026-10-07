@@ -17,6 +17,7 @@ const telegramBackup = require('./lib/telegramBackup');
 const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
 const { sendActionButtons, extractInteractiveResponseId } = require('./lib/interactiveActions');
+const { normalizeActionCommand, parseCommandInput } = require('./lib/commandParser');
 const { answerLocal } = require('./lib/localAI');
 
 const PREMIUM_COMMANDS = new Set([
@@ -1419,8 +1420,7 @@ class BotSession {
                         let text = (messageContent.conversation || messageContent.extendedTextMessage?.text || messageContent.imageMessage?.caption || messageContent.videoMessage?.caption || '').trim();
                         const selectedActionId = extractInteractiveResponseId(msg.message);
                         if (selectedActionId) text = selectedActionId;
-                        if (text.startsWith('menu_')) text = `${settings.prefix || '.'}${text.slice(5)}`;
-                        if (text.startsWith('cmd_')) text = `${settings.prefix || '.'}${text.slice(4)}`;
+                        text = normalizeActionCommand(text, settings.prefix || '.');
 
                         // Handle snipe for deleted messages
                         if (!isMe && !isStatus) {
@@ -1643,13 +1643,7 @@ class BotSession {
                         // Process commands
                         const commandPrefix = String(settings.prefix || '.');
                         if (text.toLowerCase().startsWith(commandPrefix.toLowerCase())) {
-                            // Acepta el prefijo configurado, también si hay espacios después de este.
-                            const commandBody = text.slice(commandPrefix.length).trimStart();
-                            const commandText = `${commandPrefix}${commandBody}`;
-                            const cmd = commandText.toLowerCase();
-                            const args = commandBody ? commandBody.split(/\s+/) : [];
-                            const q = args.join(' ');
-                            const commandName = String(args[0] || '').toLowerCase();
+                            const { commandBody, commandText, cmd, args, q, commandName } = parseCommandInput(text, commandPrefix);
                             // Reporte es un canal de soporte público, incluso en modo privado.
                             // Los comandos de soporte y canje deben funcionar en privado para cualquier usuario.
                             const hasPremiumAccess = isPremiumWhatsApp(sender);

@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const profileCommand = require('../commands/profile');
+const { parseCommandInput } = require('../lib/commandParser');
 
 function harness() {
     const botData = { profiles: {}, phoneAliases: {}, pendingMarriages: {} };
@@ -33,7 +34,8 @@ function buttonIds(ctx) {
 test('el registro se completa escribiendo el nombre y no muestra botones de alta', async () => {
     const ctx = harness();
     const player = '15550000099@s.whatsapp.net';
-    await profileCommand(ctx.sock, 'grupo@g.us', message(player), 'registrarse', 'Carlos', ctx.botData, () => {}, '.');
+    const parsed = parseCommandInput('.registrarse Carlos', '.');
+    await profileCommand(ctx.sock, 'grupo@g.us', message(player), parsed.commandName, parsed.q, ctx.botData, () => {}, '.');
 
     assert.equal(ctx.botData.profiles[player].name, 'Carlos');
     assert.equal(ctx.botData.profiles[player].registered, true);
