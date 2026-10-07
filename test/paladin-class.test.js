@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const runEconomy = require('../commands/economy');
 const { handleExpansion } = require('../lib/rpgExpansion');
 const { CLASS_EQUIPMENT } = require('../lib/rpgCatalog');
+const { classImagePath } = require('../lib/rpgMedia');
 
 function economyHarness(jid, user = {}) {
     const botData = { economy: { room: { users: { [jid]: user } } }, profiles: {} };
@@ -24,8 +25,11 @@ test('acepta `.clase paladín`, muestra su ventaja y la ofrece a cuentas nuevas'
     const msg = { key: { participant: jid }, pushName: 'Nuevo paladín' };
     await runEconomy(ctx.sock, 'room', msg, 'clase', 'paladín', ctx.botData, () => {}, '.');
     assert.equal(ctx.user.rpg.class, 'paladin');
-    assert.match(ctx.messages.at(-1).text, /Paladín/);
-    assert.match(ctx.messages.at(-1).text, /\+15% de monedas en las mazmorras/);
+    const classMessage = ctx.messages.at(-1);
+    assert.ok(classImagePath('paladin'));
+    assert.equal(classMessage.image.url, classImagePath('paladin'));
+    assert.match(classMessage.caption, /Paladín/);
+    assert.match(classMessage.caption, /\+15% de monedas en las mazmorras/);
 
     const fresh = economyHarness('202@s.whatsapp.net', { coins: 0, bank: 0 });
     await runEconomy(fresh.sock, 'room', { key: { participant: '202@s.whatsapp.net' } }, 'clase', '', fresh.botData, () => {}, '.');
