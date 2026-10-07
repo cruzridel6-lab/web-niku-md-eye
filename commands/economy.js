@@ -2,6 +2,7 @@ const profileCommand = require('./profile');
 const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission } = require('../lib/rpgExpansion');
 const { classImagePath, commandImagePath, shopImagePath, dungeonImagePath, sendImageCaption } = require('../lib/rpgMedia');
 const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
+const { CLASS_EQUIPMENT, DUNGEON_LOOT, MERCHANT_ITEMS } = require('../lib/rpgCatalog');
 const { sendActionButtons } = require('../lib/interactiveActions');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
@@ -25,42 +26,12 @@ const HUNTING_REWARDS = [180, 260, 380, 550, 800, 1100, 1600];
 const DUNGEON_REWARDS = [700, 900, 1200, 1600, 2200];
 const EXPLORATION_REWARDS = [250, 350, 500, 700, 1000];
 const GATHERING_REWARDS = [180, 280, 420, 600, 850];
-const MERCHANT_ITEMS = {
-    pico: { name: '⛏️ Pico', price: 2500, durability: 15, aliases: ['pico', 'pickaxe'] },
-    espada: { name: '⚔️ Espada', price: 3000, durability: 12, aliases: ['espada', 'sword'] },
-    cana: { name: '🎣 Caña de pescar', price: 2200, durability: 15, aliases: ['cana', 'caña', 'vara', 'rod'] }
-};
 const CHARACTER_CLASSES = {
     guerrero: { label: '⚔️ Guerrero', description: 'Resistente y experto en combate cuerpo a cuerpo.', advantage: 'obtiene +25% de monedas en las misiones de .work.' },
     mago: { label: '🔮 Mago', description: 'Dominador de hechizos, sabiduría y poder arcano.', advantage: 'recibe +15% de monedas al completar trabajos mágicos.' },
     picaro: { label: '🗡️ Pícaro', description: 'Ágil, sigiloso y experto en golpes precisos.', advantage: 'obtiene +30% de botín en .crime y +10% en .work.' },
     tirador: { label: '🏹 Tirador', description: 'Especialista en ataques a distancia, puntería y cacería.', advantage: 'obtiene +30% de recompensa al .cazar y +15% en encargos.' }
 };
-const CLASS_EQUIPMENT = {
-    guerrero: [
-        { id: 'mandoble_dragon', name: '⚔️ Mandoble del Dragón', price: 28000, bonus: 0.10, activities: ['work', 'dungeon', 'raid'] },
-        { id: 'armadura_coloso', name: '🛡️ Armadura del Coloso', price: 32000, bonus: 0.12, activities: ['work', 'dungeon', 'raid'] }
-    ],
-    mago: [
-        { id: 'grimorio_arcano', name: '📖 Grimorio Arcano', price: 30000, bonus: 0.12, activities: ['work', 'explore', 'raid'] },
-        { id: 'tunica_astral', name: '🔮 Túnica Astral', price: 35000, bonus: 0.12, activities: ['work', 'dungeon', 'raid'] }
-    ],
-    picaro: [
-        { id: 'dagas_sombra', name: '🗡️ Dagas de la Sombra', price: 29000, bonus: 0.12, activities: ['work', 'crime', 'raid'] },
-        { id: 'capa_niebla', name: '🥷 Capa de la Niebla', price: 34000, bonus: 0.10, activities: ['crime', 'steal', 'raid'] }
-    ],
-    tirador: [
-        { id: 'arco_fenix', name: '🏹 Arco del Fénix', price: 31000, bonus: 0.12, activities: ['work', 'hunt', 'raid'] },
-        { id: 'visor_halcon', name: '🦅 Visor del Halcón', price: 36000, bonus: 0.12, activities: ['hunt', 'crime', 'raid'] }
-    ]
-};
-const DUNGEON_LOOT = [
-    { id: 'gema_lunar', name: '💎 Gema lunar', sellPrice: 4500 },
-    { id: 'colmillo_dragon', name: '🦷 Colmillo de dragón', sellPrice: 6500 },
-    { id: 'runa_antigua', name: '🔯 Runa antigua', sellPrice: 8000 },
-    { id: 'corazon_golem', name: '🪨 Corazón de gólem', sellPrice: 10000 },
-    { id: 'pergamino_perdido', name: '📜 Pergamino perdido', sellPrice: 12000 }
-];
 const RAID_BOSSES = {
     dragon_ancestral: { name: '🐉 Dragón Ancestral', hp: 24000, reward: 60000, xp: 180, description: 'Una bestia milenaria que respira fuego sobre todo el grupo.' },
     titan_abismal: { name: '🗿 Titán Abismal', hp: 30000, reward: 80000, xp: 220, description: 'Un coloso de piedra que no cae ante un solo aventurero.' },
@@ -343,7 +314,13 @@ const ACHIEVEMENTS = [
     { id: 'clan', title: '⚔️ Fundador de clan', test: s => s.clansCreated >= 1, reward: 2000 },
     { id: 'raid_dragon_ancestral', title: '🐉 Caída del Dragón Ancestral', test: s => Number(s.raidBosses?.dragon_ancestral) >= 1, reward: 10000 },
     { id: 'raid_titan_abismal', title: '🗿 El Titán se arrodilla', test: s => Number(s.raidBosses?.titan_abismal) >= 1, reward: 12000 },
-    { id: 'raid_reina_nigromante', title: '👑 Silencio de la Reina Nigromante', test: s => Number(s.raidBosses?.reina_nigromante) >= 1, reward: 11000 }
+    { id: 'raid_reina_nigromante', title: '👑 Silencio de la Reina Nigromante', test: s => Number(s.raidBosses?.reina_nigromante) >= 1, reward: 11000 },
+    { id: 'dungeon_veteran_100', title: '🏰 Leyenda de las profundidades', test: s => s.dungeonKills >= 100, reward: 5000 },
+    { id: 'treasure_hunter', title: '📦 Saqueador de mazmorras', test: s => s.dungeonDrops >= 10, reward: 4500 },
+    { id: 'rare_hunter', title: '🔷 Coleccionista de rarezas', test: s => s.rareDungeonDrops >= 5, reward: 5500 },
+    { id: 'legendary_hunter', title: '🌟 Reliquia legendaria', test: s => s.legendaryDungeonDrops >= 1, reward: 8500 },
+    { id: 'dungeon_gear', title: '⚔️ Reliquia del aventurero', test: s => s.dungeonGearDrops >= 1, reward: 6500 },
+    { id: 'armorer', title: '🛡️ Arsenal de élite', test: s => s.gearBought >= 4, reward: 4000 }
 ];
 function unlockAchievements(user) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
@@ -855,8 +832,9 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             if (user.coins < gear.price) return reply(sock, chatId, msg, `❌ ${gear.name} cuesta *${fmt(gear.price)} ${COIN}*.\nTienes: *${fmt(user.coins)} ${COIN}*.`);
             user.coins -= gear.price;
             user.equipment[gear.id] = { purchasedAt: new Date().toISOString(), price: gear.price };
+            const gearAchievements = addStat(user, 'gearBought', 1);
             save();
-            return reply(sock, chatId, msg, `✅ *EQUIPAMIENTO ADQUIRIDO*\n\n${gear.name}\n💸 Precio: *${fmt(gear.price)} ${COIN}*\n⚔️ Bonificación: *+${Math.round(gear.bonus * 100)}%* en ${gear.activities.join(', ')}\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*`);
+            return reply(sock, chatId, msg, `✅ *EQUIPAMIENTO ADQUIRIDO*\n\n${gear.name}\n💸 Precio: *${fmt(gear.price)} ${COIN}*\n⚔️ Bonificación: *+${Math.round(gear.bonus * 100)}%* en ${gear.activities.join(', ')}\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*${achievementText(gearAchievements)}`);
         }
         if (!selected) {
             const offers = Object.entries(MERCHANT_ITEMS).map(([key, item]) => {
@@ -864,7 +842,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
                 const durability = current?.durability > 0 ? ` · tienes ${current.durability}/${item.durability}` : '';
                 return `🛍️ *${item.name}* — *${fmt(item.price)} ${COIN}* · ${item.durability} usos${durability}`;
             }).join('\n');
-            const gearOffers = classEquipment(user).map(item => `⚔️ *${item.name}* — *${fmt(item.price)} ${COIN}* · +${Math.round(item.bonus * 100)}% en ${item.activities.join(', ')}\nComprar: *${prefix}mercader ${item.id}*`).join('\n');
+            const gearOffers = classEquipment(user).map(item => `⚔️ *${item.name}*${item.type ? ` · ${item.type}` : ''} — *${fmt(item.price)} ${COIN}* · +${Math.round(item.bonus * 100)}% en ${item.activities.join(', ')}${item.dungeonDrop ? ' · drop de mazmorra' : ''}\nComprar: *${prefix}mercader ${item.id}*`).join('\n');
             return sendImageCaption(sock, chatId, msg, shopImagePath(), `🧑‍🌾 *MERCADER RPG*\n\n${offers}\n\n👑 *EQUIPAMIENTO DE ${CHARACTER_CLASSES[user.rpg.class]?.label || 'TU CLASE'}*\n${gearOffers || 'Elige una clase para desbloquear armas y armaduras.'}\n\n📦 Vender drops: *${prefix}mercader vender*\n\n⛏️ Minar requiere pico\n⚔️ Cazar requiere espada\n🎣 Pescar requiere caña`);
         }
         const item = MERCHANT_ITEMS[selected];
@@ -979,14 +957,31 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         dungeon.integrity = Math.max(0, dungeon.integrity - 35);
         mission.progress += kills;
         const dungeonAchievements = addStat(user, 'dungeonKills', kills);
-        const reward = Math.floor(random(DUNGEON_REWARDS) * equipmentRewardMultiplier(user, 'dungeon'));
+        const dungeonMultiplier = equipmentRewardMultiplier(user, 'dungeon');
+        const rewardEquipmentText = equipmentAdvantageText(user, 'dungeon');
+        const reward = Math.floor(random(DUNGEON_REWARDS) * dungeonMultiplier);
         user.coins += reward;
-        const droppedLoot = Math.random() < 0.55 ? random(DUNGEON_LOOT) : null;
+        const gearPool = classEquipment(user).filter(item => item.dungeonDrop && !user.equipment?.[item.id]);
+        const droppedGear = gearPool.length && Math.random() < 0.04 ? random(gearPool) : null;
+        const droppedLoot = !droppedGear && Math.random() < 0.55 ? random(DUNGEON_LOOT) : null;
+        const lootAchievements = [];
         if (droppedLoot) {
             user.loot ||= {};
             const rare = rareDrop(user, droppedLoot.id, droppedLoot.name, droppedLoot.sellPrice);
+            if (user.rpg.loot?.[rare.id]) {
+                user.rpg.loot[rare.id] -= 1;
+                if (user.rpg.loot[rare.id] <= 0) delete user.rpg.loot[rare.id];
+            }
             user.loot[rare.id] = (Number(user.loot[rare.id]) || 0) + 1;
             droppedLoot._rare = rare;
+            lootAchievements.push(...addStat(user, 'dungeonDrops', 1));
+            if (['raro', 'epico', 'legendario'].includes(rare.rarity)) lootAchievements.push(...addStat(user, 'rareDungeonDrops', 1));
+            if (rare.rarity === 'legendario') lootAchievements.push(...addStat(user, 'legendaryDungeonDrops', 1));
+        }
+        if (droppedGear) {
+            user.equipment ||= {};
+            user.equipment[droppedGear.id] = { acquiredAt: new Date().toISOString(), source: 'dungeon' };
+            lootAchievements.push(...addStat(user, 'dungeonGearDrops', 1));
         }
         let completion = '';
         let missionAchievements = [];
@@ -1002,10 +997,15 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             completion = `\n\n🎉 *¡Misión completada!*\n🎁 Bonus: *${fmt(mission.reward)} ${COIN}*\n📜 Nueva misión: derrota *${nextMission.target} monstruos*.`;
             user.lastCompletedMission = completedTarget;
         }
-        const unlocked = [...dungeonAchievements, ...missionAchievements];
+        const unlocked = [...dungeonAchievements, ...missionAchievements, ...lootAchievements];
         save();
         await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
-        return sendImageCaption(sock, chatId, msg, dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${equipmentAdvantageText(user, 'dungeon')}\n${droppedLoot ? `📦 *DROP:* ${droppedLoot._rare.label}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot._rare.id}*` : '🔍 No encontraste un drop vendible esta vez.'}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${levelUpText(xpEvent)}`);
+        const dropText = droppedGear
+            ? `⚔️ *DROP DE EQUIPO:* ${droppedGear.name}\n✨ Bonificación activa: +${Math.round(droppedGear.bonus * 100)}% en ${droppedGear.activities.join(', ')}\n🔨 Puedes venderlo en *${prefix}subastar ${droppedGear.id} <precio>*`
+            : droppedLoot
+                ? `📦 *DROP:* ${droppedLoot._rare.label}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot._rare.id}* o subastarlo con *${prefix}subastar ${droppedLoot._rare.id} <precio>*`
+                : '🔍 No encontraste un drop vendible esta vez.';
+        return sendImageCaption(sock, chatId, msg, dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${rewardEquipmentText}\n${dropText}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${levelUpText(xpEvent)}`);
     }
 
     if (canonical === 'level') {
