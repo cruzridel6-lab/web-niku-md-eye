@@ -26,7 +26,7 @@ async function run(ctx, command, q = '') {
     return runEconomy(ctx.sock, CHAT, ctx.msg, command, q, ctx.botData, ctx.save, '.');
 }
 
-function lastText(ctx) { return ctx.sent.at(-1)?.text || ''; }
+function lastText(ctx) { return ctx.sent.at(-1)?.caption || ctx.sent.at(-1)?.text || ''; }
 
 test('la tienda muestra paquetes caros de 1, 2 y 4 días con sus precios', async () => {
     const ctx = harness();
@@ -40,7 +40,10 @@ test('la tienda muestra paquetes caros de 1, 2 y 4 días con sus precios', async
     assert.match(lastText(ctx), /1 día.*300\.000/s);
     assert.match(lastText(ctx), /2 días.*500\.000/s);
     assert.match(lastText(ctx), /4 días.*1\.000\.000/s);
-    assert.match(lastText(ctx), /comprarpremium <1\|2\|4>/);
+    assert.match(lastText(ctx), /comprarpremium 1/);
+    assert.match(lastText(ctx), /PASE INICIAL/);
+    assert.match(lastText(ctx), /PASE DE ÉLITE/);
+    assert.match(ctx.sent.at(-1).image.url, /data\/Tienda\.jpg$/);
 });
 
 test('`.comprarpremium 1` cobra 300.000 monedas y concede un día', async () => {
@@ -52,7 +55,7 @@ test('`.comprarpremium 1` cobra 300.000 monedas y concede un día', async () => 
     assert.equal(ctx.botData.premiumUsers[PHONE].source, 'gold_shop');
     assert.ok(Date.parse(ctx.botData.premiumUsers[PHONE].expiresAt) >= before + DAY_MS);
     assert.ok(Date.parse(ctx.botData.premiumUsers[PHONE].expiresAt) <= Date.now() + DAY_MS);
-    assert.match(lastText(ctx), /COMPRA PREMIUM COMPLETADA/);
+    assert.match(lastText(ctx), /PASE ACTIVADO/);
     assert.equal(ctx.saves, 1);
 });
 
@@ -66,7 +69,7 @@ test('`.tiendapremium comprar 2` suma dos días al vencimiento activo', async ()
 
     assert.equal(ctx.user.coins, 0);
     assert.equal(Date.parse(ctx.botData.premiumUsers[PHONE].expiresAt), currentExpiry + 2 * DAY_MS);
-    assert.match(lastText(ctx), /se añadió al Premium que ya tenías/i);
+    assert.match(lastText(ctx), /se sumó a tu pase activo/i);
 });
 
 test('extiende una compra Premium previa aunque esté guardada bajo el LID vinculado', async () => {
@@ -90,11 +93,12 @@ test('no cobra si faltan monedas ni permite volver a comprar Premium permanente'
     await run(poor, 'comprarpremium', '1');
     assert.equal(poor.user.coins, 299999);
     assert.equal(Object.keys(poor.botData.premiumUsers).length, 0);
-    assert.match(lastText(poor), /Te faltan monedas/);
+    assert.match(lastText(poor), /ORO INSUFICIENTE/);
+    assert.match(lastText(poor), /Te faltan: \*1 moneda de oro/);
 
     const permanent = harness({ coins: 500000, premiumUsers: { [PHONE]: true } });
     await run(permanent, 'comprarpremium', '2');
     assert.equal(permanent.user.coins, 500000);
     assert.equal(permanent.botData.premiumUsers[PHONE], true);
-    assert.match(lastText(permanent), /Premium permanente/);
+    assert.match(lastText(permanent), /PREMIUM PERMANENTE/i);
 });

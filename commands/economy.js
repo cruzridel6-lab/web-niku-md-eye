@@ -449,10 +449,17 @@ function amount(value) {
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
 function premiumShopText(prefix = '.') {
-    const packages = Object.entries(PREMIUM_SHOP_PACKAGES)
-        .map(([id, offer]) => `• *${id} día${offer.days === 1 ? '' : 's'}* — *${fmt(offer.price)} monedas de oro*`)
-        .join('\n');
-    return `👑 *TIENDA PREMIUM*\n\n${packages}\n\nCompra con *${prefix}comprarpremium <1|2|4>* o *${prefix}tiendapremium comprar <1|2|4>*.\nSe descuenta de las monedas de tu bolsa. Si ya tienes Premium activo, los días se suman a tu vencimiento actual.`;
+    const styles = {
+        '1': { icon: '🥉', title: 'PASE INICIAL' },
+        '2': { icon: '🥈', title: 'PASE DE AVENTURERO' },
+        '4': { icon: '👑', title: 'PASE DE ÉLITE' }
+    };
+    const packages = Object.entries(PREMIUM_SHOP_PACKAGES).map(([id, offer]) => {
+        const style = styles[id];
+        const duration = offer.days * 24;
+        return `╭━━〔 ${style.icon} *${style.title}* 〕━━╮\n│ ⏳ *${offer.days} día${offer.days === 1 ? '' : 's'}* · ${duration} horas\n│ 🪙 Precio: *${fmt(offer.price)} de oro*\n│ 🛒 Comprar: *${prefix}comprarpremium ${id}*\n╰━━━━━━━━━━━━━━━━━━╯`;
+    }).join('\n\n');
+    return `╭━━━〔 👑 *NIKU MD · PREMIUM* 〕━━━╮\n│\n│ ✨ *Tu aventura, a otro nivel*\n│ Desbloquea las funciones Premium\n│ con el oro que ganaste jugando.\n│\n╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n📜 *ELIGE TU PASE*\n\n${packages}\n\n💎 *¿Ya tienes Premium?*\nLos días comprados se añaden a tu vencimiento actual.\n\n💰 Se cobra solo de las monedas de tu *bolsa*; revisarás el precio antes de cada compra.\n\nEscribe el comando del pase que quieras para activarlo.`;
 }
 function duelStakeFromArgs(args, target) {
     const raw = String(args?.[args.length - 1] || '').trim();
@@ -578,22 +585,26 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const buyAlias = String(command || '').toLowerCase() === 'comprarpremium';
         const action = String(args[0] || '').toLowerCase();
         const requestedPackage = buyAlias ? args[0] : (['comprar', 'buy'].includes(action) ? args[1] : '');
-        if (!requestedPackage) return reply(sock, chatId, msg, premiumShopText(prefix));
+        if (!requestedPackage) return sendImageCaption(sock, chatId, msg, shopImagePath(), premiumShopText(prefix));
         const offer = PREMIUM_SHOP_PACKAGES[String(requestedPackage)];
-        if (!offer) return reply(sock, chatId, msg, `❌ Paquete no válido. Elige *1*, *2* o *4* días.\n\n${premiumShopText(prefix)}`);
+        if (!offer) return sendImageCaption(sock, chatId, msg, shopImagePath(), `❌ *Ese pase no existe.* Elige 1, 2 o 4 días.\n\n${premiumShopText(prefix)}`);
 
         botData.premiumUsers ||= {};
         if (Array.isArray(botData.premiumUsers) || typeof botData.premiumUsers !== 'object') botData.premiumUsers = {};
         const identityKeys = premiumIdentityKeys(botData, jid);
         const currentEntries = identityKeys.map(key => [key, botData.premiumUsers[key]]).filter(([, entry]) => entry !== undefined && entry !== null);
         const hasPermanentPremium = currentEntries.some(([, entry]) => entry === true || (entry && typeof entry === 'object' && !entry.expiresAt));
-        if (hasPermanentPremium) return reply(sock, chatId, msg, '✅ Tu cuenta ya tiene Premium permanente. No necesitas comprar más días.');
+        if (hasPermanentPremium) return reply(sock, chatId, msg, '╭━━〔 👑 PREMIUM PERMANENTE 〕━━╮\n│ Tu cuenta ya tiene acceso Premium sin vencimiento.\n│ No se descontaron monedas.\n╰━━━━━━━━━━━━━━━━━━━━╯');
 
         const now = Date.now();
         const activeExpiries = currentEntries.map(([, entry]) => new Date(entry?.expiresAt).getTime()).filter(expiry => Number.isFinite(expiry) && expiry > now);
         const baseTime = activeExpiries.length ? Math.max(...activeExpiries) : now;
         const coins = Math.max(0, Math.floor(Number(user.coins) || 0));
-        if (coins < offer.price) return reply(sock, chatId, msg, `❌ Te faltan monedas para ese paquete.\n💰 Precio: *${fmt(offer.price)} ${COIN}*\n🪙 Tienes en la bolsa: *${fmt(coins)} ${COIN}*`);
+        if (coins < offer.price) {
+            const missing = offer.price - coins;
+            const missingText = `${fmt(missing)} moneda${missing === 1 ? '' : 's'} de oro 🪙`;
+            return reply(sock, chatId, msg, `╭━━〔 🪙 ORO INSUFICIENTE 〕━━╮\n│ 💰 Precio: *${fmt(offer.price)} ${COIN}*\n│ 👜 Tu bolsa: *${fmt(coins)} ${COIN}*\n│ Te faltan: *${missingText}*\n╰━━━━━━━━━━━━━━━━━━━━╯\n\nConsulta los pases con *${prefix}tiendapremium*.`);
+        }
 
         const premiumKey = identityKeys.find(key => /@s\.whatsapp\.net$/i.test(key)) || identityKeys[0] || normalizeJid(jid);
         const expiresAt = new Date(baseTime + offer.days * 24 * 60 * 60 * 1000).toISOString();
@@ -602,7 +613,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         botData.premiumUsers[premiumKey] = { grantedAt: new Date(now).toISOString(), expiresAt, source: 'gold_shop' };
         save();
         const expiryText = new Date(expiresAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
-        return reply(sock, chatId, msg, `✅ *COMPRA PREMIUM COMPLETADA*\n\n👑 Paquete: *${offer.days} día${offer.days === 1 ? '' : 's'}*\n🪙 Pagaste: *${fmt(offer.price)} ${COIN}*\n💰 Saldo restante: *${fmt(user.coins)} ${COIN}*\n📅 Premium activo hasta: *${expiryText}*${activeExpiries.length ? '\n\n⏳ El tiempo se añadió al Premium que ya tenías.' : ''}`);
+        return reply(sock, chatId, msg, `╭━━━〔 ✅ *PASE ACTIVADO* 〕━━━╮\n│\n│ 👑 *NIKU MD · PREMIUM*\n│ 📦 Duración: *${offer.days} día${offer.days === 1 ? '' : 's'}*\n│ 🪙 Pagaste: *${fmt(offer.price)} ${COIN}*\n│ 💰 Saldo: *${fmt(user.coins)} ${COIN}*\n│ 📅 Vence: *${expiryText}*\n│${activeExpiries.length ? '\n│ ⏳ El tiempo se sumó a tu pase activo.\n│' : ''}\n╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n✨ ¡Disfruta tus funciones Premium!`);
     }
     await resumeInvestmentsForChat(sock, chatId, botData, saveBotData);
     if (canonical === 'tutorial') {
