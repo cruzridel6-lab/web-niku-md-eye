@@ -1422,7 +1422,7 @@ class BotSession {
                         }
                         if (selectedRowId) text = selectedRowId;
                         if (text.startsWith('menu_')) text = `.${text.slice(5)}`;
-                        if (text.startsWith('cmd_')) text = `.${text.slice(4)}`;
+                        if (text.startsWith('cmd_')) text = `${settings.prefix || '.'}${text.slice(4)}`;
 
                         // Handle snipe for deleted messages
                         if (!isMe && !isStatus) {

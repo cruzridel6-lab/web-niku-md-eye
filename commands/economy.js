@@ -417,6 +417,42 @@ function merchantShopText(user, prefix = '.') {
         '╰━━━━━━━━━━━━━━━━━━━━━━━━╯'
     ].join('\n');
 }
+async function sendMerchantQuickActions(sock, chatId, msg, user, prefix, quoted) {
+    const tools = Object.entries(MERCHANT_ITEMS).map(([id, item]) => ({ label: `Comprar ${item.name.replace(/^[^\p{L}\p{N}]+/u, '')}`, command: `${prefix}comprar ${id}` }));
+    await sendActionButtons(sock, chatId, '🛠️ Compra rápida de herramientas:', tools, quoted || msg);
+    const categoryButtons = classEquipment(user).length
+        ? [
+            { label: '⚔️ Ver equipo', command: `${prefix}mercader equipo` },
+            { label: '🎒 Inventario', command: `${prefix}inventario` },
+            { label: '🏪 Mercado', command: `${prefix}mercado` }
+        ]
+        : [
+            { label: '🧙 Elegir clase', command: `${prefix}clase` },
+            { label: '🎒 Inventario', command: `${prefix}inventario` },
+            { label: '🏪 Mercado', command: `${prefix}mercado` }
+        ];
+    await sendActionButtons(sock, chatId, '⚔️ Equipo y otras opciones:', categoryButtons, quoted || msg);
+}
+async function sendMerchantGearPage(sock, chatId, msg, user, prefix, page = 1) {
+    const gear = classEquipment(user);
+    if (!gear.length) return reply(sock, chatId, msg, `🔒 Primero elige una clase con *${prefix}clase*. Después podrás abrir *${prefix}mercader equipo* para comprar su equipamiento exclusivo.`);
+    const pageSize = 2;
+    const pageCount = Math.ceil(gear.length / pageSize);
+    const currentPage = Math.max(1, Math.min(pageCount, Number(page) || 1));
+    const items = gear.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const body = `⚔️ *EQUIPO DE ${CHARACTER_CLASSES[user.rpg?.class]?.label || 'TU CLASE'}* · Página ${currentPage}/${pageCount}\n\n${items.map(item => `• *${item.name}* (\`${item.id}\`)\n  ${fmt(item.price)} ${COIN} · +${Math.round(item.bonus * 100)}% en ${activityText(item.activities)}`).join('\n\n')}\n\nAl pulsar comprar, se cobrará el oro y el equipo quedará activo. También puedes usar *${prefix}comprar <ID>*.`;
+    const buttons = items.map(item => ({ label: `🛡️ Comprar ${item.id}`, command: `${prefix}comprar ${item.id}` }));
+    if (currentPage < pageCount) buttons.push({ label: '➡️ Más equipo', command: `${prefix}mercader equipo ${currentPage + 1}` });
+    else if (currentPage > 1) buttons.push({ label: '⬅️ Equipo anterior', command: `${prefix}mercader equipo ${currentPage - 1}` });
+    const sent = await sendImageCaption(sock, chatId, msg, shopImagePath(), body);
+    await sendActionButtons(sock, chatId, 'Elige una pieza para comprar y equipar:', buttons, sent || msg);
+    return sent;
+}
+function investmentQuickAmounts(balance) {
+    const available = Math.min(MAX_INVESTMENT, Math.floor(Number(balance) || 0));
+    return [...new Set([MIN_INVESTMENT, Math.floor(available / 4), Math.floor(available / 2)])]
+        .filter(value => value >= MIN_INVESTMENT && value <= available);
+}
 function toolState(user, key) {
     user.tools ||= {};
     const item = MERCHANT_ITEMS[key];
@@ -692,7 +728,19 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         return reply(sock, chatId, msg, tutorialText(user, prefix));
     }
     const expansionResult = await handleExpansion({ sock, chatId, msg, canonical, args, user, jid, botData, save, prefix });
-    if (expansionResult) return expansionResult;
+    if (expansionResult) {
+        if (canonical === 'market' && ['ver', 'listado'].includes(String(args[0] || 'ver').toLowerCase())) {
+            const listings = Object.values(botData.rpgMarket || {}).filter(item => item.status === 'open' && !sameIdentity(botData, item.seller, jid)).slice(0, 3);
+            const buttons = listings.map(item => ({ label: `🛒 ${String(item.id).slice(-18)}`, command: `${prefix}mercado comprar ${item.id}` }));
+            if (!listings.length) buttons.push(
+                { label: '📤 Publicar objeto', command: `${prefix}mercado publicar` },
+                { label: '🏛️ Ver subastas', command: `${prefix}subastas` },
+                { label: '🧑‍🌾 Mercader', command: `${prefix}mercader` }
+            );
+            await sendActionButtons(sock, chatId, 'Compra una publicación al precio indicado o publica un objeto:', buttons, expansionResult || msg);
+        }
+        return expansionResult;
+    }
     const mention = [jid];
     const commandAchievements = addStat(user, 'commandsUsed', 1);
     const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
@@ -707,7 +755,12 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const active = investmentForUser(botData, chatId, jid);
         if (active) return reply(sock, chatId, msg, `📈 Ya tienes una inversión en curso por *${fmt(active.amount)} ${COIN}*.\n⏳ Termina en aproximadamente *${timeLeft(Math.max(0, Number(active.resolvesAt) - Date.now()))}*.`);
         const requested = amount(args[0]);
-        if (requested === 'all' || !requested) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}${HELP.investment}*\nMínimo: *${fmt(MIN_INVESTMENT)} ${COIN}* · Máximo: *${fmt(MAX_INVESTMENT)} ${COIN}*.`);
+        if (requested === 'all' || !requested) {
+            const examples = investmentQuickAmounts(user.coins);
+            const sent = await reply(sock, chatId, msg, `📈 *ELIGE TU INVERSIÓN*\n\nPulsa un ejemplo o escribe *${prefix}invertir <cantidad>*.\nMínimo: *${fmt(MIN_INVESTMENT)} ${COIN}* · Máximo: *${fmt(MAX_INVESTMENT)} ${COIN}*.\n⏱️ Dura 5 minutos; el resultado puede ser ganancia o pérdida.${examples.length ? '' : `\n🪙 Tu saldo (${fmt(user.coins)}) no alcanza el mínimo.`}`);
+            await sendActionButtons(sock, chatId, 'Selecciona cuánto oro deseas invertir:', examples.map(value => ({ label: `📈 ${fmt(value)} oro`, command: `${prefix}invertir ${value}` })), sent || msg);
+            return sent;
+        }
         if (requested < MIN_INVESTMENT || requested > MAX_INVESTMENT) return reply(sock, chatId, msg, `❌ La inversión debe estar entre *${fmt(MIN_INVESTMENT)}* y *${fmt(MAX_INVESTMENT)} ${COIN}*.`);
         if (requested > user.coins) return reply(sock, chatId, msg, `❌ No tienes suficiente oro.\nNecesitas: *${fmt(requested)} ${COIN}*\nTienes: *${fmt(user.coins)} ${COIN}*.`);
         const now = Date.now();
@@ -961,10 +1014,14 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             save();
             return reply(sock, chatId, msg, `✅ El mercader compró *${amountToSell}x ${loot.name}* por *${fmt(payout)} ${COIN}*.\n🪙 Bolsa: *${fmt(user.coins)} ${COIN}*`);
         }
+        if (['equipo', 'equipamiento'].includes(merchantAction)) return sendMerchantGearPage(sock, chatId, msg, user, prefix, args[1]);
         if (merchantAction === 'publicar') return reply(sock, chatId, msg, `🏪 El mercado entre jugadores está separado del mercader. Usa *${prefix}mercado publicar <objeto> <precio>* o *${prefix}mercado ver*.`);
-        if (['ver', 'listado', 'catalogo', 'catálogo', 'shop'].includes(merchantAction)) return sendImageCaption(sock, chatId, msg, shopImagePath(), merchantShopText(user, prefix));
         const requestedItem = ['comprar', 'buy'].includes(merchantAction) ? args.slice(1).join(' ') : args.join(' ');
-        if (!requestedItem) return sendImageCaption(sock, chatId, msg, shopImagePath(), merchantShopText(user, prefix));
+        if (!requestedItem || ['ver', 'listado', 'catalogo', 'catálogo', 'shop'].includes(merchantAction)) {
+            const sent = await sendImageCaption(sock, chatId, msg, shopImagePath(), merchantShopText(user, prefix));
+            await sendMerchantQuickActions(sock, chatId, msg, user, prefix, sent || msg);
+            return sent;
+        }
         const selected = toolFor(requestedItem);
         const gear = equipmentForUser(user, requestedItem);
         if (gear) {

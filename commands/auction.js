@@ -1,6 +1,7 @@
 const { commandImagePath, itemImagePath, sendImageCaption } = require('../lib/rpgMedia');
 const { CLASS_EQUIPMENT, DUNGEON_LOOT, RPG_ITEMS, RPG_MATERIALS, RPG_GATHERING_LOOT, MERCHANT_ITEMS } = require('../lib/rpgCatalog');
 const { rarityInfo } = require('../lib/rpgFeatures');
+const { sendActionButtons } = require('../lib/interactiveActions');
 const COIN = '🪙 monedas de oro';
 const COMMISSION_RATE = 0.05;
 const MIN_PRICE = 50;
@@ -155,6 +156,52 @@ function formatListings(items, prefix) {
   if (!items.length) return `🏛️ No hay subastas activas. Publica un drop con *${prefix}subastar gema_lunar 5000*.`;
   return `🏛️ *SUBASTAS ACTIVAS*\n\n${items.slice(0, 15).map((item, i) => `${i + 1}. *${item.id}* · ${item.itemName} x${item.quantity}\n   💰 ${fmt(item.currentBid || item.startingPrice)} ${COIN} · 🔨 ${item.bids?.length || 0} pujas\n   ⏳ ${Math.max(1, Math.ceil((Number(item.expiresAt) - Date.now()) / 60000))} min · Vendedor: Jugador ${numberOf(item.seller).slice(-4)}`).join('\n\n')}`;
 }
+function auctionInventoryOptions(user) {
+  const inventories = [user.loot, user.rpg?.inventory, user.rpg?.loot, user.rpg?.materials, user.equipment, user.tools];
+  const ids = new Set(inventories.flatMap(items => Object.keys(items || {})));
+  return [...ids].map(id => ({ id, item: auctionItemFrom(user, id) })).filter(option => option.item);
+}
+async function sendAuctionHelp(sock, chatId, msg, prefix) {
+  const sent = await imageReply(sock, chatId, msg, auctionHelp(prefix));
+  await sendActionButtons(sock, chatId, '¿Qué quieres hacer en la casa de subastas?', [
+    { label: '🏛️ Ver subastas', command: `${prefix}subastas` },
+    { label: '📦 Subastar objeto', command: `${prefix}subastar` },
+    { label: '🎒 Inventario', command: `${prefix}inventario` }
+  ], sent || msg);
+  return sent;
+}
+async function sendAuctionList(sock, chatId, msg, botData, own, sender, prefix) {
+  const active = activeAuctions(botData).sort((a, b) => Number(a.expiresAt) - Number(b.expiresAt));
+  const sent = await imageReply(sock, chatId, msg, formatListings(active, prefix));
+  const eligible = active.filter(item => item.seller !== sender && (!item.requiredClass || own.rpg?.class === item.requiredClass))
+    .filter(item => own.coins >= Math.max(Number(item.startingPrice) || MIN_PRICE, (Number(item.currentBid) || 0) + 1)).slice(0, 2);
+  const buttons = eligible.map(item => {
+    const minimum = Math.max(Number(item.startingPrice) || MIN_PRICE, (Number(item.currentBid) || 0) + 1);
+    return { label: `🔨 Pujar ${fmt(minimum)}`, command: `${prefix}pujar ${item.id} ${minimum}` };
+  });
+  buttons.push({ label: '📦 Subastar objeto', command: `${prefix}subastar` });
+  if (!active.length) buttons.push({ label: '📖 Ayuda', command: `${prefix}subastaayuda` });
+  await sendActionButtons(sock, chatId, 'Puja por una publicación o inicia una subasta propia:', buttons, sent || msg);
+  return sent;
+}
+async function sendAuctionItemPicker(sock, chatId, msg, user, prefix) {
+  const options = auctionInventoryOptions(user);
+  if (!options.length) {
+    const sent = await imageReply(sock, chatId, msg, `📦 *NO HAY OBJETOS PARA SUBASTAR*\n\nObtén primero botín, materiales, herramientas o equipo. Después usa *${prefix}subastar* para elegirlo.\n\nTambién puedes revisar tu bolsa con *${prefix}inventario*.`);
+    await sendActionButtons(sock, chatId, 'Accesos rápidos:', [
+      { label: '🎒 Inventario', command: `${prefix}inventario` },
+      { label: '🏛️ Ver subastas', command: `${prefix}subastas` },
+      { label: '📖 Ayuda', command: `${prefix}subastaayuda` }
+    ], sent || msg);
+    return sent;
+  }
+  const shown = options.slice(0, 3);
+  const rows = shown.map(({ id, item }) => `• *${item.itemName}* (\`${id}\`)`);
+  const extra = options.length > shown.length ? `\nHay más objetos: consulta *${prefix}inventario* y escribe *${prefix}subastar <ID>*.` : '';
+  const sent = await imageReply(sock, chatId, msg, `🏛️ *ELIGE QUÉ SUBASTAR*\n\n${rows.join('\n')}\n\nToca un objeto; después elegirás el precio inicial. El objeto no se publica ni se retira todavía.${extra}`);
+  await sendActionButtons(sock, chatId, 'Selecciona el objeto que quieres preparar:', shown.map(({ id, item }) => ({ label: `📦 ${item.itemName}`, command: `${prefix}subastar ${id}` })), sent || msg);
+  return sent;
+}
 async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, prefix = '.', hooks = {}) {
   botData.auctions ||= {};
   const now = Date.now();
@@ -164,9 +211,9 @@ async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, p
   const args = parseArgs(q);
   const sender = senderOf(msg, chatId);
   const own = getUser(botData, chatId, sender).user;
-  if (['subastaayuda', 'auctionhelp'].includes(canonical)) return imageReply(sock, chatId, msg, auctionHelp(prefix));
+  if (['subastaayuda', 'auctionhelp'].includes(canonical)) return sendAuctionHelp(sock, chatId, msg, prefix);
   if (['subastas', 'subasta', 'auction', 'auctions'].includes(canonical) || ['ver', 'lista', 'listar'].includes(String(args[0] || '').toLowerCase())) {
-    return imageReply(sock, chatId, msg, formatListings(activeAuctions(botData), prefix));
+    return sendAuctionList(sock, chatId, msg, botData, own, sender, prefix);
   }
   if (['missubastas', 'misubastas'].includes(canonical)) {
     const rows = activeAuctions(botData).filter(item => item.seller === sender);
@@ -199,27 +246,51 @@ async function runAuction(sock, chatId, msg, command, q, botData, saveBotData, p
     auction.bids.push({ bidder: sender, chatId, amount, createdAt: new Date(now).toISOString() });
     auction.currentBid = amount;
     saveBotData(); touch(hooks);
-    return itemReply(sock, chatId, msg, auction.itemId, `🔨 *PUJA REGISTRADA*\n\n${auction.itemName}\n💰 Oferta: *${fmt(amount)} ${COIN}*\n🧾 ID: *${auction.id}*\n⏳ La puja queda reservada hasta el cierre.`);
+    const sent = await itemReply(sock, chatId, msg, auction.itemId, `🔨 *PUJA REGISTRADA*\n\n${auction.itemName}\n💰 Oferta: *${fmt(amount)} ${COIN}*\n🧾 ID: *${auction.id}*\n⏳ La puja queda reservada hasta el cierre.`);
+    await sendActionButtons(sock, chatId, 'Acciones rápidas de subasta:', [
+      { label: '🏛️ Ver subastas', command: `${prefix}subastas` },
+      { label: '🔨 Mis pujas', command: `${prefix}mispujas` },
+      { label: `⬆️ Pujar ${fmt(amount + 1)}`, command: `${prefix}pujar ${auction.id} ${amount + 1}` }
+    ], sent || msg);
+    return sent;
   }
   if (['subastar', 'publicarsubasta', 'sellauction'].includes(canonical)) {
+    if (!args.length || ['elegir', 'inventario', 'misobjetos'].includes(String(args[0] || '').toLowerCase())) return sendAuctionItemPicker(sock, chatId, msg, own, prefix);
     const listingArgs = [...args];
     let duration = 60;
     if (listingArgs.length >= 3 && /^\d+$/.test(listingArgs.at(-1)) && /^\d+$/.test(listingArgs.at(-2))) duration = Math.min(MAX_DURATION_MINUTES, Math.max(5, Number(listingArgs.pop())));
-    const price = Math.floor(Number(listingArgs.pop()));
+    const hasPrice = /^\d+$/.test(listingArgs.at(-1) || '');
+    const price = hasPrice ? Math.floor(Number(listingArgs.pop())) : null;
     const itemId = listingArgs.join(' ').toLowerCase();
     duration = Math.min(MAX_DURATION_MINUTES, Math.max(5, duration));
     const item = auctionItemFrom(own, itemId);
     if (!item) return imageReply(sock, chatId, msg, `❌ Objeto no válido o no disponible en tu inventario.\n\n${auctionHelp(prefix)}`);
-    if (!Number.isFinite(price) || price < MIN_PRICE) return imageReply(sock, chatId, msg, `❌ El precio inicial mínimo es *${fmt(MIN_PRICE)} ${COIN}*.`);
+    if (!hasPrice) {
+      const prices = [...new Set([MIN_PRICE, 500, 1000])];
+      const sent = await itemReply(sock, chatId, msg, itemId, `🏛️ *CONFIRMA EL PRECIO INICIAL*\n\n📦 ${item.itemName}\n\nEl objeto aún no se publica. Elige un precio inicial; cada botón publica la subasta por 60 minutos. Para otro precio o duración, escribe *${prefix}subastar ${itemId} <precio> [minutos]*.`);
+      await sendActionButtons(sock, chatId, 'Al tocar un precio, el objeto quedará reservado en subasta:', prices.map(value => ({ label: `💰 ${fmt(value)} oro`, command: `${prefix}subastar ${itemId} ${value}` })), sent || msg);
+      return sent;
+    }
+    if (!Number.isFinite(price) || price < MIN_PRICE) {
+      const sent = await itemReply(sock, chatId, msg, itemId, `❌ El precio inicial mínimo es *${fmt(MIN_PRICE)} ${COIN}*.\n\n📦 ${item.itemName}`);
+      await sendActionButtons(sock, chatId, 'Publica con el mínimo o escribe tu propio precio:', [{ label: `💰 ${fmt(MIN_PRICE)} oro`, command: `${prefix}subastar ${itemId} ${MIN_PRICE}` }], sent || msg);
+      return sent;
+    }
     const activeMine = activeAuctions(botData).filter(row => row.seller === sender).length;
     if (activeMine >= 5) return imageReply(sock, chatId, msg, '❌ Solo puedes tener 5 subastas activas al mismo tiempo.');
     takeAuctionItem(own, item);
     const auction = { id: `auc-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`, seller: sender, sellerChatId: chatId, itemId, itemName: item.itemName, inventoryType: item.inventoryType, requiredClass: item.requiredClass, equipmentData: item.equipmentData, toolData: item.toolData, quantity: 1, startingPrice: price, currentBid: 0, bids: [], status: 'active', createdAt: new Date(now).toISOString(), expiresAt: now + duration * 60000 };
     botData.auctions[auction.id] = auction;
     saveBotData(); touch(hooks);
-    return itemReply(sock, chatId, msg, auction.itemId, `✅ *SUBASTA PUBLICADA*\n\n📦 ${item.itemName}\n🧾 ID: *${auction.id}*\n💰 Precio inicial: *${fmt(price)} ${COIN}*\n⏳ Duración: *${duration} minutos*\n\nEl objeto quedó reservado hasta que termine la subasta.`);
+    const sent = await itemReply(sock, chatId, msg, auction.itemId, `✅ *SUBASTA PUBLICADA*\n\n📦 ${item.itemName}\n🧾 ID: *${auction.id}*\n💰 Precio inicial: *${fmt(price)} ${COIN}*\n⏳ Duración: *${duration} minutos*\n\nEl objeto quedó reservado hasta que termine la subasta.`);
+    await sendActionButtons(sock, chatId, 'Tu publicación ya está activa:', [
+      { label: '🏛️ Ver subastas', command: `${prefix}subastas` },
+      { label: '📦 Mis subastas', command: `${prefix}missubastas` },
+      { label: '↩️ Cancelar', command: `${prefix}cancelarsubasta ${auction.id}` }
+    ], sent || msg);
+    return sent;
   }
-  return imageReply(sock, chatId, msg, auctionHelp(prefix));
+  return sendAuctionHelp(sock, chatId, msg, prefix);
 }
 
 module.exports = { runAuction, snapshot, settleAuction, settleExpiredAuctions, LOOT, COMMISSION_RATE, MIN_PRICE, MAX_DURATION_MINUTES };
