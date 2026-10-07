@@ -6,6 +6,9 @@ const runEconomy = require('../commands/economy');
 const { runAuction } = require('../commands/auction');
 const { sendActionButtons, extractInteractiveResponseId } = require('../lib/interactiveActions');
 const { normalizeActionCommand, parseCommandInput } = require('../lib/commandParser');
+const { sendGroupAdminMenu, CONTROL_DEFINITIONS } = require('../lib/groupAdminMenu');
+const tagallCommand = require('../commands/tagall');
+const hidetagCommand = require('../commands/hidetag');
 
 const CHAT = 'interactive-tests@g.us';
 const BUYER = '15550000081@s.whatsapp.net';
@@ -291,6 +294,57 @@ test('Misiones muestra solo acciones para objetivos pendientes, sin menús RPG g
     assert.equal(ctx.relayed.length, 0, 'no muestra botones cuando ya no hay objetivos pendientes');
     assert.match(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /completaste todos los objetivos/i);
     assert.doesNotMatch(ctx.sent.at(-1).caption || ctx.sent.at(-1).text, /botones de abajo/i);
+});
+
+test('el panel de grupos usa botones de categoría y AntiLink ofrece sus acciones reales', async () => {
+    const ctx = harness();
+    await sendGroupAdminMenu(ctx.sock, CHAT, ctx.msg, '', ctx.botData, '.', true);
+    assert.deepEqual(decodedButtons(ctx).map(button => button.id), [
+        'cmd_groupmenu protecciones', 'cmd_groupmenu ajustes', 'cmd_groupmenu participantes'
+    ]);
+
+    ctx.relayed.length = 0;
+    await sendGroupAdminMenu(ctx.sock, CHAT, ctx.msg, 'antilink', ctx.botData, '.', true);
+    assert.deepEqual(decodedButtons(ctx).map(button => button.id), [
+        'cmd_antilink on', 'cmd_antilink del', 'cmd_antilink off'
+    ]);
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /Estado actual: \*DESACTIVADO\*/);
+
+    ctx.relayed.length = 0;
+    ctx.botData.antilinkGroups = { [CHAT]: 'del' };
+    await sendGroupAdminMenu(ctx.sock, CHAT, ctx.msg, 'antilink', ctx.botData, '.', true);
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /solo borra enlaces/i);
+
+    ctx.relayed.length = 0;
+    ctx.botData.antiCall = { 'session-1': true };
+    await sendGroupAdminMenu(ctx.sock, CHAT, ctx.msg, 'anticall', ctx.botData, '.', true, 'session-1');
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /Estado actual: \*ACTIVADO\*/);
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /todo el bot, no solo a este grupo/i);
+});
+
+test('cada control de administración abre botones de acciones existentes en una sola pantalla', async () => {
+    const ctx = harness();
+    for (const [route, definition] of Object.entries(CONTROL_DEFINITIONS)) {
+        ctx.relayed.length = 0;
+        await sendGroupAdminMenu(ctx.sock, CHAT, ctx.msg, route, ctx.botData, '.', true, 'session-1');
+        const buttons = decodedButtons(ctx);
+        const expected = definition.actions || [
+            `${definition.command} ${definition.args || ''}on`,
+            `${definition.command} ${definition.args || ''}off`
+        ];
+        assert.ok(buttons.length > 0 && buttons.length <= 3, `${route}: mantiene el límite de botones nativos`);
+        assert.deepEqual(buttons.map(button => button.id), expected.map(action => `cmd_${Array.isArray(action) ? action[1] : action}`), route);
+    }
+});
+
+test('los botones TagAll e Hidetag no envían menciones masivas sin un mensaje escrito', async () => {
+    const ctx = harness();
+    await tagallCommand(ctx.sock, CHAT, ctx.msg, true, '');
+    await hidetagCommand(ctx.sock, CHAT, ctx.msg, true, '');
+    assert.equal(ctx.sent.length, 2);
+    assert.match(ctx.sent[0].text, /tagall <mensaje>/i);
+    assert.match(ctx.sent[1].text, /hidetag <mensaje>/i);
+    assert.ok(ctx.sent.every(message => !message.mentions));
 });
 
 test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {

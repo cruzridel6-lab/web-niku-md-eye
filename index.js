@@ -18,6 +18,7 @@ const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
 const { sendActionButtons, extractInteractiveResponseId } = require('./lib/interactiveActions');
 const { normalizeActionCommand, parseCommandInput } = require('./lib/commandParser');
+const { sendGroupAdminMenu } = require('./lib/groupAdminMenu');
 const { answerLocal } = require('./lib/localAI');
 
 const PREMIUM_COMMANDS = new Set([
@@ -1781,8 +1782,8 @@ class BotSession {
                                             await sendCategoryMenu(this.sock, from, msg, '✨ TODOS LOS COMANDOS', Object.keys(commands).filter(name => name !== 'utils'));
                                             break;
                                         case 'ownermenu': await sendCategoryMenu(this.sock, from, msg, '👑 OWNER MENU', ['public', 'private', 'block', 'unblock', 'restart', 'shutdown', 'bcall', 'bcgc']); break;
-                                        case 'groupmenu': await sendCategoryMenu(this.sock, from, msg, '👥 ADMINISTRACIÓN DE GRUPO', ['kick', 'add', 'promote', 'demote', 'mute', 'unmute', 'tagall', 'hidetag', 'grouplink', 'groupinfo']); break;
-                                        case 'admin': case 'adminmenu': await sendCategoryMenu(this.sock, from, msg, '🛡️ MENÚ ADMIN', ['open', 'close', 'horario', 'antiporno', 'antiventas', 'antibot', 'estaf', 'anticall', 'antiestiker', 'antiprivado', 'modoestricto', 'grouplink', 'revoke', 'add', 'kick', 'advertir', 'advertencias', 'quitaradvertencia', 'promote', 'demote', 'tagall', 'hidetag', 'mute', 'unmute', 'mutelist', 'antilink', 'onlyadmin', 'alertas', 'welcome', 'bye', 'setwelcome', 'setbye', 'testwelcome', 'testbye', 'setdesc', 'setppgc']); break;
+                                        case 'groupmenu': await sendGroupAdminMenu(this.sock, from, msg, q, botData, prefix, isAdmin, this.userId); break;
+                                        case 'admin': case 'adminmenu': await sendGroupAdminMenu(this.sock, from, msg, q, botData, prefix, isAdmin, this.userId); break;
                                         case 'download':
                                         case 'downloadmenu': await sendCategoryMenu(this.sock, from, msg, '⬇️ DOWNLOAD MENU', ['song', 'video', 'youtube', 'insta', 'tiktok', 'facebook', 'spotify', 'apk', 'playstore', 'mf', 'gdrive']); break;
                                         case 'aimenu': await sendCategoryMenu(this.sock, from, msg, '🤖 AI MENU', ['ai', 'ia', 'chatbot', 'gali']); break;
