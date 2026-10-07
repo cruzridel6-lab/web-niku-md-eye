@@ -23,20 +23,20 @@ function temporaryState(t, prefix) {
 
 function setTelegramEnvironment(t, chatId) {
     const previous = {
-        token: process.env.TELEGRAM_TOKEN_BOT,
-        chatId: process.env.TELEGRAM_CHAT_ID,
+        token: process.env.TELEGRAM_BOT_TOKEN,
+        chatId: process.env.TELEGRAM_BACKUP_CHAT_ID,
         telegramKey: process.env.TELEGRAM_BACKUP_ENCRYPTION_KEY,
         backupKey: process.env.BACKUP_ENCRYPTION_KEY
     };
-    process.env.TELEGRAM_TOKEN_BOT = 'test-token-not-real';
-    process.env.TELEGRAM_CHAT_ID = chatId;
+    process.env.TELEGRAM_BOT_TOKEN = 'test-token-not-real';
+    process.env.TELEGRAM_BACKUP_CHAT_ID = chatId;
     process.env.TELEGRAM_BACKUP_ENCRYPTION_KEY = SECRET;
     delete process.env.BACKUP_ENCRYPTION_KEY;
     t.after(() => {
-        if (previous.token === undefined) delete process.env.TELEGRAM_TOKEN_BOT;
-        else process.env.TELEGRAM_TOKEN_BOT = previous.token;
-        if (previous.chatId === undefined) delete process.env.TELEGRAM_CHAT_ID;
-        else process.env.TELEGRAM_CHAT_ID = previous.chatId;
+        if (previous.token === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
+        else process.env.TELEGRAM_BOT_TOKEN = previous.token;
+        if (previous.chatId === undefined) delete process.env.TELEGRAM_BACKUP_CHAT_ID;
+        else process.env.TELEGRAM_BACKUP_CHAT_ID = previous.chatId;
         if (previous.telegramKey === undefined) delete process.env.TELEGRAM_BACKUP_ENCRYPTION_KEY;
         else process.env.TELEGRAM_BACKUP_ENCRYPTION_KEY = previous.telegramKey;
         if (previous.backupKey === undefined) delete process.env.BACKUP_ENCRYPTION_KEY;
@@ -147,4 +147,27 @@ test('recupera bot_data.json si la copia local está corrupta y conserva una cop
     assert.deepEqual(fs.readJsonSync(target.dataFile), { coins: 1234, webProgress: ['rpg', 'perfil'] });
     const corruptCopy = fs.readdirSync(target.root).find(name => name.startsWith('bot_data.json.telegram-corrupt-'));
     assert.ok(corruptCopy, 'la versión corrupta se conserva separada');
+});
+
+
+test('responde a /backupid publicado en el canal con TELEGRAM_BACKUP_CHAT_ID', async () => {
+    const listeners = {};
+    const replies = [];
+    const bot = {
+        on: (event, handler) => { listeners[event] = handler; },
+        sendMessage: async (...args) => { replies.push(args); }
+    };
+    assert.equal(telegramBackup.registerBackupIdCommand(bot), true);
+    await listeners.channel_post({
+        chat: { id: -1009876543210, type: 'channel' },
+        message_id: 77,
+        text: '/backupid@niku_backup_bot'
+    });
+    assert.equal(replies.length, 1);
+    assert.equal(replies[0][0], -1009876543210);
+    assert.match(replies[0][1], /TELEGRAM_BACKUP_CHAT_ID=-1009876543210/);
+    assert.deepEqual(replies[0][2], { reply_to_message_id: 77 });
+
+    await listeners.channel_post({ chat: { id: -1009876543210, type: 'channel' }, message_id: 78, text: '/otrocomando' });
+    assert.equal(replies.length, 1);
 });
