@@ -40,6 +40,9 @@ test('el registro se completa escribiendo el nombre y no muestra botones de alta
     assert.equal(ctx.botData.profiles[player].name, 'Carlos');
     assert.equal(ctx.botData.profiles[player].registered, true);
     assert.match(ctx.messages.at(-1).text, /registro completado/i);
+    const progressEdits = ctx.messages.filter(payload => payload.edit);
+    assert.ok(progressEdits.length >= 3, 'la animación muestra progreso antes de terminar');
+    assert.ok(progressEdits.every(payload => payload.edit.id === '1'), 'la animación actualiza la misma burbuja');
     assert.deepEqual(buttonIds(ctx), []);
 });
 

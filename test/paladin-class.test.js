@@ -8,8 +8,13 @@ const { classImagePath } = require('../lib/rpgMedia');
 function economyHarness(jid, user = {}) {
     const botData = { economy: { room: { users: { [jid]: user } } }, profiles: {} };
     const messages = [];
-    const sock = { sendMessage: async (_chatId, payload) => { messages.push(payload); return { key: { id: String(messages.length) } }; } };
-    return { botData, messages, sock, user };
+    const relayed = [];
+    const sock = {
+        user: { id: '15550000000:1@s.whatsapp.net' },
+        sendMessage: async (_chatId, payload) => { messages.push(payload); return { key: { id: String(messages.length) } }; },
+        relayMessage: async (_chatId, payload) => { relayed.push(payload); return { status: 200 }; }
+    };
+    return { botData, messages, relayed, sock, user };
 }
 
 function combatHarness() {
@@ -29,12 +34,18 @@ test('acepta `.clase paladín`, muestra su ventaja y la ofrece a cuentas nuevas'
     assert.ok(classImagePath('paladin'));
     assert.equal(classMessage.image.url, classImagePath('paladin'));
     assert.match(classMessage.caption, /Paladín/);
-    assert.match(classMessage.caption, /\+15% de monedas en las mazmorras/);
+    assert.match(classMessage.caption, /\+15% en mazmorras/);
 
     const fresh = economyHarness('202@s.whatsapp.net', { coins: 0, bank: 0 });
     await runEconomy(fresh.sock, 'room', { key: { participant: '202@s.whatsapp.net' } }, 'clase', '', fresh.botData, () => {}, '.');
-    assert.match(fresh.messages.at(-1).text, /🛡️ Paladín — \*paladin\*/);
-    assert.match(fresh.messages.at(-1).text, /\.clase paladin/);
+    const firstPage = fresh.relayed.at(-1).interactiveMessage;
+    assert.match(firstPage.body.text, /🛡️ Paladín — Defensa sagrada/);
+    assert.match(firstPage.body.text, /\.clase <nombre>/);
+    await runEconomy(fresh.sock, 'room', { key: { participant: '202@s.whatsapp.net' } }, 'clase', 'mas', fresh.botData, () => {}, '.');
+    const morePage = fresh.relayed.at(-1).interactiveMessage;
+    assert.deepEqual(morePage.nativeFlowMessage.buttons.map(button => JSON.parse(button.buttonParamsJson).id), [
+        'cmd_clase picaro', 'cmd_clase tirador', 'cmd_clase paladin'
+    ]);
 });
 
 test('habilidad Bastión divino cobra una sola vez, cura y reduce el contraataque', async () => {

@@ -35,11 +35,11 @@ const DUNGEON_REWARDS = [150, 225, 300, 400, 550];
 const EXPLORATION_REWARDS = [40, 75, 110, 150, 200];
 const GATHERING_REWARDS = [30, 45, 65, 90, 125];
 const CHARACTER_CLASSES = {
-    guerrero: { label: '⚔️ Guerrero', description: 'Resistente y experto en combate cuerpo a cuerpo.', advantage: 'obtiene +25% de monedas en las misiones de .work.' },
-    mago: { label: '🔮 Mago', description: 'Dominador de hechizos, sabiduría y poder arcano.', advantage: 'recibe +15% de monedas al completar trabajos mágicos.' },
-    picaro: { label: '🗡️ Pícaro', description: 'Ágil, sigiloso y experto en golpes precisos.', advantage: 'obtiene +30% de botín en .crime y +10% en .work.' },
-    tirador: { label: '🏹 Tirador', description: 'Especialista en ataques a distancia, puntería y cacería.', advantage: 'obtiene +30% de recompensa al .cazar y +15% en encargos.' },
-    paladin: { label: '🛡️ Paladín', description: 'Defensor sagrado que protege al grupo y mantiene el frente.', advantage: 'obtiene +15% de monedas en las mazmorras y +10% en .work.' }
+    guerrero: { label: '⚔️ Guerrero', description: 'Resistencia y combate.', advantage: '+25% en .work' },
+    mago: { label: '🔮 Mago', description: 'Magia y conocimiento.', advantage: '+15% en trabajos mágicos' },
+    picaro: { label: '🗡️ Pícaro', description: 'Agilidad y botín.', advantage: '+30% en .crime · +10% en .work' },
+    tirador: { label: '🏹 Tirador', description: 'Puntería y cacería.', advantage: '+30% en .cazar · +15% en encargos' },
+    paladin: { label: '🛡️ Paladín', description: 'Defensa sagrada.', advantage: '+15% en mazmorras · +10% en .work' }
 };
 const ALIASES = {
     rpg: ['rpg', 'rpgmenu', 'economiarpg', 'economyrpg'],
@@ -432,14 +432,19 @@ function investmentQuickAmounts(balance) {
     return [...new Set([MIN_INVESTMENT, Math.floor(available / 4), Math.floor(available / 2)])]
         .filter(value => value >= MIN_INVESTMENT && value <= available);
 }
-async function sendClassChoiceButtons(sock, chatId, msg, prefix, quoted) {
-    const choices = Object.entries(CHARACTER_CLASSES).map(([key, value]) => ({ label: value.label, command: `${prefix}clase ${key}` }));
-    const groups = [choices.slice(0, 3), choices.slice(3, 6)];
-    for (let index = 0; index < groups.length; index++) {
-        const group = groups[index];
-        if (!group.length) continue;
-        await sendActionButtons(sock, chatId, index === 0 ? '🧭 Toca una clase para elegir tu camino:' : '🧭 Otras clases disponibles:', group, quoted || msg);
-    }
+function classChoiceText(prefix = '.', more = false) {
+    const entries = Object.entries(CHARACTER_CLASSES);
+    const shown = more ? entries.slice(2) : entries;
+    const rows = shown.map(([, value]) => `${value.label} — ${value.description} · ${value.advantage.replace(/\.([a-z]+)/g, `${prefix}$1`)}`).join('\n');
+    return more
+        ? `⚔️ *OTRAS CLASES*\n${rows}\n\nToca un botón o escribe *${prefix}clase <nombre>*. `
+        : `⚔️ *ELIGE TU CLASE*\n${rows}\n\nToca Guerrero o Mago; pulsa *Más clases* para ver las otras opciones. También puedes escribir *${prefix}clase <nombre>*.`;
+}
+async function sendClassChoiceButtons(sock, chatId, msg, prefix = '.', quoted, { more = false, body = '' } = {}) {
+    const entries = Object.entries(CHARACTER_CLASSES);
+    const choices = (more ? entries.slice(2) : entries.slice(0, 2)).map(([key, value]) => ({ label: value.label, command: `${prefix}clase ${key}` }));
+    if (!more) choices.push({ label: '✨ Más clases', command: `${prefix}clase mas` });
+    return sendActionButtons(sock, chatId, body || classChoiceText(prefix, more), choices, quoted || msg);
 }
 function toolState(user, key) {
     user.tools ||= {};
@@ -895,11 +900,11 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     }
     if (canonical === 'characterClass') {
         const requested = String(args[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (['mas', 'otras', 'otrasclases', '2'].includes(requested)) {
+            return sendClassChoiceButtons(sock, chatId, msg, prefix, msg, { more: true });
+        }
         if (!requested || !CHARACTER_CLASSES[requested]) {
-            const options = Object.entries(CHARACTER_CLASSES).map(([key, value]) => `${value.label} — *${key}*\n${value.description}\n✨ Ventaja: ${value.advantage}`).join('\n\n');
-            const sent = await reply(sock, chatId, msg, `🧙 *ELECCIÓN DE CLASE*\n\n${options}\n\nToca un botón para elegir o escribe uno de estos comandos:\n*${prefix}clase guerrero* · *${prefix}clase mago* · *${prefix}clase picaro* · *${prefix}clase tirador* · *${prefix}clase paladin*.`);
-            await sendClassChoiceButtons(sock, chatId, msg, prefix, sent || msg);
-            return sent;
+            return sendClassChoiceButtons(sock, chatId, msg, prefix, msg, { body: classChoiceText(prefix) });
         }
         if (user.rpg.class) return reply(sock, chatId, msg, `🛡️ Tu personaje ya pertenece a la clase *${CHARACTER_CLASSES[user.rpg.class]?.label || user.rpg.class}*. La clase se elige una sola vez.`);
         user.rpg.class = requested;
@@ -907,7 +912,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         activateWelcomeMission(user);
         save();
         const selected = CHARACTER_CLASSES[requested];
-        return sendImageCaption(sock, chatId, msg, classImagePath(requested), `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
+        return sendImageCaption(sock, chatId, msg, classImagePath(requested), `🎉 *CLASE ELEGIDA*\n${selected.label} · ${selected.description}\n✨ ${selected.advantage.replace(/\.([a-z]+)/g, `${prefix}$1`)}\n⭐ Nivel ${user.rpg.level} · ${fmt(user.rpg.xp)} XP\nConsulta tu personaje con *${prefix}perfil*.`);
     }
 
     if (canonical === 'raid') return reply(sock, chatId, msg, `🐉 Usa *${prefix}raid ayuda* para entrar a la raid cooperativa del grupo.`);
@@ -1612,6 +1617,8 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
 module.exports = runEconomy;
 module.exports.aliases = ALIASES;
 module.exports.menu = menu;
+module.exports.classChoiceText = classChoiceText;
+module.exports.sendClassChoiceButtons = sendClassChoiceButtons;
 module.exports.premiumShopPackages = PREMIUM_SHOP_PACKAGES;
 module.exports.achievements = ACHIEVEMENTS.map(({ id, title, reward }) => ({ id, title, reward }));
 module.exports.items = Object.fromEntries(Object.entries(MERCHANT_ITEMS).map(([key, item]) => [key, { name: item.name, durability: item.durability }]));

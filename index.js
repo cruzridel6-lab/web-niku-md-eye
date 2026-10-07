@@ -541,7 +541,7 @@ if (tgBot) {
             `*\u{1F510} TO CONNECT:* \n` +
             `Simply send your WhatsApp number with country code.\n` +
             `Example: \`923271054080\`\n\n` +
-            `> © POWERED BY SYED MINI BOT v3.0`;
+            `> © NIKU MD v4.0 · REINO RPG`;
 
         try {
             await tgBot.sendPhoto(chatId, settings.startimage, {
@@ -615,7 +615,7 @@ if (tgBot) {
             `\u{1F4F1} *Connected Bots:* ${connectedCount}\n` +
             `\u{26A1} *Total Sessions:* ${Object.keys(sessions).length}\n\n` +
             `\u{1F522} *Active Numbers:*\n\`${numbersList}\`\n\n` +
-            `> © POWERED BY SYED MINI BOT v3.0`;
+            `> © NIKU MD v4.0 · REINO RPG`;
 
         await tgBot.sendMessage(chatId, statusMsg, { parse_mode: 'Markdown' });
     });
@@ -1316,7 +1316,7 @@ class BotSession {
                                 `\u{25EC}\u{2501}\u{2501}\u{2501}\u{3008} *SYED MINI CODE* \u{3009}\u{2501}\u{2501}\u{2501}\u{25EC}\n\n` +
                                 `*\u{1F511} YOUR PAIRING CODE:* \`${code}\`\n\n` +
                                 `_Enter this code in your WhatsApp Linked Devices section._\n\n` +
-                                `> © POWERED BY SYED MINI BOT v3.0`;
+                                `> © NIKU MD v4.0 · REINO RPG`;
                             await tgBot.sendMessage(this.tgChatId, codeMsg, { parse_mode: 'Markdown' });
                         }
 
@@ -1356,7 +1356,7 @@ class BotSession {
                                     text: `*\u{26A0}\uFE0F} ANTI-CALL SYSTEM ACTIVE* \n\n` +
                                           `I am a bot and cannot receive calls. \n` +
                                           `Please send a text message instead. \n\n` +
-                                          `> © POWERED BY SYED MINI BOT`
+                                          `> © NIKU MD v4.0 · REINO RPG`
                                 });
                             } catch (e) {}
                         }
@@ -1824,16 +1824,9 @@ class BotSession {
                                                 if (starterGranted) publishStarterPackEvent(sender);
                                                 const wallet = Object.entries(botData.economy?.[from]?.users || {}).find(([key]) => publicNumber(key) === publicNumber(sender))?.[1];
                                                 if (!wasRegistered && isRegistered && !wallet?.rpg?.class) {
-                                                    await this.sock.sendMessage(from, { text: `🎁 *¡PACK INICIAL ENTREGADO!*\n\n🪙 Recibiste: *1.000 monedas de oro*\n⛏️ Pico · ⚔️ Espada de herramienta · 🎣 Caña de pescar\n\n🧭 *Tu aventura necesita una clase.* Pulsa uno de los botones para elegir tu camino; también puedes usar *${settings.prefix || '.'}clase <nombre>*.\n\n⚔️ *Guerrero* — resistente y experto en combate. Ventaja: +25% de monedas en *.work*.\n🔮 *Mago* — domina la magia y el conocimiento. Ventaja: +15% en trabajos mágicos.\n🗡️ *Pícaro* — ágil y experto en golpes precisos. Ventaja: +30% en *.crime* y +10% en *.work*.\n🏹 *Tirador* — especialista en puntería y cacería. Ventaja: +30% en *.cazar* y +15% en encargos.\n🛡️ *Paladín* — defensor sagrado. Ventaja: +15% en mazmorras y +10% en *.work*.` }, { quoted: msg });
-                                                    const classChoices = [
-                                                        { label: '⚔️ Guerrero', command: `${settings.prefix || '.'}clase guerrero` },
-                                                        { label: '🔮 Mago', command: `${settings.prefix || '.'}clase mago` },
-                                                        { label: '🗡️ Pícaro', command: `${settings.prefix || '.'}clase picaro` },
-                                                        { label: '🏹 Tirador', command: `${settings.prefix || '.'}clase tirador` },
-                                                        { label: '🛡️ Paladín', command: `${settings.prefix || '.'}clase paladin` }
-                                                    ];
-                                                    await sendActionButtons(this.sock, from, '🧭 Elige tu clase para completar el personaje:', classChoices.slice(0, 3), msg);
-                                                    await sendActionButtons(this.sock, from, '🧭 También puedes elegir una de estas clases:', classChoices.slice(3), msg);
+                                                    const classPrefix = settings.prefix || '.';
+                                                    const classPrompt = `🎁 *PACK INICIAL ENTREGADO*\n1.000 monedas · Pico · Espada · Caña.\n\n${commands.economy.classChoiceText(classPrefix)}`;
+                                                    await commands.economy.sendClassChoiceButtons(this.sock, from, msg, classPrefix, msg, { body: classPrompt });
                                                 }
                                             }
                                             break;
@@ -2213,7 +2206,7 @@ class BotSession {
                             `*\u{2705} CONNECTION SUCCESSFUL!* \n\n` +
                             `Your WhatsApp number has been successfully linked.\n` +
                             `You can now use all commands in your WhatsApp.\n\n` +
-                            `> © POWERED BY SYED MINI BOT v3.0`;
+                            `> © NIKU MD v4.0 · REINO RPG`;
                         await tgBot.sendMessage(this.tgChatId, successMsg, { parse_mode: 'Markdown' });
                     }
 
@@ -2224,7 +2217,7 @@ class BotSession {
                             await this.sock.query({
                                 tag: 'iq',
                                 attrs: { to: '@s.whatsapp.net', type: 'set', xmlns: 'status' },
-                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("SYED MINI BOT v3.0 - 120+ Commands | Powered by SYED", 'utf-8') }]
+                                content: [{ tag: 'status', attrs: {}, content: Buffer.from("NIKU MD v4.0 · REINO RPG · 24/7", 'utf-8') }]
                             });
                             this.sendLog("Bio updated successfully! \u{2705}", "success");
                         } catch (e) {
@@ -2235,18 +2228,16 @@ class BotSession {
                     if (!this.lastConnectMessageTime || (Date.now() - this.lastConnectMessageTime > 60 * 60 * 1000)) {
                         const commandCount = Object.keys(commands).filter((name) => name !== 'utils').length;
                         const welcomePrefix = settings.prefix || '.';
-                        const welcomeText = `╭━━━〔 ⚔️ *NIKU MD · REINO RPG* 〕━━━╮\n\n` +
-                            `🌌 *¡PORTAL VINCULADO!* ✅\n` +
-                            `Tu WhatsApp ya está conectado. El reino te espera, aventurero.\n\n` +
-                            `🧭 *TU PRIMERA MISIÓN*\n` +
-                            `1. Escribe manualmente *${welcomePrefix}registrarse Tu Nombre* — crea tu personaje.\n` +
-                            `2. *${welcomePrefix}clase* — elige tu camino de combate.\n` +
-                            `3. *${welcomePrefix}rpgmenu* — abre el mapa de comandos RPG.\n\n` +
-                            `🎁 *PACK DEL AVENTURERO*\n` +
-                            `Al registrarte recibirás *1.000 monedas de oro*, un pico, una espada de herramienta y una caña de pescar.\n\n` +
-                            `⚔️ Elige tu clase después de crear el personaje.\n` +
-                            `📜 *${commandCount}* comandos disponibles · Bot activo 24/7\n\n` +
-                            `╰━━━〔 🪙 *NIKU MD · v${settings.version || '3.0.0'}* 〕━━━╯`;
+                        const welcomeText = `╭━━〔 ⚔️ *NIKU MD · REINO RPG* 〕━━╮\n\n` +
+                            `🌌 *PORTAL VINCULADO* · v4.0 ✅\n` +
+                            `Tu aventura está lista.\n\n` +
+                            `🧭 *EMPIEZA AQUÍ*\n` +
+                            `1 · Escribe manualmente *${welcomePrefix}registrarse Tu Nombre*\n` +
+                            `2 · Elige tu clase en los botones que aparecerán\n` +
+                            `3 · *${welcomePrefix}rpgmenu* · Comandos RPG\n\n` +
+                            `🎁 Registro: *1.000 monedas + pico + espada + caña*\n` +
+                            `📜 *${commandCount}* comandos · Bot activo 24/7\n\n` +
+                            `╰━━〔 🪙 *NIKU MD · v4.0* 〕━━╯`;
 
                         const menuImagePath = path.join(__dirname, 'Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg');
                         if (fs.existsSync(menuImagePath)) {
@@ -2585,7 +2576,7 @@ function generateMenuText(userName, session) {
     const prefix = settings.prefix || '.';
     const botName = settings.botName || 'ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ';
     const ownerName = settings.ownerName || 'ɴɪᴋᴜ_ʙʟᴀᴅᴇᴼᶠᶜ';
-    const version = settings.version || '3.0.0';
+    const version = settings.version || '4.0.0';
     const lines = [
         '─〔 💀 ɴɪᴋᴜ ᴍᴅ ᴍɪɴɪ ʙᴏᴛ 💀 〕─',
         '',

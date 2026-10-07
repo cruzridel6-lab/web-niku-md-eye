@@ -10,6 +10,6 @@ module.exports = {
     tgOwnerId: process.env.OWNER_TELEGRAM_ID || '5721542653',
     premiumUsers: [],
     connectedBots: [],
-    version: '3.0.0',
+    version: '4.0.0',
     prefix: '.'
 };

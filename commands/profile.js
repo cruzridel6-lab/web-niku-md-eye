@@ -57,6 +57,22 @@ function jidOf(msg, chatId, botData) {
     return canonicalIdentityJid(botData, candidate);
 }
 function reply(sock, chatId, msg, text, extra = {}) { return sock.sendMessage(chatId, { text, ...extra }, { quoted: msg }); }
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function registrationProgress(sock, chatId, msg, name) {
+    let progress;
+    try {
+        progress = await sock.sendMessage(chatId, { text: `╭─〔 🧾 NUEVO AVENTURERO 〕─╮\n\n📝 Preparando la ficha de *${name}*…\n▰▱▱` }, { quoted: msg });
+    } catch { return null; }
+    if (!progress?.key) return null;
+    for (const text of [
+        `╭─〔 🧾 NUEVO AVENTURERO 〕─╮\n\n🪄 Creando tu personaje…\n▰▰▱`,
+        `╭─〔 🧾 NUEVO AVENTURERO 〕─╮\n\n✨ Activando tu perfil…\n▰▰▰`
+    ]) {
+        await wait(260);
+        try { await sock.sendMessage(chatId, { text, edit: progress.key }); } catch { /* Sigue el registro aunque la edición no esté disponible. */ }
+    }
+    return progress;
+}
 function contextTarget(msg) {
     const context = msg?.message?.extendedTextMessage?.contextInfo || {};
     return context.mentionedJid?.[0] || context.participantAlt || context.participant || context.quotedMessage?.key?.participantAlt || context.quotedMessage?.key?.participant || context.quotedMessage?.key?.sender || null;
@@ -200,10 +216,15 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
         if (ownProfile.registered) return reply(sock, chatId, msg, `❌ Ya estás registrado como *${ownProfile.name}*. Cada número de WhatsApp solo puede registrarse una vez.`);
         const conflict = findNameConflict(botData, name, own);
         if (conflict) return reply(sock, chatId, msg, `❌ El nombre *${name}* ya está ocupado o es demasiado parecido a *${conflict[1].name}*. Elige otro nombre único.`);
+        const progress = await registrationProgress(sock, chatId, msg, name);
         ownProfile.name = name;
         ownProfile.registered = true;
         save();
-        return reply(sock, chatId, msg, `╭━━━〔 ✅ *REGISTRO COMPLETADO* 〕━━━╮\n┃\n┃ 🎉 Bienvenido a *NIKU MD*, *${name}*\n┃\n┃ Tu perfil ya está activo y tu nombre\n┃ aparecerá en los rankings públicos.\n┃\n┃ 🪙 Economía: *monedas de oro*\n┃ 🏆 Sistema: *RPG · clanes · logros*\n┃\n┃ Escribe *.menu* para comenzar.\n┃\n╰━━━〔 🤖 *NIKU MD BOT* 〕━━━╯`);
+        const complete = `✅ *REGISTRO COMPLETADO*\nBienvenido, *${name}*. Tu perfil ya está activo.`;
+        if (progress?.key) {
+            try { return await sock.sendMessage(chatId, { text: complete, edit: progress.key }); } catch { /* Usa una respuesta nueva si no se puede editar. */ }
+        }
+        return reply(sock, chatId, msg, complete);
     }
     if (canonical === 'profile' && !q && !contextTarget(msg)) return showProfile(sock, chatId, msg, own, ownProfile, botData);
     if (canonical === 'profile') {

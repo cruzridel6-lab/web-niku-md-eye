@@ -222,21 +222,41 @@ test('las respuestas rápidas conservan el comando aunque el prefijo configurado
 });
 
 
-test('el selector de clase muestra botones para las cinco clases y permite elegir Paladín', async () => {
+test('el selector de clase integra el resumen con botones y permite abrir las otras clases', async () => {
     const ctx = harness({ classKey: '' });
     await runEconomyCommand(ctx, 'clase');
 
-    const ids = ctx.relayed.flatMap((_, index) => decodedButtons(ctx, index)).map(button => button.id);
-    assert.deepEqual(ids, [
-        'cmd_clase guerrero',
-        'cmd_clase mago',
-        'cmd_clase picaro',
-        'cmd_clase tirador',
-        'cmd_clase paladin'
+    assert.equal(ctx.relayed.length, 1, 'el texto y las opciones iniciales se envían en un solo mensaje');
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /ELIGE TU CLASE/);
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /\+25% en \.work/);
+    assert.deepEqual(decodedButtons(ctx).map(button => button.id), [
+        'cmd_clase guerrero', 'cmd_clase mago', 'cmd_clase mas'
+    ]);
+
+    ctx.relayed.length = 0;
+    await runEconomyCommand(ctx, 'clase', 'mas');
+    assert.equal(ctx.relayed.length, 1, 'las otras tres clases también aparecen en una sola pantalla');
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /Pícaro/);
+    assert.deepEqual(decodedButtons(ctx).map(button => button.id), [
+        'cmd_clase picaro', 'cmd_clase tirador', 'cmd_clase paladin'
     ]);
 
     await runEconomyCommand(ctx, 'clase', 'paladin');
     assert.equal(ctx.user.rpg.class, 'paladin');
+});
+
+test('el paquete inicial y el selector de clase están integrados en el mismo mensaje interactivo', async () => {
+    const ctx = harness({ classKey: '' });
+    const prefix = '.';
+    const body = `🎁 *PACK INICIAL ENTREGADO*\n1.000 monedas · Pico · Espada · Caña.\n\n${runEconomy.classChoiceText(prefix)}`;
+    await runEconomy.sendClassChoiceButtons(ctx.sock, CHAT, ctx.msg, prefix, ctx.msg, { body });
+
+    assert.equal(ctx.relayed.length, 1);
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /PACK INICIAL ENTREGADO/);
+    assert.match(ctx.relayed[0].message.interactiveMessage.body.text, /ELIGE TU CLASE/);
+    assert.deepEqual(decodedButtons(ctx).map(button => button.id), [
+        'cmd_clase guerrero', 'cmd_clase mago', 'cmd_clase mas'
+    ]);
 });
 
 test('extrae la acción de clase de respuestas nativas encapsuladas y de botones heredados', () => {
@@ -350,9 +370,10 @@ test('los botones TagAll e Hidetag no envían menciones masivas sin un mensaje e
 test('la bienvenida de vinculación tiene tema RPG y elimina el texto de canción no seleccionada', () => {
     const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
     assert.match(source, /NIKU MD · REINO RPG/);
+    assert.match(source, /PORTAL VINCULADO.*v4\.0/);
     assert.doesNotMatch(source, /Sin canción seleccionada/i);
-    assert.match(source, /classChoices\.slice\(0, 3\)/);
-    assert.match(source, /classChoices\.slice\(3\)/);
+    assert.match(source, /commands\.economy\.classChoiceText\(classPrefix\)/);
+    assert.match(source, /commands\.economy\.sendClassChoiceButtons\(this\.sock, from, msg, classPrefix, msg, \{ body: classPrompt \}\)/);
     assert.match(source, /Escribe manualmente/);
     assert.doesNotMatch(source, /label: '📝 Registrarse'/);
     assert.doesNotMatch(source, /\['registrarse', '📝 Registrarse'/);

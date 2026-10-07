@@ -1,7 +1,7 @@
 {
   "name": "ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ",
-  "version": "3.0.0",
-  "description": "ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ - Ultimate WhatsApp Automation Tool with 120+ Commands",
+  "version": "4.0.0",
+  "description": "NIKU MD v4.0 - WhatsApp RPG bot with interactive group controls",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
