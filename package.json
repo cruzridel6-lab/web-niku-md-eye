@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
-    "@whiskeysockets/baileys": "^7.0.0-rc10",
+    "@whiskeysockets/baileys": "7.0.0-rc13",
     "axios": "^1.6.0",
     "cheerio": "^1.2.0",
     "dotenv": "^16.6.1",
@@ -36,7 +36,7 @@
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "keywords": [
     "whatsapp-bot",
