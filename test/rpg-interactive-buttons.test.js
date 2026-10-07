@@ -7,6 +7,7 @@ const { runAuction } = require('../commands/auction');
 const { sendActionButtons, extractInteractiveResponseId } = require('../lib/interactiveActions');
 const { normalizeActionCommand, parseCommandInput } = require('../lib/commandParser');
 const { sendGroupAdminMenu, CONTROL_DEFINITIONS } = require('../lib/groupAdminMenu');
+const { ensureLocalWallet } = require('../lib/sharedWallets');
 const tagallCommand = require('../commands/tagall');
 const hidetagCommand = require('../commands/hidetag');
 
@@ -276,6 +277,7 @@ test('un perfil registrado recibe el pack en la billetera de juego y puede recol
             }
         }
     };
+    const privateWallet = ensureLocalWallet(ctx.botData, 'chat-privado@s.whatsapp.net', BUYER).user;
 
     await runEconomyCommand(ctx, 'gather');
 
@@ -283,12 +285,14 @@ test('un perfil registrado recibe el pack en la billetera de juego y puede recol
     assert.equal(ctx.user.tools.espada.durability, 12);
     assert.equal(ctx.user.tools.cana.durability, 15);
     assert.equal(ctx.user.starterPackClaimed, true);
-    assert.ok(ctx.user.coins >= 1080, 'se entregan 1.000 monedas antes de la recompensa por recolectar');
-    assert.ok(ctx.sent.some(payload => /PACK INICIAL ENTREGADO EN ESTE CHAT/.test(payload.text || '')));
+    assert.ok(ctx.user.coins >= 1080, 'se conserva el dinero combinado, sin volver a sumar el pack ya reclamado en privado');
+    assert.equal(privateWallet.coins, ctx.user.coins, 'el saldo privado se actualiza al mismo tiempo que el del grupo');
+    assert.equal(ctx.sent.some(payload => /PACK INICIAL ENTREGADO/.test(payload.text || '')), false, 'no se anuncia ni regala otro pack en el grupo');
 
     const coinsAfterFirstUse = ctx.user.coins;
     await runEconomyCommand(ctx, 'balance');
     assert.equal(ctx.user.coins, coinsAfterFirstUse, 'el pack no debe volver a entregarse en la misma billetera');
+    assert.equal(privateWallet.coins, coinsAfterFirstUse, 'la lectura de bolsa en privado mantiene el saldo global');
 });
 
 test('extrae la acción de clase de respuestas nativas encapsuladas y de botones heredados', () => {

@@ -3,6 +3,7 @@ const { CLASS_EQUIPMENT, DUNGEON_LOOT, RPG_ITEMS, RPG_MATERIALS, RPG_GATHERING_L
 const { rarityInfo } = require('../lib/rpgFeatures');
 const { sendActionButtons } = require('../lib/interactiveActions');
 const { profileIdentityNumbers } = require('../lib/profileRegistration');
+const { linkWalletToSharedAccount } = require('../lib/sharedWallets');
 const COIN = '🪙 monedas de oro';
 const COMMISSION_RATE = 0.05;
 const MIN_PRICE = 50;
@@ -51,7 +52,7 @@ function ensureUser(botData, chatId, jid) {
   const rawKey = normalizeJid(jid);
   const key = Object.keys(state.users).find(existing => sameIdentity(botData, existing, rawKey)) || rawKey;
   state.users[key] ||= { coins: 0, bank: 0, lastSeen: Date.now() };
-  const user = state.users[key];
+  const user = linkWalletToSharedAccount(botData, state.users[key], key);
   user.coins = Math.max(0, Number(user.coins) || 0);
   user.bank = Math.max(0, Number(user.bank) || 0);
   user.lastSeen = Date.now();

@@ -6,6 +6,7 @@ const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, 
 const { CLASS_EQUIPMENT, DUNGEON_LOOT, MERCHANT_ITEMS, RPG_ITEMS } = require('../lib/rpgCatalog');
 const { sendActionButtons } = require('../lib/interactiveActions');
 const { grantStarterPackToWallet } = require('../lib/starterPack');
+const { ensureLocalWallet, linkWalletToSharedAccount } = require('../lib/sharedWallets');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
 const INVESTMENT_DURATION = 5 * 60 * 1000;
@@ -207,15 +208,11 @@ function getContext(msg) {
     };
 }
 function ensureState(botData, chatId, sender) {
-    botData.economy ||= {};
-    botData.economy[chatId] ||= { users: {} };
-    const state = botData.economy[chatId];
-    state.users ||= {};
+    const { state, user, jid } = ensureLocalWallet(botData, chatId, sender);
+    for (const [memberJid, memberWallet] of Object.entries(state.users || {})) {
+        linkWalletToSharedAccount(botData, memberWallet, memberJid);
+    }
     state.raids ||= { active: null, history: [] };
-    const rawJid = normalizeJid(sender);
-    const jid = Object.keys(state.users).find(key => sameIdentity(botData, key, rawJid)) || rawJid;
-    state.users[jid] ||= { coins: 0, bank: 0, lastSeen: 0 };
-    const user = state.users[jid];
     user.coins = Math.max(0, Number(user.coins) || 0);
     user.bank = Math.max(0, Number(user.bank) || 0);
     user.lastSeen = Date.now();
@@ -224,7 +221,7 @@ function ensureState(botData, chatId, sender) {
 function findUser(state, jid, botData = {}) {
     const wanted = numberOf(jid);
     const key = Object.keys(state.users || {}).find(k => sameIdentity(botData, k, jid));
-    return key ? { key, user: state.users[key] } : null;
+    return key ? { key, user: linkWalletToSharedAccount(botData, state.users[key], key) } : null;
 }
 function targetJidFromMessage(msg, q) {
     const context = getContext(msg);
@@ -690,7 +687,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     const save = () => saveBotData();
     if (hasRegisteredProfile(botData, jid) && grantStarterPackToWallet(user)) {
         save();
-        await reply(sock, chatId, msg, '🎁 *PACK INICIAL ENTREGADO EN ESTE CHAT*\n\nRecibiste *1.000 monedas de oro*, un ⛏️ pico, una ⚔️ espada y una 🎣 caña de pescar. Ya puedes usarlos en tus aventuras.');
+        await reply(sock, chatId, msg, '🎁 *PACK INICIAL ENTREGADO*\n\nTu cuenta vinculada recibió *1.000 monedas de oro*, un ⛏️ pico, una ⚔️ espada y una 🎣 caña de pescar. Este pack se entrega una sola vez.');
     }
     const grantActivityProgress = (activity, xpAmount = 5, triggerEvent = true) => {
         const achievements = addStat(user, 'commandsUsed', 1);

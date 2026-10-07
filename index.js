@@ -17,6 +17,7 @@ const telegramBackup = require('./lib/telegramBackup');
 const antiPorn = require('./lib/antiPorn');
 const profileRegistration = require('./lib/profileRegistration');
 const { grantStarterPackToWallet } = require('./lib/starterPack');
+const { ensureLocalWallet, ensureSharedWalletStore, getSharedWalletAccount, accountIdFor } = require('./lib/sharedWallets');
 const { sendActionButtons, extractInteractiveResponseId } = require('./lib/interactiveActions');
 const { normalizeActionCommand, parseCommandInput } = require('./lib/commandParser');
 const { sendGroupAdminMenu } = require('./lib/groupAdminMenu');
@@ -464,16 +465,8 @@ function createSuperToken(days = 30) {
     return { token, expiresAt: superTokensStore()[hashPremiumToken(token)].expiresAt };
 }
 function grantStarterPack(chatId, playerJid) {
-    botData.economy ||= {};
-    const jid = jidNormalizedUser(playerJid || chatId);
-    const state = botData.economy[chatId] ||= { users: {} };
-    state.users ||= {};
-    const identities = profileRegistration.profileIdentityNumbers(jid, null, botData.phoneAliases);
-    const walletJid = Object.keys(state.users).find(key =>
-        [...profileRegistration.profileIdentityNumbers(key, null, botData.phoneAliases)].some(number => identities.has(number))
-    ) || jid;
-    state.users[walletJid] ||= { coins: 0, bank: 0, lastSeen: 0 };
-    const granted = grantStarterPackToWallet(state.users[walletJid]);
+    const { user } = ensureLocalWallet(botData, chatId, playerJid || chatId);
+    const granted = grantStarterPackToWallet(user);
     if (granted) saveBotData();
     return granted;
 }
@@ -803,6 +796,7 @@ function loadBotDataFromDisk() {
     for (const key of ['groupAlerts', 'groupWelcome', 'groupBye', 'groupWelcomeText', 'groupByeText', 'mutedUsers']) {
         if (!botData[key] || typeof botData[key] !== 'object') botData[key] = {};
     }
+    ensureSharedWalletStore(botData);
 }
 
 loadBotDataFromDisk();
@@ -899,14 +893,18 @@ function publicPlayer(jid) {
     if (profile) return String(profile[1].name).slice(0, 32);
     return number ? `Jugador ${number.slice(-4)}` : 'Jugador';
 }
+function sharedWalletFor(jid) {
+    const entry = Object.entries(botData.sharedPlayerWallets?.accounts || {}).find(([key]) => profileRegistration.sameIdentity(botData, key, jid));
+    return entry?.[1] || null;
+}
 function capturePublicEconomy(chatId, jid) {
     const users = botData.economy?.[chatId]?.users || {};
-    const wanted = publicNumber(jid);
-    const key = Object.keys(users).find(item => publicNumber(item) === wanted);
+    const key = Object.keys(users).find(item => profileRegistration.sameIdentity(botData, item, jid));
     const user = key ? users[key] : {};
+    const wallet = sharedWalletFor(jid) || user;
     return {
-        coins: Math.max(0, Number(user.coins) || 0),
-        bank: Math.max(0, Number(user.bank) || 0),
+        coins: Math.max(0, Number(wallet.coins) || 0),
+        bank: Math.max(0, Number(wallet.bank) || 0),
         achievements: new Set(Object.keys(user.rpg?.achievements || {}))
     };
 }
@@ -927,7 +925,8 @@ function publicInvestmentSnapshot() {
 }
 function economyDashboardSnapshot() {
     let coins = 0, bank = 0, users = new Set();
-    for (const state of Object.values(botData.economy || {})) for (const [jid, wallet] of Object.entries(state?.users || {})) {
+    const sharedAccounts = botData.sharedPlayerWallets?.accounts || {};
+    for (const [jid, wallet] of Object.entries(sharedAccounts)) {
         const number = publicNumber(jid); if (!number) continue;
         users.add(number); coins += Math.max(0, Number(wallet?.coins) || 0); bank += Math.max(0, Number(wallet?.bank) || 0);
     }
@@ -949,18 +948,23 @@ function economyDashboardSnapshot() {
 function publicLeaderboardSnapshot() {
     const coins = new Map();
     const achievements = new Map();
+    const sharedAccounts = botData.sharedPlayerWallets?.accounts || {};
     for (const state of Object.values(botData.economy || {})) {
         for (const [jid, user] of Object.entries(state?.users || {})) {
-            const number = publicNumber(jid);
+            const profile = Object.entries(botData.profiles || {}).find(([key, value]) => value?.registered && value?.name && profileRegistration.sameIdentity(botData, key, jid));
+            if (!profile) continue;
+            const number = publicNumber(accountIdFor(botData, profile[0]));
             if (!number) continue;
-            const registered = Object.entries(botData.profiles || {}).some(([key, profile]) => publicNumber(key) === number && profile?.registered && profile?.name);
-            if (!registered) continue;
-            const total = Math.max(0, Number(user.coins) || 0) + Math.max(0, Number(user.bank) || 0);
-            coins.set(number, (coins.get(number) || 0) + total);
             const current = achievements.get(number) || { ids: new Set() };
             Object.keys(user.rpg?.achievements || {}).forEach(id => current.ids.add(id));
             achievements.set(number, current);
         }
+    }
+    for (const [jid, wallet] of Object.entries(sharedAccounts)) {
+        const profile = Object.entries(botData.profiles || {}).find(([key, value]) => value?.registered && value?.name && profileRegistration.sameIdentity(botData, key, jid));
+        if (!profile) continue;
+        const number = publicNumber(accountIdFor(botData, profile[0]));
+        if (number) coins.set(number, Math.max(0, Number(wallet.coins) || 0) + Math.max(0, Number(wallet.bank) || 0));
     }
     return {
         coins: [...coins.entries()].filter(([, total]) => total > 0).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([number, total], index) => ({ position: index + 1, player: publicPlayer(number), coins: total })),
@@ -978,14 +982,22 @@ function adminUsersSnapshot() {
     for (const [jid, profile] of Object.entries(botData.profiles || {})) {
         const number = publicNumber(jid);
         if (!number || !profile?.registered) continue;
-        users.set(number, { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, level: 1, xp: 0, classKey: '', classLabel: '🧭 Sin clase', achievements: new Map(), items: new Map() });
+        const item = { number, name: String(profile.name || `Jugador ${number.slice(-4)}`).slice(0, 32), coins: 0, bank: 0, level: 1, xp: 0, classKey: '', classLabel: '🧭 Sin clase', achievements: new Map(), items: new Map() };
+        const wallet = sharedWalletFor(jid);
+        if (wallet) {
+            item.coins = Math.max(0, Number(wallet.coins) || 0);
+            item.bank = Math.max(0, Number(wallet.bank) || 0);
+            for (const [id, tool] of Object.entries(wallet.tools || {})) {
+                const meta = itemCatalog[id];
+                if (meta) item.items.set(id, { id, name: meta.name, durability: Math.max(0, Number(tool?.durability) || 0), maxDurability: Number(tool?.maxDurability) || meta.durability });
+            }
+        }
+        users.set(number, item);
     }
     for (const state of Object.values(botData.economy || {})) {
         for (const [jid, wallet] of Object.entries(state?.users || {})) {
-            const item = users.get(publicNumber(jid));
+            const item = [...users.values()].find(row => profileRegistration.sameIdentity(botData, row.number, jid));
             if (!item) continue;
-            item.coins += Math.max(0, Number(wallet?.coins) || 0);
-            item.bank += Math.max(0, Number(wallet?.bank) || 0);
             item.level = Math.max(item.level, Math.floor(Number(wallet?.rpg?.level) || 1));
             item.xp = Math.max(item.xp, Math.floor(Number(wallet?.rpg?.xp) || 0));
             if (!item.classKey && wallet?.rpg?.class) {
@@ -996,12 +1008,6 @@ function adminUsersSnapshot() {
                 const meta = achievementCatalog.find(value => value.id === id) || { id, title: id, reward: Number(entry?.reward) || 0 };
                 item.achievements.set(id, { id, title: meta.title, reward: meta.reward, unlockedAt: entry?.unlockedAt || null });
             });
-            Object.entries(wallet?.tools || {}).forEach(([id, tool]) => {
-                const meta = itemCatalog[id];
-                if (!meta) return;
-                const current = item.items.get(id);
-                if (!current || Number(tool?.durability) > current.durability) item.items.set(id, { id, name: meta.name, durability: Math.max(0, Number(tool?.durability) || 0), maxDurability: Number(tool?.maxDurability) || meta.durability });
-            });
         }
     }
     const rows = [...users.values()]
@@ -1010,16 +1016,10 @@ function adminUsersSnapshot() {
     return { users: rows, achievements: achievementCatalog, items: itemCatalog };
 }
 function adminWallets(number, create = false) {
-    const targets = [];
-    for (const state of Object.values(botData.economy || {})) {
-        for (const [jid, wallet] of Object.entries(state?.users || {})) if (publicNumber(jid) === number) targets.push(wallet);
-    }
-    if (!targets.length && create) {
-        botData.economy.__admin__ ||= { users: {} };
-        botData.economy.__admin__.users[`${number}@s.whatsapp.net`] ||= { coins: 0, bank: 0, lastSeen: Date.now() };
-        targets.push(botData.economy.__admin__.users[`${number}@s.whatsapp.net`]);
-    }
-    return targets;
+    const jid = `${number}@s.whatsapp.net`;
+    const exists = Object.keys(botData.sharedPlayerWallets?.accounts || {}).some(key => profileRegistration.sameIdentity(botData, key, jid));
+    if (!exists && !create) return [];
+    return [getSharedWalletAccount(botData, jid, create ? { coins: 0, bank: 0 } : null)];
 }
 function adminUserStatus(socket, message, ok = true) {
     socket.emit('admin-users-status', { ok, message });
@@ -1762,10 +1762,7 @@ class BotSession {
                                                 await this.sock.sendMessage(from, { text: '❌ No pude identificar tu número de WhatsApp.' }, { quoted: msg });
                                                 break;
                                             }
-                                            botData.economy[from] ||= { users: {} };
-                                            botData.economy[from].users ||= {};
-                                            botData.economy[from].users[claimJid] ||= { coins: 0, bank: 0, lastSeen: 0 };
-                                            const wallet = botData.economy[from].users[claimJid];
+                                            const { user: wallet } = ensureLocalWallet(botData, from, claimJid);
                                             wallet.coins = Math.max(0, Number(wallet.coins) || 0);
                                             wallet.bank = Math.max(0, Number(wallet.bank) || 0);
                                             const coins = Math.max(1, Math.floor(Number(reward.coins) || 0));

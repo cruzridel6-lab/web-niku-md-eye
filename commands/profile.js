@@ -1,5 +1,6 @@
 const { classImagePath, sendImageCaption } = require('../lib/rpgMedia');
 const { sendActionButtons } = require('../lib/interactiveActions');
+const { linkWalletToSharedAccount, getSharedWalletAccount } = require('../lib/sharedWallets');
 
 const ALIASES = {
     register: ['registrarse', 'registrar', 'register', 'registro'],
@@ -188,16 +189,16 @@ function economyFor(botData, chatId, jid) {
     const samePlayer = item => identityNumbers.has(numberOf(item));
     const key = Object.keys(users).find(samePlayer);
     if (key) {
-        const current = users[key];
+        const current = linkWalletToSharedAccount(botData, users[key], key);
         if (current?.rpg?.class || current?.rpg?.classKey || current?.classKey) return current;
     }
     const matches = [];
     for (const state of Object.values(botData.economy || {})) {
         const stateUsers = state?.users || {};
         const stateKey = Object.keys(stateUsers).find(samePlayer);
-        if (stateKey) matches.push(stateUsers[stateKey]);
+        if (stateKey) matches.push(linkWalletToSharedAccount(botData, stateUsers[stateKey], stateKey));
     }
-    return matches.find(user => user?.rpg?.class || user?.rpg?.classKey || user?.classKey) || (key ? users[key] : matches[0] || {});
+    return matches.find(user => user?.rpg?.class || user?.rpg?.classKey || user?.classKey) || (key ? linkWalletToSharedAccount(botData, users[key], key) : matches[0] || getSharedWalletAccount(botData, jid));
 }
 function profileMenu(prefix = '.') {
     return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Proponer/aceptar\n│ 💔 ${prefix}divorce · Pedir confirmación\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio <texto|borrar> · Descripción\n│ ⚧️ ${prefix}setgenero hombre|mujer|otro · Botones para elegir\n│\n╰────────────────────╯`;
