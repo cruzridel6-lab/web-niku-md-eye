@@ -95,7 +95,7 @@ test('`.mercado comprar` sigue comprando una publicación de otro jugador', asyn
     const seller = { coins: 0, bank: 0, rpg: {} };
     ctx.botData.economy[CHAT].users[SELLER] = seller;
     ctx.botData.rpgMarket = {
-        'm-abc': { id: 'm-abc', item: 'sword_iron', price: 1000, seller: SELLER, status: 'open' }
+        'm-abc': { id: 'm-abc', chatId: CHAT, item: 'sword_iron', price: 1000, seller: SELLER, status: 'open' }
     };
     await run(ctx, 'mercado', 'comprar m-abc');
 

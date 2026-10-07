@@ -122,6 +122,24 @@ test('las herramientas transferidas conservan los usos restantes', async () => {
     assert.equal(ctx.botData.economy.room.users[buyer].tools.espada.durability, 4);
 });
 
+test('el vendedor puede cancelar con su número una subasta heredada guardada bajo su LID', async () => {
+    const phone = '12125550123@s.whatsapp.net';
+    const lid = '998877665544@lid';
+    const ctx = setup({ [phone]: { coins: 0, loot: {} } });
+    ctx.botData.phoneAliases = { '12125550123': lid };
+    const auction = {
+        id: 'auc-lid-legacy', seller: lid, sellerChatId: 'room',
+        itemId: 'gema_lunar', itemName: 'Gema lunar', inventoryType: 'loot', quantity: 1,
+        status: 'active', bids: [], expiresAt: Date.now() + 60_000
+    };
+    ctx.botData.auctions[auction.id] = auction;
+
+    await runAuction(ctx.sock, 'room', ctx.msgFor(phone), 'cancelarsubasta', auction.id, ctx.botData, ctx.save);
+    assert.equal(auction.status, 'cancelled');
+    assert.equal(ctx.botData.economy.room.users[phone].loot.gema_lunar, 1);
+    assert.equal(Object.keys(ctx.botData.economy.room.users).length, 1, 'no debe crear una cartera duplicada para el LID');
+});
+
 test('devuelve y reembolsa una pieza si la clase del mejor postor cambia antes del cierre', async () => {
     const seller = '1212@s.whatsapp.net';
     const buyer = '1313@s.whatsapp.net';

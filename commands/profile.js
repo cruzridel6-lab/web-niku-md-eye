@@ -184,7 +184,7 @@ function economyFor(botData, chatId, jid) {
     return matches.find(user => user?.rpg?.class || user?.rpg?.classKey || user?.classKey) || (key ? users[key] : matches[0] || {});
 }
 function profileMenu(prefix = '.') {
-    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Casarse\n│ 💔 ${prefix}divorce · Divorciarse\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio · Descripción\n│ ⚧️ ${prefix}setgenero hombre|mujer|otro · Género\n│\n╰────────────────────╯`;
+    return `╭───〔 👤 PERFIL 〕───╮\n│\n│ 📝 ${prefix}registrarse nombre · Registrarte\n│ 👤 ${prefix}perfil · Ver perfil\n│ 💍 ${prefix}marry @usuario · Proponer/aceptar\n│ 💔 ${prefix}divorce · Pedir confirmación\n│ 📜 ${prefix}historial · Historial matrimonial\n│ 🖼️ ${prefix}pfp · Ver foto de perfil\n│ 🎂 ${prefix}setbirth DD/MM/AAAA · Cumpleaños\n│ ✍️ ${prefix}setbio <texto|borrar> · Descripción\n│ ⚧️ ${prefix}setgenero hombre|mujer|otro · Botones para elegir\n│\n╰────────────────────╯`;
 }
 
 async function profileCommand(sock, chatId, msg, command = 'profile', q = '', botData, saveBotData, prefix = '.') {
@@ -218,13 +218,23 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     }
     if (canonical === 'setdesc') {
         const value = String(q || '').trim();
-        if (!value) { ownProfile.description = ''; save(); return reply(sock, chatId, msg, '✍️ Se eliminó tu descripción.'); }
+        if (!value) return reply(sock, chatId, msg, `✍️ Escribe la descripción después del comando. Para borrarla de forma explícita, usa *${prefix}setbio borrar*.`);
+        if (['borrar', 'eliminar', 'quitar'].includes(value.toLowerCase())) { ownProfile.description = ''; save(); return reply(sock, chatId, msg, '✍️ Se eliminó tu descripción.'); }
         if (value.length > 180) return reply(sock, chatId, msg, '❌ La descripción no puede superar 180 caracteres.');
         ownProfile.description = value.replace(/\bname\b/gi, msg?.pushName || 'Usuario'); save();
         return reply(sock, chatId, msg, '✅ Descripción actualizada.');
     }
     if (canonical === 'setgenre') {
         const value = String(q || '').trim().toLowerCase();
+        if (!value) {
+            const sent = await reply(sock, chatId, msg, `⚧️ *CONFIGURA TU GÉNERO*\n\nElige una opción o escribe: *${prefix}setgenero hombre|mujer|otro*.`);
+            await sendActionButtons(sock, chatId, '⚧️ Selecciona una opción:', [
+                { label: '♂️ Hombre', command: `${prefix}setgenero hombre` },
+                { label: '♀️ Mujer', command: `${prefix}setgenero mujer` },
+                { label: '⚧️ Otro', command: `${prefix}setgenero otro` }
+            ], sent || msg);
+            return sent;
+        }
         if (!['hombre', 'mujer', 'otro'].includes(value)) return reply(sock, chatId, msg, `ℹ️ Uso: *${prefix}setgenero hombre|mujer|otro* (también puedes usar *${prefix}setgender*).`);
         ownProfile.genre = value; save(); return reply(sock, chatId, msg, `✅ Género actualizado a *${displayGenre(value)}*.`);
     }
@@ -241,6 +251,16 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
     }
     if (canonical === 'divorce') {
         if (!ownProfile.partner) return reply(sock, chatId, msg, `💔 No estás ${spouseWord(ownProfile.genre)} con nadie.`);
+        const action = String(q || '').trim().toLowerCase();
+        if (['cancelar', 'cancel'].includes(action)) return reply(sock, chatId, msg, '↩️ Solicitud cancelada. Tu matrimonio sigue intacto.');
+        if (!['confirmar', 'confirm', 'sí', 'si'].includes(action)) {
+            const sent = await reply(sock, chatId, msg, `⚠️ *¿CONFIRMAS EL DIVORCIO?*\n\nEsta acción termina tu matrimonio con *${targetName(botData, ownProfile.partner)}* y se registrará en el historial. No se realizará hasta que confirmes.`);
+            await sendActionButtons(sock, chatId, '💔 Confirma tu decisión:', [
+                { label: '💔 Confirmar divorcio', command: `${prefix}divorce confirmar` },
+                { label: '↩️ Cancelar', command: `${prefix}divorce cancelar` }
+            ], sent || msg);
+            return sent;
+        }
         const partner = ownProfile.partner; const partnerProfile = ensure(botData, partner); const end = new Date().toLocaleString('es-ES');
         const record = ownProfile.history.find(item => item.partner === partner && !item.end);
         if (record) { record.end = end; record.duration = `${Math.max(1, Math.ceil((Date.now() - record.startedAt) / 86400000))} días`; }
@@ -262,9 +282,40 @@ async function profileCommand(sock, chatId, msg, command = 'profile', q = '', bo
             save();
             return reply(sock, chatId, msg, `💔 @${numberOf(own)} rechazó la propuesta de @${numberOf(pending.from)}.`, { mentions: [own, pending.from] });
         }
+        if (['aceptar', 'accept'].includes(requestedAction)) {
+            if (!pending || Number(pending.expires) <= Date.now()) {
+                if (pendingMatch) { delete botData.pendingMarriages[pendingMatch.key]; save(); }
+                return reply(sock, chatId, msg, '💔 No tienes una propuesta vigente que puedas aceptar.');
+            }
+            if (ownProfile.partner) return reply(sock, chatId, msg, `💍 Ya estás ${spouseWord(ownProfile.genre)} con ${targetName(botData, ownProfile.partner)}.`);
+            const target = canonicalIdentityJid(botData, pending.from);
+            const targetProfile = existingProfile(botData, target) || ensure(botData, target);
+            if (targetProfile?.partner) return reply(sock, chatId, msg, '💍 La persona que hizo la propuesta ya tiene pareja; no se completó el matrimonio.');
+            const startedAt = Date.now();
+            const start = new Date(startedAt).toLocaleString('es-ES');
+            ownProfile.partner = target;
+            targetProfile.partner = own;
+            ownProfile.history.push({ partner: target, start, startedAt, end: null });
+            targetProfile.history.push({ partner: own, start, startedAt, end: null });
+            delete botData.pendingMarriages[pendingMatch.key];
+            save();
+            return reply(sock, chatId, msg, `💍 ¡Se han casado @${numberOf(own)} y @${numberOf(target)}!\n\nQue disfruten su nueva etapa.`, { mentions: [own, target] });
+        }
         const explicitTargetRaw = contextTarget(msg) || String(q || '').match(/@?\d{7,16}/)?.[0];
         const explicitTarget = explicitTargetRaw ? canonicalIdentityJid(botData, explicitTargetRaw) : '';
-        const accepting = pending && pending.expires > Date.now() && (!explicitTarget || sameIdentity(botData, explicitTarget, pending.from));
+        const accepting = pending && pending.expires > Date.now() && Boolean(explicitTarget) && sameIdentity(botData, explicitTarget, pending.from);
+        if (!explicitTarget) {
+            if (pending && Number(pending.expires) > Date.now()) {
+                const sent = await reply(sock, chatId, msg, `💌 Tienes una propuesta pendiente de @${numberOf(pending.from)}. Pulsa *Aceptar* o *Rechazar* abajo; también puedes escribir *${prefix}marry aceptar* o *${prefix}marry rechazar*.`, { mentions: [own, pending.from] });
+                await sendActionButtons(sock, chatId, '💍 Responde a la propuesta:', [
+                    { label: '💍 Aceptar', command: `${prefix}marry aceptar` },
+                    { label: '💔 Rechazar', command: `${prefix}marry rechazar` }
+                ], sent || msg);
+                return sent;
+            }
+            if (pendingMatch) { delete botData.pendingMarriages[pendingMatch.key]; save(); }
+            return reply(sock, chatId, msg, `💍 Menciona o responde al usuario para proponer matrimonio. Ejemplo: *${prefix}marry @usuario*`);
+        }
         const target = canonicalIdentityJid(botData, accepting ? pending.from : findTarget(msg, q, own));
         if (!target || sameIdentity(botData, target, own)) return reply(sock, chatId, msg, `💍 Menciona o responde al usuario. Ejemplo: *${prefix}marry @usuario*`);
         const targetProfile = existingProfile(botData, target) || (accepting ? ensure(botData, target) : null);

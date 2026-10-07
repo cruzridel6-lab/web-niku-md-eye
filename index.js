@@ -1428,7 +1428,7 @@ class BotSession {
                             } catch (e) {}
                         }
                         if (selectedRowId) text = selectedRowId;
-                        if (text.startsWith('menu_')) text = `.${text.slice(5)}`;
+                        if (text.startsWith('menu_')) text = `${settings.prefix || '.'}${text.slice(5)}`;
                         if (text.startsWith('cmd_')) text = `${settings.prefix || '.'}${text.slice(4)}`;
 
                         // Handle snipe for deleted messages
@@ -1473,7 +1473,7 @@ class BotSession {
                         }
 
                         // AI auto-reply
-                        if (this.aiEnabled && !botData.antiPrivate?.enabled && !isMe && !isGroup && text && !text.startsWith('.')) {
+                        if (this.aiEnabled && !botData.antiPrivate?.enabled && !isMe && !isGroup && text && !text.startsWith(String(settings.prefix || '.'))) {
                             try {
                                 const aiResponse = await this.getAIResponse(from, text);
                                 await this.sock.sendMessage(from, { text: aiResponse }, { quoted: msg });
@@ -1650,13 +1650,15 @@ class BotSession {
                         }
 
                         // Process commands
-                        if (text.toLowerCase().startsWith('.')) {
-                            // Acepta tanto `.reclamar TOKEN` como `. reclamar TOKEN`.
-                            const commandText = text.replace(/^\.\s+/, '.').trim();
+                        const commandPrefix = String(settings.prefix || '.');
+                        if (text.toLowerCase().startsWith(commandPrefix.toLowerCase())) {
+                            // Acepta el prefijo configurado, también si hay espacios después de este.
+                            const commandBody = text.slice(commandPrefix.length).trimStart();
+                            const commandText = `${commandPrefix}${commandBody}`;
                             const cmd = commandText.toLowerCase();
-                            const args = commandText.split(/\s+/).slice(1);
+                            const args = commandBody ? commandBody.split(/\s+/) : [];
                             const q = args.join(' ');
-                            const commandName = cmd.slice(1).split(' ')[0];
+                            const commandName = String(args[0] || '').toLowerCase();
                             // Reporte es un canal de soporte público, incluso en modo privado.
                             // Los comandos de soporte y canje deben funcionar en privado para cualquier usuario.
                             const hasPremiumAccess = isPremiumWhatsApp(sender);
@@ -2457,7 +2459,62 @@ async function sendInteractiveCommandMenu(sock, jid, title, rows, quoted) {
 
 async function sendRpgInteractiveMenu(sock, jid, msg) {
     await sendInteractiveCommandMenu(sock, jid, '⚔️ ECONOMÍA RPG', [
-        ['perfil', '🧙 Perfil', 'Ficha del aventurero'], ['pfp', '🖼️ Foto', 'Ver foto de perfil'], ['setbio', '✍️ Biografía', 'Editar descripción'], ['setbirth', '🎂 Cumpleaños', 'Guardar cumpleaños'], ['setgenero', '⚧️ Género', 'Configurar género'], ['tiendapremium', '👑 Tienda Premium', 'Comprar días con monedas de oro'], ['premiumtiempo', '⏱️ Tiempo Premium', 'Ver vencimiento propio o de otro jugador'], ['objeto', '🖼️ Fichas de objetos', 'Fotos, estadísticas y obtención'], ['marry', '💍 Casarse', 'Forjar vínculo'], ['divorce', '💔 Divorciarse', 'Terminar vínculo'], ['historial', '📜 Historial', 'Historial matrimonial'], ['registrarse', '📝 Registrarse', 'Crear personaje'], ['combate', '⚔️ Combate', 'Luchar contra enemigos'], ['raid', '🐉 Raid', 'Raid cooperativa'], ['misiones', '📜 Misiones', 'Ver objetivos activos'], ['inventario', '🎒 Inventario', 'Mochila y equipamiento'], ['habilidades', '✨ Habilidades', 'Habilidades de clase'], ['pocion', '🧪 Poción', 'Curar al aventurero'], ['titulos', '🏷️ Títulos', 'Títulos del aventurero'], ['temporada', '🏆 Temporada', 'Ranking de temporada'], ['fabricar', '🔨 Fabricar', 'Crear objetos'], ['mercader', '🧑‍🌾 Mercader', 'Comprar herramientas y equipo'], ['mercado', '🛒 Mercado', 'Mercado entre jugadores'], ['subastas', '🏛️ Subastas', 'Comprar y vender botín'], ['invertir', '📈 Invertir', 'Inversión de 5 minutos'], ['duelo', '⚔️ Duelo', 'Apostar monedas en PvP'], ['logros', '🏆 Logros', 'Ver logros desbloqueados'], ['baltop', '🏅 Ranking', 'Ranking de aventureros'], ['balance', '💰 Balance', 'Ver monedas de oro'], ['nivel', '⭐ Nivel', 'Ver experiencia'], ['estadisticas', '📊 Estadísticas', 'Estadísticas RPG'], ['rpgstatus', '📈 Poder', 'Estado del aventurero'], ['minar', '⛏️ Minar', 'Extraer recursos'], ['pescar', '🎣 Pescar', 'Pescar recursos'], ['cazar', '🏹 Cazar', 'Cazar monstruos'], ['mazmorra', '🏰 Mazmorra', 'Explorar la mazmorra'], ['reparar', '🔧 Reparar', 'Reparar la mazmorra'], ['explorar', '🧭 Explorar', 'Explorar regiones'], ['recolectar', '🌿 Recolectar', 'Recolectar recursos'], ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'], ['campaña', '📜 Campaña', 'Misiones de historia'], ['clan', '⚔️ Clan', 'Clanes y guerras'], ['daily', '🎁 Daily', 'Recompensa diaria'], ['work', '💼 Work', 'Misión del gremio'], ['deposit', '🏦 Depositar', 'Guardar monedas'], ['withdraw', '💳 Retirar', 'Sacar monedas'], ['pay', '💸 Pagar', 'Enviar monedas'], ['coinflip', '🎰 Coinflip', 'Apostar monedas'], ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'], ['crime', '🕵️ Crime', 'Encargo clandestino'], ['rob', '🦹 Robar', 'Golpe de pícaro'], ['premio', '🎁 Premio', 'Reclamar regalo'], ['einfo', '⏱️ Einfo', 'Tiempos de economía']
+        ['perfil', '🧙 Perfil', 'Ficha del aventurero'],
+        ['pfp', '🖼️ Foto', 'Ver foto de perfil'],
+        ['setbio', '✍️ Biografía', 'Editar descripción o borrarla'],
+        ['setbirth', '🎂 Cumpleaños', 'Guardar cumpleaños'],
+        ['setgenero', '⚧️ Género', 'Elegir entre tres opciones'],
+        ['tiendapremium', '👑 Tienda Premium', 'Comprar días con monedas de oro'],
+        ['premiumtiempo', '⏱️ Tiempo Premium', 'Ver vencimiento propio o de otro jugador'],
+        ['objeto', '🖼️ Fichas de objetos', 'Fotos, estadísticas y obtención'],
+        ['marry', '💍 Casarse', 'Proponer, aceptar o rechazar'],
+        ['divorce', '💔 Divorciarse', 'Confirmar antes de terminar vínculo'],
+        ['historial', '📜 Historial', 'Historial matrimonial'],
+        ['registrarse', '📝 Registrarse', 'Crear personaje'],
+        ['clase', '🧭 Elegir clase', 'Escoge uno de los cinco caminos'],
+        ['combate', '⚔️ Combate', 'Luchar con acciones interactivas'],
+        ['raid', '🐉 Raid', 'Crear, unirte y combatir en grupo'],
+        ['misiones', '📜 Misiones', 'Ver y reclamar objetivos'],
+        ['inventario', '🎒 Inventario', 'Mochila, equipo y acceso a consumibles'],
+        ['usar', '🧪 Consumibles', 'Usar pociones y elixires'],
+        ['habilidades', '✨ Habilidades', 'Habilidades de clase y combate'],
+        ['pocion', '🧪 Poción', 'Usar poción básica'],
+        ['titulos', '🏷️ Títulos', 'Ver y equipar títulos'],
+        ['temporada', '🏆 Temporada', 'Ranking de temporada'],
+        ['fabricar', '🔨 Fabricar', 'Ver recetas y fabricar con botones'],
+        ['mercader', '🧑‍🌾 Mercader', 'Comprar consumibles, herramientas y equipo'],
+        ['mercado', '🛒 Mercado', 'Comprar o publicar objetos entre jugadores'],
+        ['subastas', '🏛️ Subastas', 'Comprar, vender y pujar con botones'],
+        ['invertir', '📈 Invertir', 'Importes de ejemplo por botones'],
+        ['duelo', '⚔️ Duelo', 'Retar y aceptar duelos PvP'],
+        ['logros', '🏆 Logros', 'Ver logros desbloqueados'],
+        ['baltop', '🏅 Ranking', 'Ranking de aventureros'],
+        ['balance', '💰 Balance', 'Ver monedas de oro'],
+        ['nivel', '⭐ Nivel', 'Ver experiencia'],
+        ['estadisticas', '📊 Estadísticas', 'Estadísticas RPG'],
+        ['rpgstatus', '📈 Poder', 'Estado del aventurero y accesos'],
+        ['minar', '⛏️ Minar', 'Trabajo: extraer recursos'],
+        ['pescar', '🎣 Pescar', 'Trabajo: pescar recursos'],
+        ['cazar', '🏹 Cazar', 'Trabajo: cazar monstruos'],
+        ['mazmorra', '🏰 Mazmorra', 'Explorar y reclamar botín'],
+        ['reparar', '🔧 Reparar', 'Reparar la mazmorra'],
+        ['explorar', '🧭 Explorar', 'Explorar regiones'],
+        ['recolectar', '🌿 Recolectar', 'Recolectar recursos'],
+        ['patrullar', '🛡️ Patrullar', 'Patrullar el clan'],
+        ['campaña', '📜 Campaña', 'Misiones de historia'],
+        ['clan', '⚔️ Clan', 'Clanes y guerras'],
+        ['daily', '🎁 Daily', 'Recompensa diaria'],
+        ['work', '💼 Work', 'Misión del gremio'],
+        ['deposit', '🏦 Depositar', 'Guardar monedas'],
+        ['withdraw', '💳 Retirar', 'Sacar monedas'],
+        ['pay', '💸 Pagar', 'Enviar monedas'],
+        ['coinflip', '🎰 Coinflip', 'Apostar monedas'],
+        ['roulette', '🎡 Ruleta', 'Jugar a la ruleta'],
+        ['crime', '🕵️ Crime', 'Encargo clandestino'],
+        ['rob', '🦹 Robar', 'Golpe de pícaro'],
+        ['slut', '🎭 Actuar', 'Trabajo del trovador'],
+        ['premio', '🎁 Premio', 'Reclamar regalo'],
+        ['einfo', '⏱️ Einfo', 'Tiempos de economía']
     ].map(([command, title, description]) => ({ command, title, description })), msg);
 }
 

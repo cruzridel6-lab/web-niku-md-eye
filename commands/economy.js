@@ -3,7 +3,7 @@ const { handleExpansion, ensureRpg, updateTitles, activateWelcomeMission, RECIPE
 const { classImagePath, commandImagePath, itemImagePath, shopImagePath, dungeonImagePath, sendImageCaption, sendItemCaption } = require('../lib/rpgMedia');
 const { showItemDetails } = require('../lib/rpgItemDetails');
 const { ensureFeatureState, consumeEnergy, consumeAction, rareDrop, rarityInfo, ensureMissions, recordMissionEvent, missionText, recommendedNextStep, maybeRandomEvent, levelUpText } = require('../lib/rpgFeatures');
-const { CLASS_EQUIPMENT, DUNGEON_LOOT, MERCHANT_ITEMS } = require('../lib/rpgCatalog');
+const { CLASS_EQUIPMENT, DUNGEON_LOOT, MERCHANT_ITEMS, RPG_ITEMS } = require('../lib/rpgCatalog');
 const { sendActionButtons } = require('../lib/interactiveActions');
 const COIN = 'monedas de oro 🪙';
 const MIN_BET = 200;
@@ -24,14 +24,16 @@ const ECONOMY_LIMITS = {
     gamblingStake: 10000,
     sameRecipient: 8
 };
+const DAILY_ACTIVITY_LIMITS = Object.freeze({ work: 8, crime: 4, slut: 4, explore: 6, gather: 6, patrol: 2, mine: 20, fish: 15, hunt: 15 });
+const CLAN_WAR_COOLDOWN = 6 * 60 * 60 * 1000;
 const MAX_DUEL_STAKE = ECONOMY_LIMITS.duelStake;
 const RPG_LEVEL_XP = level => Math.max(0, (level - 1) * (level - 1) * 100);
-const MINING_REWARDS = [120, 180, 250, 400, 650, 900, 1400];
-const FISHING_REWARDS = [100, 160, 240, 350, 500, 800, 1200];
-const HUNTING_REWARDS = [180, 260, 380, 550, 800, 1100, 1600];
-const DUNGEON_REWARDS = [700, 900, 1200, 1600, 2200];
-const EXPLORATION_REWARDS = [250, 350, 500, 700, 1000];
-const GATHERING_REWARDS = [180, 280, 420, 600, 850];
+const MINING_REWARDS = [15, 25, 40, 60, 90, 130, 200];
+const FISHING_REWARDS = [15, 25, 40, 55, 75, 110, 175];
+const HUNTING_REWARDS = [20, 30, 50, 80, 110, 160, 240];
+const DUNGEON_REWARDS = [150, 225, 300, 400, 550];
+const EXPLORATION_REWARDS = [40, 75, 110, 150, 200];
+const GATHERING_REWARDS = [30, 45, 65, 90, 125];
 const CHARACTER_CLASSES = {
     guerrero: { label: '⚔️ Guerrero', description: 'Resistente y experto en combate cuerpo a cuerpo.', advantage: 'obtiene +25% de monedas en las misiones de .work.' },
     mago: { label: '🔮 Mago', description: 'Dominador de hechizos, sabiduría y poder arcano.', advantage: 'recibe +15% de monedas al completar trabajos mágicos.' },
@@ -39,17 +41,6 @@ const CHARACTER_CLASSES = {
     tirador: { label: '🏹 Tirador', description: 'Especialista en ataques a distancia, puntería y cacería.', advantage: 'obtiene +30% de recompensa al .cazar y +15% en encargos.' },
     paladin: { label: '🛡️ Paladín', description: 'Defensor sagrado que protege al grupo y mantiene el frente.', advantage: 'obtiene +15% de monedas en las mazmorras y +10% en .work.' }
 };
-const RAID_BOSSES = {
-    dragon_ancestral: { name: '🐉 Dragón Ancestral', hp: 24000, reward: 60000, xp: 180, description: 'Una bestia milenaria que respira fuego sobre todo el grupo.' },
-    titan_abismal: { name: '🗿 Titán Abismal', hp: 30000, reward: 80000, xp: 220, description: 'Un coloso de piedra que no cae ante un solo aventurero.' },
-    reina_nigromante: { name: '👑 Reina Nigromante', hp: 27000, reward: 72000, xp: 200, description: 'Señora de los muertos y maestra de las maldiciones.' }
-};
-const RAID_TITLES = {
-    dragon_ancestral: '🐉 Matadragones ancestral',
-    titan_abismal: '🗿 Rompe-titanes del abismo',
-    reina_nigromante: '👑 Caudillo de la muerte'
-};
-
 const ALIASES = {
     rpg: ['rpg', 'rpgmenu', 'economiarpg', 'economyrpg'],
     characterClass: ['clase', 'class', 'job'],
@@ -67,6 +58,7 @@ const ALIASES = {
     season: ['season', 'temporada', 'rankingtemporada'],
     skills: ['skills', 'habilidades', 'talentos'],
     potion: ['potion', 'pocion', 'poción', 'curar'],
+    useItem: ['usar', 'use', 'consumir'],
     rpgstatus: ['rpgstatus', 'estadisticas', 'estadística', 'poder'],
     tutorial: ['tutorial', 'guia', 'guía', 'guiaaventura'],
     crime: ['crime'],
@@ -107,7 +99,7 @@ const HELP = {
     balance: 'balance | bal', baltop: 'baltop [página]', coinflip: 'cf <cantidad>', crime: 'crime · encargo clandestino',
     daily: 'daily · recompensa del gremio', deposit: 'deposit <cantidad|all> · guardar en el cofre', einfo: 'einfo', pay: 'pay <cantidad> @usuario',
     roulette: 'rt <cantidad> <rojo|negro>', reward: 'regalo <token>', level: 'nivel', mine: 'minar', fish: 'pescar', hunt: 'cazar', merchant: 'mercader [comprar <nombre o ID>] · herramientas y equipo de clase', repair: 'reparar', explore: 'explorar', gather: 'recolectar', patrol: 'patrullar', dungeon: 'mazmorra', mission: 'misiones [nueva]', achievements: 'logros', clan: 'clan <crear|unirse|salir|info|guerra>', coinTop: 'nikutop', slut: 'slut', steal: 'rob @usuario', duel: 'duelo @usuario <apuesta> · aceptar · rechazar · cancelar',
-    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro|tirador|paladin>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|espada_hierro|armadura>', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion', rpgstatus: 'estadisticas', premiumStatus: 'premiumtiempo [@jugador]', itemInfo: 'objeto [nombre o ID]'
+    withdraw: 'with <cantidad|all> · sacar del cofre', work: 'work · misión del gremio', investment: 'invertir <cantidad> · inversión de 5 minutos', loan: 'prestamo <cantidad|estado|pagar> · préstamo RPG', characterClass: 'clase <guerrero|mago|picaro|tirador|paladin>', raid: 'raid <crear|unirse|atacar|estado>', combat: 'combate <iniciar|atacar|habilidad|defender|huir>', inventory: 'inventario', craft: 'fabricar [pocion|pocion_menor|pocion_mayor|elixir_energia]', quest: 'campaña [nueva|reclamar]', title: 'titulos', market: 'mercado <ver|publicar|comprar>', season: 'temporada', skills: 'habilidades', potion: 'pocion [ID]', useItem: 'usar <ID del consumible>', rpgstatus: 'estadisticas', premiumStatus: 'premiumtiempo [@jugador]', itemInfo: 'objeto [nombre o ID]'
 };
 
 function fmt(value) { return Number(value || 0).toLocaleString('es-ES'); }
@@ -305,24 +297,6 @@ function lootById(id) {
     const info = rarityInfo(rarity);
     return { ...item, id: raw, name: `${info.icon} ${info.label} ${item.name}`, sellPrice: Math.floor(item.sellPrice * info.multiplier) };
 }
-function raidClassMultiplier(user) {
-    return ({ guerrero: 1.25, mago: 1.15, picaro: 1.20, tirador: 1.20, paladin: 1.20 })[user.rpg?.class] || 1;
-}
-function raidTimeLeft(raid) { return timeLeft(Math.max(0, Number(raid.expiresAt) - Date.now())); }
-function raidParticipantsText(raid) {
-    return Object.values(raid.participants || {}).map(item => `• ${item.name || `Jugador ${numberOf(item.jid)}`}: *${fmt(item.damage)} daño*`).join('\n') || '• Nadie se ha unido todavía.';
-}
-function raidStatusText(raid, prefix) {
-    const boss = RAID_BOSSES[raid.bossId];
-    return `⚔️ *RAID: ${boss.name}*\n\n${boss.description}\n❤️ Jefe: *${fmt(Math.max(0, raid.hp))}/${fmt(raid.maxHp)} HP*\n⏳ Tiempo: *${raidTimeLeft(raid)}*\n👥 Participantes: *${Object.keys(raid.participants || {}).length}/8*\n\n${raidParticipantsText(raid)}\n\nÚnete: *${prefix}raid unirse*\nAtaca: *${prefix}raid atacar*`;
-}
-function grantRaidTitle(user, title) {
-    const rpg = ensureRpg(user);
-    rpg.titles ||= [];
-    if (rpg.titles.includes(title)) return false;
-    rpg.titles.push(title);
-    return true;
-}
 function addXp(user, amount = 5) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
     const now = Date.now();
@@ -334,23 +308,23 @@ function addXp(user, amount = 5) {
     return { gained: amount, levelUp: user.rpg.level > before, level: user.rpg.level };
 }
 const ACHIEVEMENTS = [
-    { id: 'first_steps', title: '🌱 Primeros pasos', test: s => s.commandsUsed >= 1, reward: 500 },
-    { id: 'level_five', title: '⭐ Aventurero nivel 5', test: (s, u) => u.rpg.level >= 5, reward: 2000 },
-    { id: 'miner', title: '⛏️ Minero incansable', test: s => s.mined >= 10, reward: 1500 },
-    { id: 'angler', title: '🎣 Maestro pescador', test: s => s.fished >= 10, reward: 1500 },
-    { id: 'hunter', title: '🏹 Cazador experto', test: s => s.hunted >= 10, reward: 1800 },
-    { id: 'dungeon', title: '🏰 Explorador de mazmorras', test: s => s.dungeonKills >= 50, reward: 3000 },
-    { id: 'mission', title: '📜 Cumplidor de misiones', test: s => s.missionsCompleted >= 1, reward: 2500 },
-    { id: 'clan', title: '⚔️ Fundador de clan', test: s => s.clansCreated >= 1, reward: 2000 },
-    { id: 'raid_dragon_ancestral', title: '🐉 Caída del Dragón Ancestral', test: s => Number(s.raidBosses?.dragon_ancestral) >= 1, reward: 10000 },
-    { id: 'raid_titan_abismal', title: '🗿 El Titán se arrodilla', test: s => Number(s.raidBosses?.titan_abismal) >= 1, reward: 12000 },
-    { id: 'raid_reina_nigromante', title: '👑 Silencio de la Reina Nigromante', test: s => Number(s.raidBosses?.reina_nigromante) >= 1, reward: 11000 },
-    { id: 'dungeon_veteran_100', title: '🏰 Leyenda de las profundidades', test: s => s.dungeonKills >= 100, reward: 5000 },
-    { id: 'treasure_hunter', title: '📦 Saqueador de mazmorras', test: s => s.dungeonDrops >= 10, reward: 4500 },
-    { id: 'rare_hunter', title: '🔷 Coleccionista de rarezas', test: s => s.rareDungeonDrops >= 5, reward: 5500 },
-    { id: 'legendary_hunter', title: '🌟 Reliquia legendaria', test: s => s.legendaryDungeonDrops >= 1, reward: 8500 },
-    { id: 'dungeon_gear', title: '⚔️ Reliquia del aventurero', test: s => s.dungeonGearDrops >= 1, reward: 6500 },
-    { id: 'armorer', title: '🛡️ Arsenal de élite', test: s => s.gearBought >= 4, reward: 4000 }
+    { id: 'first_steps', title: '🌱 Primeros pasos', test: s => s.commandsUsed >= 1, reward: 100 },
+    { id: 'level_five', title: '⭐ Aventurero nivel 5', test: (s, u) => u.rpg.level >= 5, reward: 500 },
+    { id: 'miner', title: '⛏️ Minero incansable', test: s => s.mined >= 10, reward: 250 },
+    { id: 'angler', title: '🎣 Maestro pescador', test: s => s.fished >= 10, reward: 250 },
+    { id: 'hunter', title: '🏹 Cazador experto', test: s => s.hunted >= 10, reward: 300 },
+    { id: 'dungeon', title: '🏰 Explorador de mazmorras', test: s => s.dungeonKills >= 50, reward: 500 },
+    { id: 'mission', title: '📜 Cumplidor de misiones', test: s => s.missionsCompleted >= 1, reward: 400 },
+    { id: 'clan', title: '⚔️ Fundador de clan', test: s => s.clansCreated >= 1, reward: 400 },
+    { id: 'raid_dragon_ancestral', title: '🐉 Caída del Dragón Ancestral', test: s => Number(s.raidBosses?.dragon_ancestral) >= 1, reward: 1500 },
+    { id: 'raid_titan_abismal', title: '🗿 El Titán se arrodilla', test: s => Number(s.raidBosses?.titan_abismal) >= 1, reward: 2000 },
+    { id: 'raid_reina_nigromante', title: '👑 Silencio de la Reina Nigromante', test: s => Number(s.raidBosses?.reina_nigromante) >= 1, reward: 1800 },
+    { id: 'dungeon_veteran_100', title: '🏰 Leyenda de las profundidades', test: s => s.dungeonKills >= 100, reward: 1000 },
+    { id: 'treasure_hunter', title: '📦 Saqueador de mazmorras', test: s => s.dungeonDrops >= 10, reward: 600 },
+    { id: 'rare_hunter', title: '🔷 Coleccionista de rarezas', test: s => s.rareDungeonDrops >= 5, reward: 750 },
+    { id: 'legendary_hunter', title: '🌟 Reliquia legendaria', test: s => s.legendaryDungeonDrops >= 1, reward: 1200 },
+    { id: 'dungeon_gear', title: '⚔️ Reliquia del aventurero', test: s => s.dungeonGearDrops >= 1, reward: 1000 },
+    { id: 'armorer', title: '🛡️ Arsenal de élite', test: s => s.gearBought >= 4, reward: 700 }
 ];
 function unlockAchievements(user) {
     user.rpg ||= { xp: 0, level: 1, lastXp: 0 };
@@ -392,34 +366,39 @@ function toolFor(value) {
     const wanted = normalizeShopItem(value);
     return Object.entries(MERCHANT_ITEMS).find(([id, item]) => [id, item.name, ...(item.aliases || [])].some(alias => normalizeShopItem(alias) === wanted))?.[0] || null;
 }
+function consumableFor(value) {
+    const wanted = normalizeShopItem(value);
+    return Object.entries(RPG_ITEMS).find(([id, item]) => item.type === 'consumible' && [id, item.name, ...(item.aliases || [])].some(alias => normalizeShopItem(alias) === wanted))?.[0] || null;
+}
 function merchantShopText(user, prefix = '.') {
     const tools = Object.entries(MERCHANT_ITEMS).map(([id, item]) => {
         const current = user.tools?.[id];
-        const durability = current?.durability > 0 ? ` · tienes ${current.durability}/${item.durability}` : '';
-        return `• *${item.name}* (\`${id}\`) — ${fmt(item.price)} oro · ${item.durability} usos${durability}`;
+        const durability = current?.durability > 0 ? ` · ${current.durability}/${item.durability} tuyos` : '';
+        return `• ${item.name} (\`${id}\`) · ${fmt(item.price)} oro · ${item.durability} usos${durability}`;
     });
-    const gear = classEquipment(user).map(item => `• *${item.name}* (\`${item.id}\`) — ${fmt(item.price)} oro · +${Math.round(item.bonus * 100)}% en ${activityText(item.activities)}`);
+    const gear = classEquipment(user).map(item => `• ${item.name} (\`${item.id}\`) · ${fmt(item.price)} oro · +${Math.round(item.bonus * 100)}%`);
+    const consumables = Object.entries(RPG_ITEMS).filter(([, item]) => item.type === 'consumible').map(([id, item]) => `• ${item.name} (\`${id}\`) · ${fmt(item.price)} oro`);
     const classLabel = CHARACTER_CLASSES[user.rpg?.class]?.label || 'tu clase';
     return [
-        '╭━━〔 🧑‍🌾 MERCADER RPG 〕━━╮',
-        '',
+        '🧑‍🌾 *MERCADER RPG*',
         '🛠️ *HERRAMIENTAS*',
         ...tools,
-        '',
+        '🧪 *CONSUMIBLES*',
+        ...consumables,
         `⚔️ *EQUIPO DE ${classLabel.toUpperCase()}*`,
         ...(gear.length ? gear : [`• Elige una clase con *${prefix}clase* para ver su equipo exclusivo.`]),
-        '',
-        `🛒 Compra: *${prefix}comprar <nombre o ID>*`,
-        `   Ejemplo: *${prefix}comprar pico* o *${prefix}comprar mandoble_dragon*`,
-        `   También: *${prefix}mercader comprar <nombre o ID>*`,
-        `📦 Vender botín: *${prefix}mercader vender*`,
-        `🏪 Mercado entre jugadores: *${prefix}mercado ver/publicar/comprar*`,
-        '╰━━━━━━━━━━━━━━━━━━━━━━━━╯'
+        `🛒 *${prefix}comprar <nombre o ID>* · Ej.: *${prefix}comprar pico*`,
+        `📦 *${prefix}mercader vender* · 🏪 *${prefix}mercado ver/publicar/comprar*`,
+        `🔎 Efectos: *${prefix}objeto <ID>* · recetas: *${prefix}fabricar*`
     ].join('\n');
 }
 async function sendMerchantQuickActions(sock, chatId, msg, user, prefix, quoted) {
     const tools = Object.entries(MERCHANT_ITEMS).map(([id, item]) => ({ label: `Comprar ${item.name.replace(/^[^\p{L}\p{N}]+/u, '')}`, command: `${prefix}comprar ${id}` }));
     await sendActionButtons(sock, chatId, '🛠️ Compra rápida de herramientas:', tools, quoted || msg);
+    const consumables = Object.entries(RPG_ITEMS).filter(([, item]) => item.type === 'consumible');
+    for (let index = 0; index < consumables.length; index += 3) {
+        await sendActionButtons(sock, chatId, '🧪 Compra rápida de consumibles:', consumables.slice(index, index + 3).map(([id, item]) => ({ label: `🧪 ${item.name.replace(/^[^\p{L}\p{N}]+/u, '')} · ${fmt(item.price)}`, command: `${prefix}comprar ${id}` })), quoted || msg);
+    }
     const categoryButtons = classEquipment(user).length
         ? [
             { label: '⚔️ Ver equipo', command: `${prefix}mercader equipo` },
@@ -486,7 +465,7 @@ function ensureDungeonState(user) {
 function ensureMission(user, forceNew = false) {
     if (forceNew || !user.mission || user.mission.completed) {
         const target = 15 + Math.floor(Math.random() * 6);
-        user.mission = { type: 'dungeon', target, progress: 0, reward: 12000 + Math.floor(Math.random() * 9001), createdAt: new Date().toISOString(), completed: false };
+        user.mission = { type: 'dungeon', target, progress: 0, reward: 1500 + Math.floor(Math.random() * 1001), createdAt: new Date().toISOString(), completed: false };
     }
     return user.mission;
 }
@@ -698,6 +677,24 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     ensureFeatureState(user);
     const args = String(q || '').trim().split(/\s+/).filter(Boolean);
     const save = () => saveBotData();
+    const grantActivityProgress = (activity, xpAmount = 5, triggerEvent = true) => {
+        const achievements = addStat(user, 'commandsUsed', 1);
+        const xpEvent = addXp(user, xpAmount);
+        const completedMissions = recordMissionEvent(user, activity, 1);
+        completedMissions.forEach(mission => addXp(user, mission.xp));
+        const randomEvent = triggerEvent ? maybeRandomEvent(user) : null;
+        const eventXp = randomEvent ? addXp(user, randomEvent.xp) : null;
+        const lines = [];
+        if (xpEvent.gained) lines.push(`✨ +${xpEvent.gained} XP${levelUpText(xpEvent)}`);
+        for (const mission of completedMissions) lines.push(`📜 Misión completada: *${mission.title}* · +${fmt(mission.reward)} ${COIN}`);
+        if (randomEvent) lines.push(`${randomEvent.title} · +${fmt(randomEvent.coins)} ${COIN}${eventXp?.gained ? ` · +${fmt(eventXp.gained)} XP` : ''}`);
+        if (achievements.length) lines.push(...achievements);
+        return { xpEvent, extraText: lines.length ? `\n\n${lines.join('\n')}` : '' };
+    };
+    const withRpgActions = async (sent, buttons, prompt = '⚔️ Continúa tu aventura:') => {
+        await sendActionButtons(sock, chatId, prompt, buttons, sent || msg);
+        return sent;
+    };
     if (canonical === 'premiumShop') {
         const buyAlias = String(command || '').toLowerCase() === 'comprarpremium';
         const action = String(args[0] || '').toLowerCase();
@@ -736,10 +733,10 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (canonical === 'tutorial') {
         return reply(sock, chatId, msg, tutorialText(user, prefix));
     }
-    const expansionResult = await handleExpansion({ sock, chatId, msg, canonical, args, user, jid, botData, save, prefix });
+    const expansionResult = await handleExpansion({ sock, chatId, msg, canonical, args, user, jid, botData, save, prefix, sameIdentity });
     if (expansionResult) {
         if (canonical === 'market' && ['ver', 'listado'].includes(String(args[0] || 'ver').toLowerCase())) {
-            const listings = Object.values(botData.rpgMarket || {}).filter(item => item.status === 'open' && !sameIdentity(botData, item.seller, jid)).slice(0, 3);
+            const listings = Object.values(botData.rpgMarket || {}).filter(item => item.status === 'open' && item.chatId === chatId && !sameIdentity(botData, item.seller, jid)).slice(0, 3);
             const buttons = listings.map(item => ({ label: `🛒 ${String(item.id).slice(-18)}`, command: `${prefix}mercado comprar ${item.id}` }));
             if (!listings.length) buttons.push(
                 { label: '📤 Publicar objeto', command: `${prefix}mercado publicar` },
@@ -750,15 +747,6 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         }
         return expansionResult;
     }
-    const mention = [jid];
-    const commandAchievements = addStat(user, 'commandsUsed', 1);
-    const xpEvent = addXp(user, (canonical === 'mine' || canonical === 'fish') ? 20 : 5);
-    const completedMissions = recordMissionEvent(user, canonical, 1);
-    const randomEvent = maybeRandomEvent(user);
-    if (xpEvent.gained || commandAchievements.length) save();
-    if (randomEvent) { const eventXp = addXp(user, randomEvent.xp); await reply(sock, chatId, msg, `${randomEvent.title}\n\n🪙 Premio: *+${fmt(randomEvent.coins)} ${COIN}*\n✨ XP extra: *+${randomEvent.xp}*${levelUpText(eventXp)}`); save(); }
-    if (completedMissions.length) { completedMissions.forEach(mission => addXp(user, mission.xp)); save(); }
-
     if (canonical === 'investment') {
         botData.investments ||= {};
         const active = investmentForUser(botData, chatId, jid);
@@ -922,88 +910,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         return sendImageCaption(sock, chatId, msg, classImagePath(requested), `🎉 *CLASE ELEGIDA*\n\n${selected.label}\n${selected.description}\n✨ Ventaja: ${selected.advantage}\n\n⭐ Nivel inicial: *${user.rpg.level}*\n✨ Experiencia: *${fmt(user.rpg.xp)} XP*\n\nTu clase aparecerá en *${prefix}perfil*.`);
     }
 
-    if (canonical === 'raid') {
-        state.raids ||= { active: null, history: [] };
-        let raid = state.raids.active;
-        if (raid && Number(raid.expiresAt) <= Date.now()) {
-            state.raids.history ||= [];
-            state.raids.history.push({ bossId: raid.bossId, status: 'expired', finishedAt: new Date().toISOString(), participants: Object.keys(raid.participants || {}).length });
-            state.raids.history = state.raids.history.slice(-20);
-            state.raids.active = null;
-            raid = null;
-            save();
-        }
-        const action = String(args[0] || 'estado').toLowerCase();
-        if (action === 'jefes' || action === 'bosses' || action === 'boss') {
-            const bosses = Object.entries(RAID_BOSSES).map(([id, boss]) => `👹 *${boss.name}* — *${id}*\n❤️ ${fmt(boss.hp)} HP · 🎁 ${fmt(boss.reward)} ${COIN}\n${boss.description}`).join('\n\n');
-            return reply(sock, chatId, msg, `👑 *JEFES ÉPICOS DISPONIBLES*\n\n${bosses}\n\nCrea una raid aleatoria con *${prefix}raid crear* o elige jefe con *${prefix}raid crear <id>*. `);
-        }
-        if (action === 'crear' || action === 'create') {
-            if (raid) return reply(sock, chatId, msg, `⚠️ Ya hay una raid activa.\n\n${raidStatusText(raid, prefix)}`);
-            const requestedBoss = String(args[1] || '').toLowerCase();
-            const bossId = RAID_BOSSES[requestedBoss] ? requestedBoss : random(Object.keys(RAID_BOSSES));
-            const boss = RAID_BOSSES[bossId];
-            raid = { bossId, hp: boss.hp, maxHp: boss.hp, reward: boss.reward, createdAt: new Date().toISOString(), expiresAt: Date.now() + 10 * 60 * 1000, participants: { [jid]: { jid, name: numberOf(jid), damage: 0, lastAttack: 0 } } };
-            state.raids.active = raid;
-            save();
-            return reply(sock, chatId, msg, `🚨 *RAID CREADA*\n\n${boss.name} ha despertado.\n❤️ Vida: *${fmt(boss.hp)} HP*\n🎁 Botín total: *${fmt(boss.reward)} ${COIN}*\n⏳ Tenéis *10 minutos* para derrotarlo.\n\nLos demás jugadores pueden unirse con *${prefix}raid unirse*.\n${raidStatusText(raid, prefix)}`);
-        }
-        if (!raid) return reply(sock, chatId, msg, `⚔️ No hay una raid activa. Crea una con *${prefix}raid crear*.`);
-        if (action === 'unirse' || action === 'join') {
-            if (raid.participants[jid]) return reply(sock, chatId, msg, `✅ Ya estás dentro de la raid contra *${RAID_BOSSES[raid.bossId].name}*. Usa *${prefix}raid atacar* para golpear.`);
-            if (Object.keys(raid.participants).length >= 8) return reply(sock, chatId, msg, '❌ La raid ya alcanzó el límite de 8 aventureros.');
-            raid.participants[jid] = { jid, name: numberOf(jid), damage: 0, lastAttack: 0 };
-            save();
-            return reply(sock, chatId, msg, `🤝 *${numberOf(jid)} se unió a la raid*\n\n${raidStatusText(raid, prefix)}`);
-        }
-        if (action === 'estado' || action === 'status' || action === 'ver') return reply(sock, chatId, msg, raidStatusText(raid, prefix));
-        if (action === 'atacar' || action === 'ataque' || action === 'attack') {
-            const participant = raid.participants[jid];
-            if (!participant) return reply(sock, chatId, msg, `❌ Primero únete con *${prefix}raid unirse*.`);
-            const wait = cooldown(participant, 'lastAttack', 25e3);
-            if (wait) return reply(sock, chatId, msg, `⏳ Tu ataque se está recargando. Vuelve en *${timeLeft(wait)}*.`);
-            const level = Math.max(1, Number(user.rpg.level) || 1);
-            const baseDamage = 450 + level * 130 + Math.floor(Math.random() * 251);
-            const damage = Math.max(1, Math.floor(baseDamage * raidClassMultiplier(user) * equipmentRewardMultiplier(user, 'raid')));
-            participant.lastAttack = Date.now();
-            participant.damage = (Number(participant.damage) || 0) + damage;
-            raid.hp = Math.max(0, raid.hp - damage);
-            if (raid.hp > 0) {
-                save();
-                return reply(sock, chatId, msg, `💥 *${numberOf(jid)} atacó a ${RAID_BOSSES[raid.bossId].name}*\n⚔️ Daño causado: *${fmt(damage)}*\n❤️ Vida restante: *${fmt(raid.hp)}/${fmt(raid.maxHp)} HP*\n\n${raidStatusText(raid, prefix)}`);
-            }
-            const boss = RAID_BOSSES[raid.bossId];
-            const members = Object.values(raid.participants);
-            const rewards = [];
-            for (const member of members) {
-                const found = findUser(state, member.jid);
-                if (!found) continue;
-                const memberUser = found.user;
-                const share = Math.max(1, Math.floor((raid.reward / members.length) * equipmentRewardMultiplier(memberUser, 'raid')));
-                memberUser.coins = (Number(memberUser.coins) || 0) + share;
-                memberUser.rpg ||= { xp: 0, level: 1, lastXp: 0 };
-                memberUser.rpg.lastXp = 0;
-                const xp = addXp(memberUser, boss.xp);
-                const regularUnlocks = addStat(memberUser, 'raidsCompleted', 1);
-                memberUser.rpg.stats ||= {};
-                memberUser.rpg.stats.raidBosses ||= {};
-                memberUser.rpg.stats.raidBosses[raid.bossId] = (Number(memberUser.rpg.stats.raidBosses[raid.bossId]) || 0) + 1;
-                const raidUnlocks = unlockAchievements(memberUser);
-                const titleGranted = grantRaidTitle(memberUser, RAID_TITLES[raid.bossId]);
-                updateTitles(memberUser);
-                const unlockText = [...regularUnlocks, ...raidUnlocks].length ? `\n🏆 ${[...regularUnlocks, ...raidUnlocks].join('\n🏆 ')}` : '';
-                const titleText = titleGranted ? `\n🏅 *Título desbloqueado:* ${RAID_TITLES[raid.bossId]}` : '';
-                rewards.push(`• ${member.name}: *+${fmt(share)} ${COIN}* y *+${fmt(xp.gained || boss.xp)} XP*${unlockText}${titleText}`);
-            }
-            state.raids.history ||= [];
-            state.raids.history.push({ bossId: raid.bossId, status: 'victory', finishedAt: new Date().toISOString(), participants: members.length, damage: members.reduce((sum, item) => sum + item.damage, 0) });
-            state.raids.history = state.raids.history.slice(-20);
-            state.raids.active = null;
-            save();
-            return reply(sock, chatId, msg, `🏆 *¡${boss.name} HA SIDO DERROTADO!*\n\n⚔️ Daño de tu golpe final: *${fmt(damage)}*\n👥 Recompensas compartidas:\n${rewards.join('\n')}\n\nLa raid terminó. Crea otra con *${prefix}raid crear*.`);
-        }
-        return reply(sock, chatId, msg, `⚔️ Usa *${prefix}raid crear*, *${prefix}raid unirse*, *${prefix}raid atacar* o *${prefix}raid estado*.`);
-    }
+    if (canonical === 'raid') return reply(sock, chatId, msg, `🐉 Usa *${prefix}raid ayuda* para entrar a la raid cooperativa del grupo.`);
 
     if (canonical === 'merchant') {
         const merchantAction = String(args[0] || '').toLowerCase();
@@ -1045,6 +952,16 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             save();
             return sendItemCaption(sock, chatId, msg, gear.id, `✅ *COMPRA COMPLETADA*\n\n${gear.name}\n💸 Precio: *${fmt(gear.price)} ${COIN}*\n⚔️ Equipo activado: *+${Math.round(gear.bonus * 100)}%* en ${activityText(gear.activities)}\n🪙 Saldo: *${fmt(user.coins)} ${COIN}*${achievementText(gearAchievements)}`);
         }
+        const consumableId = consumableFor(requestedItem);
+        if (consumableId) {
+            const item = RPG_ITEMS[consumableId];
+            if (user.coins < item.price) return reply(sock, chatId, msg, `╭━━〔 🪙 ORO INSUFICIENTE 〕━━╮\n│ ${item.name}\n│ Precio: *${fmt(item.price)} ${COIN}*\n│ Tu saldo: *${fmt(user.coins)} ${COIN}*\n│ Te faltan: *${fmt(item.price - user.coins)}*\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
+            user.coins -= item.price;
+            user.rpg.inventory[consumableId] = (Number(user.rpg.inventory[consumableId]) || 0) + 1;
+            save();
+            const effect = item.heal ? `❤️ Recupera hasta *${item.heal} HP*` : `⚡ Recupera hasta *${item.energy} energía*`;
+            return sendItemCaption(sock, chatId, msg, consumableId, `✅ *CONSUMIBLE COMPRADO*\n\n${item.name}\n💸 Precio: *${fmt(item.price)} ${COIN}*\n${effect}\n🎒 Cantidad: *${user.rpg.inventory[consumableId]}*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*\n\nÚsalo con *${prefix}usar ${consumableId}* o *${prefix}pocion ${consumableId}*.`);
+        }
         if (!selected) {
             const wanted = normalizeShopItem(requestedItem);
             const recipe = Object.entries(RECIPES).find(([id, item]) => [id, item.name].some(alias => normalizeShopItem(alias) === wanted));
@@ -1076,6 +993,8 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     if (canonical === 'explore') {
         const wait = cooldown(user, 'lastExplore', 75e3);
         if (wait) return commandReply(sock, chatId, msg, 'explore', `⏳ Ya estás explorando. Regresa en *${timeLeft(wait)}*.`);
+        const dailyLimit = consumeAction(user, 'explore', DAILY_ACTIVITY_LIMITS.explore);
+        if (!dailyLimit.ok) return commandReply(sock, chatId, msg, 'explore', `🛡️ Ya completaste tus *${dailyLimit.limit} expediciones* de hoy. Vuelve mañana para que el reino renueve tus fuerzas.`);
         const reward = random(EXPLORATION_REWARDS);
         const discovery = random(['un santuario antiguo', 'una aldea escondida', 'un mapa misterioso', 'una cueva cristalina', 'un campamento abandonado']);
         const clan = getUserClan(botData.clans, jid);
@@ -1087,9 +1006,15 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             clan.level = clanLevel(clan);
             clanText = `\n⭐ ${clan.name}: *+35 XP de clan* · Nivel *${clan.level}*`;
         }
+        const activityProgress = grantActivityProgress('explore', 5);
         save();
         await animate(sock, chatId, msg, ['🧭 Preparando la expedición...', '🗺️ Atravesando el bosque... ▰▱▱▱▱▱▱▱▱▱', '🗺️ Siguiendo un camino desconocido... ▰▰▰▰▰▰▱▱▱▱', `✨ Descubriste ${discovery}!`]);
-        return commandReply(sock, chatId, msg, 'explore', `✅ Exploración completada\n\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*${clanText}\n⭐ +${xpEvent.gained || 0} XP`);
+        const sent = await commandReply(sock, chatId, msg, 'explore', `✅ Exploración completada\n\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)} ${COIN}*${clanText}${activityProgress.extraText}`);
+        return withRpgActions(sent, [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '🏰 Mazmorra', command: `${prefix}mazmorra` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ]);
     }
 
     if (canonical === 'gather') {
@@ -1097,14 +1022,22 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (wait) return commandReply(sock, chatId, msg, 'gather', `⏳ Ya recolectaste recursos recientemente. Vuelve en *${timeLeft(wait)}*.`);
         const tool = toolState(user, 'pico');
         if (!tool) return commandReply(sock, chatId, msg, 'gather', `❌ Necesitas un ⛏️ *pico* para recolectar recursos.\nUsa *${prefix}mercader pico*.`);
+        const dailyLimit = consumeAction(user, 'gather', DAILY_ACTIVITY_LIMITS.gather);
+        if (!dailyLimit.ok) return commandReply(sock, chatId, msg, 'gather', `🛡️ Ya recolectaste el máximo de *${dailyLimit.limit} veces* hoy. Vuelve mañana.`);
         const reward = random(GATHERING_REWARDS);
         const resource = random(['cristales', 'hierbas raras', 'madera encantada', 'semillas mágicas', 'fragmentos de mineral']);
         const used = consumeTool(user, 'pico');
         user.coins += reward;
         user.lastGather = Date.now();
+        const activityProgress = grantActivityProgress('gather', 5);
         save();
         await animate(sock, chatId, msg, ['🌿 Buscando recursos...', '🌿 Recolectando materiales... ▰▱▱▱▱▱▱▱▱▱', '🌿 La bolsa empieza a llenarse... ▰▰▰▰▰▰▰▱▱▱', `📦 Encontraste ${resource}!`]);
-        return commandReply(sock, chatId, msg, 'gather', `✅ Recolección completada\n\n📦 Recurso: *${resource}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n🔧 Pico: *${used.durability}/${MERCHANT_ITEMS.pico.durability} usos*${used.broken ? `\n💥 Tu pico se rompió. Compra otro en *${prefix}mercader*.` : ''}`);
+        const sent = await commandReply(sock, chatId, msg, 'gather', `✅ Recolección completada\n\n📦 Recurso: *${resource}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n🔧 Pico: *${used.durability}/${MERCHANT_ITEMS.pico.durability} usos*${used.broken ? `\n💥 Tu pico se rompió. Compra otro en *${prefix}mercader*.` : ''}${activityProgress.extraText}`);
+        return withRpgActions(sent, [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '⛏️ Minar', command: `${prefix}minar` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ]);
     }
 
     if (canonical === 'patrol') {
@@ -1112,25 +1045,48 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         if (!clan) return commandReply(sock, chatId, msg, 'patrol', `❌ Debes pertenecer a un clan para patrullar. Usa *${prefix}clan* para unirte a uno.`);
         const wait = cooldown(user, 'lastPatrol', 120e3);
         if (wait) return commandReply(sock, chatId, msg, 'patrol', `⏳ El clan ya fue patrullado. Vuelve en *${timeLeft(wait)}*.`);
+        const dailyLimit = consumeAction(user, 'patrol', DAILY_ACTIVITY_LIMITS.patrol);
+        if (!dailyLimit.ok) return commandReply(sock, chatId, msg, 'patrol', `🛡️ El clan ya completó sus *${dailyLimit.limit} patrullas* diarias. Vuelve mañana.`);
         const reward = random([400, 550, 700, 900]);
         const clanXp = random([80, 100, 120, 150]);
         user.coins += reward;
         user.lastPatrol = Date.now();
         clan.xp = (Number(clan.xp) || 0) + clanXp;
         clan.level = clanLevel(clan);
+        const activityProgress = grantActivityProgress('patrol', 5);
         save();
         await animate(sock, chatId, msg, ['🛡️ Reuniendo a la guardia del clan...', '🛡️ Revisando las fronteras... ▰▱▱▱▱▱▱▱▱▱', '🛡️ Detectando huellas enemigas... ▰▰▰▰▰▰▰▰▱▱', '✅ ¡La frontera está segura!']);
-        return commandReply(sock, chatId, msg, 'patrol', `🛡️ *PATRULLA DEL CLAN*\n\n🏰 Clan: *${clan.name}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n⭐ XP del clan: *+${clanXp}*\n📈 Nivel del clan: *${clan.level}*`);
+        const sent = await commandReply(sock, chatId, msg, 'patrol', `🛡️ *PATRULLA DEL CLAN*\n\n🏰 Clan: *${clan.name}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*\n⭐ XP del clan: *+${clanXp}*\n📈 Nivel del clan: *${clan.level}*${activityProgress.extraText}`);
+        return withRpgActions(sent, [
+            { label: '⚔️ Clan', command: `${prefix}clan` },
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ]);
     }
 
     if (canonical === 'mission') {
         const action = String(args[0] || '').toLowerCase();
         if (action === 'diarias' || action === 'diaria' || action === 'semanales' || action === 'semanal' || !action) {
             const sent = await commandReply(sock, chatId, msg, 'mission', `📜 *MISIONES DEL AVENTURERO*\n\n${missionText(user, prefix)}`);
-            await sendActionButtons(sock, chatId, '🎯 Elige tu próxima actividad:', [
+            await sendActionButtons(sock, chatId, '💼 Empleos y encargos:', [
                 { label: '💼 Trabajar', command: `${prefix}work` },
+                { label: '🕵️ Encargo', command: `${prefix}crime` },
+                { label: '🎭 Actuar', command: `${prefix}slut` }
+            ], sent || msg);
+            await sendActionButtons(sock, chatId, '⛏️ Oficios del aventurero:', [
+                { label: '⛏️ Minar', command: `${prefix}minar` },
+                { label: '🎣 Pescar', command: `${prefix}pescar` },
+                { label: '🏹 Cazar', command: `${prefix}cazar` }
+            ], sent || msg);
+            await sendActionButtons(sock, chatId, '🧭 Exploración y mazmorras:', [
+                { label: '🧭 Explorar', command: `${prefix}explorar` },
                 { label: '🌿 Recolectar', command: `${prefix}recolectar` },
-                { label: '🧭 Explorar', command: `${prefix}explorar` }
+                { label: '🏰 Mazmorra', command: `${prefix}mazmorra` }
+            ], sent || msg);
+            await sendActionButtons(sock, chatId, '🗂️ Más opciones RPG:', [
+                { label: '🎁 Recompensa diaria', command: `${prefix}daily` },
+                { label: '🛡️ Patrullar clan', command: `${prefix}patrullar` },
+                { label: '⚔️ Menú RPG completo', command: `${prefix}rpgmenu` }
             ], sent || msg);
             return sent;
         }
@@ -1173,7 +1129,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         user.coins += reward;
         const gearPool = classEquipment(user).filter(item => item.dungeonDrop && !user.equipment?.[item.id]);
         const droppedGear = gearPool.length && Math.random() < 0.04 ? random(gearPool) : null;
-        const droppedLoot = !droppedGear && Math.random() < 0.55 ? random(DUNGEON_LOOT) : null;
+        const droppedLoot = !droppedGear && Math.random() < 0.35 ? random(DUNGEON_LOOT) : null;
         const lootAchievements = [];
         if (droppedLoot) {
             user.loot ||= {};
@@ -1207,6 +1163,7 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             completion = `\n\n🎉 *¡Misión completada!*\n🎁 Bonus: *${fmt(mission.reward)} ${COIN}*\n📜 Nueva misión: derrota *${nextMission.target} monstruos*.`;
             user.lastCompletedMission = completedTarget;
         }
+        const activityProgress = grantActivityProgress('dungeon', 5);
         const unlocked = [...dungeonAchievements, ...missionAchievements, ...lootAchievements];
         save();
         await animate(sock, chatId, msg, ['🏰 Las puertas de la mazmorra se abren...', '👾 Monstruos detectados... ▰▱▱▱▱▱▱▱▱▱', `⚔️ Derrotando monstruos... *${kills} eliminados*`, '🏆 ¡Has sobrevivido a la expedición!']);
@@ -1215,17 +1172,38 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             : droppedLoot
                 ? `📦 *DROP:* ${droppedLoot._rare.label}\n💰 Puedes venderlo con *${prefix}mercader vender ${droppedLoot._rare.id}* o subastarlo con *${prefix}subastar ${droppedLoot._rare.id} <precio>*`
                 : '🔍 No encontraste un drop vendible esta vez.';
-        return sendImageCaption(sock, chatId, msg, droppedGear ? itemImagePath(droppedGear.id) : dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${rewardClassText}${rewardEquipmentText}\n${dropText}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${levelUpText(xpEvent)}`);
+        const sent = await sendImageCaption(sock, chatId, msg, droppedGear ? itemImagePath(droppedGear.id) : dungeonImagePath(), `✅ Expedición completada\n\n👾 Monstruos derrotados: *${kills}*\n🪙 Recompensa: *${fmt(reward)} ${COIN}*${rewardClassText}${rewardEquipmentText}\n${dropText}\n📜 Misión: *${mission.progress}/${mission.target}*\n🚪 Entradas hoy: *${dungeon.runs}/3*\n🏚️ Integridad de mazmorra: *${dungeon.integrity}/100*\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n🔧 Espada: *${used.durability}/12 usos*${used.broken ? '\n💥 Tu espada se rompió. Compra otra en el mercader.' : ''}${completion}${achievementText(unlocked)}${activityProgress.extraText}`);
+        const canRunAgain = dungeon.runs < 3 && dungeon.integrity >= 25 && Boolean(toolState(user, 'espada')) && user.rpg.energy >= 18;
+        const nextCommand = canRunAgain ? `${prefix}mazmorra` : dungeon.integrity < 25 ? `${prefix}reparar` : !toolState(user, 'espada') ? `${prefix}mercader` : `${prefix}usar elixir_energia`;
+        const nextLabel = canRunAgain ? '🏰 Otra expedición' : dungeon.integrity < 25 ? '🔧 Reparar' : !toolState(user, 'espada') ? '🧑‍🌾 Comprar espada' : '⚡ Recuperar energía';
+        const buttons = [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '🎒 Inventario', command: `${prefix}inventario` },
+            { label: nextLabel, command: nextCommand }
+        ];
+        return withRpgActions(sent, buttons, '🏰 Elige tu siguiente paso:');
     }
 
     if (canonical === 'level') {
-        return reply(sock, chatId, msg, `🧙 *PERFIL RPG*\n\n👤 @${numberOf(jid)}\n⭐ Nivel: *${user.rpg.level}*\n✨ XP total: *${fmt(user.rpg.xp)}*\n${levelBar(user)}`, { mentions: [jid] });
+        const sent = await reply(sock, chatId, msg, `🧙 *PERFIL RPG*\n\n👤 @${numberOf(jid)}\n⭐ Nivel: *${user.rpg.level}*\n✨ XP total: *${fmt(user.rpg.xp)} XP*\n${levelBar(user)}`, { mentions: [jid] });
+        await sendActionButtons(sock, chatId, '⭐ Sigue avanzando:', [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '✨ Habilidades', command: `${prefix}habilidades` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ], sent || msg);
+        return sent;
     }
 
     if (canonical === 'achievements') {
         const unlocked = user.rpg.achievements || {};
         const rows = ACHIEVEMENTS.map(item => `${unlocked[item.id] ? '✅' : '🔒'} ${item.title} · +${fmt(item.reward)} ${COIN}`).join('\n');
-        return reply(sock, chatId, msg, `🏆 *LOGROS RPG*\n\n${rows}\n\nDesbloqueados: *${Object.keys(unlocked).length}/${ACHIEVEMENTS.length}*`);
+        const sent = await reply(sock, chatId, msg, `🏆 *LOGROS RPG*\n\n${rows}\n\nDesbloqueados: *${Object.keys(unlocked).length}/${ACHIEVEMENTS.length}*`);
+        await sendActionButtons(sock, chatId, '🏆 Continúa tu progreso:', [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '⭐ Nivel', command: `${prefix}nivel` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ], sent || msg);
+        return sent;
     }
 
     if (canonical === 'mine' || canonical === 'fish' || canonical === 'hunt') {
@@ -1236,16 +1214,21 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const waitMs = isMine ? 45e3 : isFish ? 60e3 : 50e3;
         const wait = cooldown(user, waitKey, waitMs);
         if (wait) return commandReply(sock, chatId, msg, canonical, `⏳ Tu personaje necesita descansar. Vuelve en *${timeLeft(wait)}*.\n👉 Mientras esperas, revisa *${prefix}misiones* o *${prefix}inventario*.`);
-        if (user.rpg.energy < (isMine ? 5 : isFish ? 6 : 7)) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía.\nNecesitas: *${isMine ? 5 : isFish ? 6 : 7}*\nTienes: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n\n✅ Solución: espera a que se recupere o consulta los tiempos con *${prefix}einfo*.`);
-        const limit = consumeAction(user, canonical, isMine ? 40 : isFish ? 30 : 30);
-        if (!limit.ok) return commandReply(sock, chatId, msg, canonical, `🛡️ Alcanzaste el límite diario de *${limit.limit}* acciones para este comando. Vuelve mañana.`);
-        const energy = consumeEnergy(user, isMine ? 5 : isFish ? 6 : 7);
-        if (!energy.ok) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía.\nNecesitas: *${isMine ? 5 : isFish ? 6 : 7}*\nTienes: *${energy.energy}/${energy.maxEnergy}*\n\n✅ Solución: espera la recuperación y vuelve a usar *${prefix}${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}*.`);
         const tool = toolState(user, toolKey);
         if (!tool) {
             const names = { pico: '⛏️ pico', cana: '🎣 caña de pescar', espada: '⚔️ espada' };
-            return commandReply(sock, chatId, msg, canonical, `❌ Necesitas comprar un ${names[toolKey]} para poder ${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}.\nUsa *${prefix}mercader* para visitar la tienda del gremio.`);
+            const sent = await commandReply(sock, chatId, msg, canonical, `❌ Necesitas comprar un ${names[toolKey]} para poder ${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}.\nUsa *${prefix}mercader* para visitar la tienda del gremio.`);
+            return withRpgActions(sent, [
+                { label: '🧑‍🌾 Abrir mercader', command: `${prefix}mercader` },
+                { label: '🎒 Inventario', command: `${prefix}inventario` },
+                { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+            ]);
         }
+        if (user.rpg.energy < (isMine ? 5 : isFish ? 6 : 7)) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía.\nNecesitas: *${isMine ? 5 : isFish ? 6 : 7}*\nTienes: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n\n✅ Solución: espera a que se recupere o consulta los tiempos con *${prefix}einfo*.`);
+        const limit = consumeAction(user, canonical, DAILY_ACTIVITY_LIMITS[canonical]);
+        if (!limit.ok) return commandReply(sock, chatId, msg, canonical, `🛡️ Alcanzaste el límite diario de *${limit.limit}* acciones para este comando. Vuelve mañana.`);
+        const energy = consumeEnergy(user, isMine ? 5 : isFish ? 6 : 7);
+        if (!energy.ok) return commandReply(sock, chatId, msg, canonical, `⚡ No tienes suficiente energía.\nNecesitas: *${isMine ? 5 : isFish ? 6 : 7}*\nTienes: *${energy.energy}/${energy.maxEnergy}*\n\n✅ Solución: espera la recuperación y vuelve a usar *${prefix}${isMine ? 'minar' : isFish ? 'pescar' : 'cazar'}*.`);
         const baseReward = random(isMine ? MINING_REWARDS : isFish ? FISHING_REWARDS : HUNTING_REWARDS);
         const reward = Math.floor(baseReward * classRewardMultiplier(user, canonical) * equipmentRewardMultiplier(user, canonical));
         const baseItem = isMine ? random(['carbón', 'hierro', 'oro', 'diamante', 'redstone']) : isFish ? random(['bacalao', 'salmón', 'pez globo', 'tesoro', 'libro encantado']) : random(['conejo', 'jabalí', 'ciervo', 'zorro', 'lobo salvaje']);
@@ -1255,12 +1238,18 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         user.coins += reward;
         user[waitKey] = Date.now();
         const unlocked = addStat(user, isMine ? 'mined' : isFish ? 'fished' : 'hunted', 1);
+        const activityProgress = grantActivityProgress(canonical, isMine || isFish ? 20 : 5);
         save();
         const frames = isMine
             ? [`⛏️ *${numberOf(jid)}* entra a una mina...`, '⛏️ Rompiendo piedra... ▰▱▱▱▱▱▱▱▱▱', '⛏️ Rompiendo piedra... ▰▰▰▰▰▱▱▱▱▱', `💎 ¡Encontraste ${item}!`]
             : isFish ? [`🎣 *${numberOf(jid)}* lanza la caña...`, '🎣 El agua se mueve... ▰▱▱▱▱▱▱▱▱▱', '🎣 ¡Algo mordió el anzuelo! ▰▰▰▰▰▰▱▱▱▱', `🐟 ¡Pescaste ${item}!`] : [`⚔️ *${numberOf(jid)}* se prepara para cazar...`, '⚔️ Siguiendo huellas... ▰▱▱▱▱▱▱▱▱▱', '⚔️ ¡La presa apareció! ▰▰▰▰▰▰▱▱▱▱', `🏹 ¡Cazaste un ${item}!`];
         await animate(sock, chatId, msg, frames);
-        return commandReply(sock, chatId, msg, canonical, `✅ Encontraste *${item}*\n🪙 Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*\n⭐ +${xpEvent.gained || 0} XP${levelUpText(xpEvent)}${achievementText(unlocked)}`);
+        const sent = await commandReply(sock, chatId, msg, canonical, `✅ Encontraste *${item}*\n🪙 Recibiste *${fmt(reward)} ${COIN}*\n💰 Saldo: *${fmt(user.coins)}*\n🔧 ${toolKey}: *${used.durability}/${MERCHANT_ITEMS[toolKey].durability} usos*${used.broken ? `\n💥 Tu ${toolKey} se rompió. Compra otro en *${prefix}mercader*.` : ''}${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}*${achievementText(unlocked)}${activityProgress.extraText}`);
+        return withRpgActions(sent, [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '🧭 Explorar', command: `${prefix}explorar` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ]);
     }
 
     if (canonical === 'clan') {
@@ -1278,20 +1267,37 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
                 if (!target) return commandReply(sock, chatId, msg, 'clan', `❌ Clan objetivo no encontrado. Usa *${prefix}clan* para ver los clanes.`);
                 const targetKey = clanKey(target.name);
                 if (targetKey === currentKey) return commandReply(sock, chatId, msg, 'clan', '❌ No puedes desafiar a tu propio clan.');
-                if (clanWarList(botData.clanWars).some(war => [war.challenger, war.defender].includes(currentKey) && [war.challenger, war.defender].includes(targetKey))) return commandReply(sock, chatId, msg, 'clan', '⚔️ Ya existe una guerra pendiente o activa entre esos clanes.');
+                const cooldownUntil = Math.max(Number(currentClan.warCooldownUntil) || 0, Number(target.warCooldownUntil) || 0);
+                if (cooldownUntil > Date.now()) return commandReply(sock, chatId, msg, 'clan', `⏳ Uno de los clanes debe descansar *${timeLeft(cooldownUntil - Date.now())}* antes de iniciar otra guerra.`);
+                if (clanWarList(botData.clanWars).some(war => ['pending', 'accepted'].includes(war.status) && [currentKey, targetKey].some(key => [war.challenger, war.defender].includes(key)))) return commandReply(sock, chatId, msg, 'clan', '⚔️ Uno de esos clanes ya tiene una guerra pendiente o activa.');
                 const id = `war-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
                 botData.clanWars[id] = { id, challenger: currentKey, defender: targetKey, status: 'pending', createdAt: new Date().toISOString() };
                 save();
-                return commandReply(sock, chatId, msg, 'clan', `⚔️ *DESAFÍO ENVIADO*\n\n🏰 ${currentClan.name} vs ${target.name}\n\nEl líder de *${target.name}* debe aceptar con:\n*${prefix}clan guerra aceptar*`);
+                const sent = await commandReply(sock, chatId, msg, 'clan', `⚔️ *DESAFÍO ENVIADO*\n\n🏰 ${currentClan.name} vs ${target.name}\n\nEl líder de *${target.name}* puede aceptar con el botón o con:\n*${prefix}clan guerra aceptar*`);
+                await sendActionButtons(sock, chatId, '⚔️ Desafío de clan:', [
+                    { label: '✅ Aceptar guerra', command: `${prefix}clan guerra aceptar` },
+                    { label: '📜 Ver guerras', command: `${prefix}clan guerra` },
+                    { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+                ], sent || msg);
+                return sent;
             }
             if (['aceptar', 'accept'].includes(subAction)) {
                 if (currentClan.owner !== jid) return commandReply(sock, chatId, msg, 'clan', '❌ Solo el líder del clan puede aceptar una guerra.');
                 const war = clanWarList(botData.clanWars).find(item => item.status === 'pending' && item.defender === currentKey);
                 if (!war) return commandReply(sock, chatId, msg, 'clan', '❌ No tienes desafíos de guerra pendientes.');
+                const challengerClan = botData.clans[war.challenger];
+                const cooldownUntil = Math.max(Number(currentClan.warCooldownUntil) || 0, Number(challengerClan?.warCooldownUntil) || 0);
+                if (cooldownUntil > Date.now()) return commandReply(sock, chatId, msg, 'clan', `⏳ Uno de los clanes debe descansar *${timeLeft(cooldownUntil - Date.now())}* antes de iniciar otra guerra.`);
                 war.status = 'accepted';
                 war.acceptedAt = new Date().toISOString();
                 save();
-                return commandReply(sock, chatId, msg, 'clan', `🛡️ *GUERRA ACEPTADA*\n\nYa puedes resolver el combate con:\n*${prefix}clan guerra combatir*`);
+                const sent = await commandReply(sock, chatId, msg, 'clan', `🛡️ *GUERRA ACEPTADA*\n\nEl líder puede resolver el combate con el botón o con:\n*${prefix}clan guerra combatir*`);
+                await sendActionButtons(sock, chatId, '🛡️ Acciones de guerra:', [
+                    { label: '⚔️ Resolver combate', command: `${prefix}clan guerra combatir` },
+                    { label: '📜 Ver guerras', command: `${prefix}clan guerra` },
+                    { label: '🏰 Info del clan', command: `${prefix}clan info` }
+                ], sent || msg);
+                return sent;
             }
             if (['combatir', 'resolver', 'fight', 'batalla'].includes(subAction)) {
                 if (currentClan.owner !== jid) return commandReply(sock, chatId, msg, 'clan', '❌ Solo el líder puede iniciar el combate.');
@@ -1300,12 +1306,14 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
                 const challenger = botData.clans[war.challenger];
                 const defender = botData.clans[war.defender];
                 if (!challenger || !defender) return commandReply(sock, chatId, msg, 'clan', '❌ La guerra ya no es válida porque falta uno de los clanes.');
+                const cooldownUntil = Math.max(Number(challenger.warCooldownUntil) || 0, Number(defender.warCooldownUntil) || 0);
+                if (cooldownUntil > Date.now()) return commandReply(sock, chatId, msg, 'clan', `⏳ Uno de los clanes debe descansar *${timeLeft(cooldownUntil - Date.now())}* antes de resolver otra guerra.`);
                 const challengerPower = clanPower(challenger);
                 const defenderPower = clanPower(defender);
                 const winner = challengerPower >= defenderPower ? challenger : defender;
                 const loser = winner === challenger ? defender : challenger;
-                const reward = 5000 + (loser.members?.length || 1) * 1000;
-                const xpReward = 250 + (loser.members?.length || 1) * 50;
+                const reward = 1500 + Math.min(10, Math.max(1, loser.members?.length || 1)) * 250;
+                const xpReward = 100 + Math.min(10, Math.max(1, loser.members?.length || 1)) * 25;
                 winner.coins = (Number(winner.coins) || 0) + reward;
                 winner.xp = (Number(winner.xp) || 0) + xpReward;
                 winner.level = clanLevel(winner);
@@ -1316,13 +1324,27 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
                 war.winner = clanKey(winner.name);
                 war.challengerPower = challengerPower;
                 war.defenderPower = defenderPower;
-                if (winner === currentClan) user.coins += reward;
+                const nextWarAt = Date.now() + CLAN_WAR_COOLDOWN;
+                challenger.warCooldownUntil = nextWarAt;
+                defender.warCooldownUntil = nextWarAt;
                 save();
-                return commandReply(sock, chatId, msg, 'clan', `🏆 *GUERRA RESUELTA*\n\n👑 Ganador: *${winner.name}*\n⚔️ Poder: *${winner === challenger ? challengerPower : defenderPower}*\n💥 Derrotado: *${loser.name}*\n\n🪙 Premio del clan: *${fmt(reward)} ${COIN}*\n⭐ XP del clan: *+${fmt(xpReward)}*\n📈 Nivel de ${winner.name}: *${winner.level}*\n🏆 Victorias: *${winner.wins}*`);
+                const sent = await commandReply(sock, chatId, msg, 'clan', `🏆 *GUERRA RESUELTA*\n\n👑 Ganador: *${winner.name}*\n⚔️ Poder: *${winner === challenger ? challengerPower : defenderPower}*\n💥 Derrotado: *${loser.name}*\n\n🪙 Premio del clan: *${fmt(reward)} ${COIN}* (solo tesorería)\n⭐ XP del clan: *+${fmt(xpReward)}*\n📈 Nivel de ${winner.name}: *${winner.level}*\n🏆 Victorias: *${winner.wins}*\n⏳ Próxima guerra: en 6 horas.`);
+                await sendActionButtons(sock, chatId, '🏆 Sigue la aventura del clan:', [
+                    { label: '🏰 Info del clan', command: `${prefix}clan info` },
+                    { label: '📜 Ver guerras', command: `${prefix}clan guerra` },
+                    { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+                ], sent || msg);
+                return sent;
             }
             const wars = clanWarList(botData.clanWars).filter(war => [war.challenger, war.defender].includes(currentKey));
             const listing = wars.length ? wars.map(war => `⚔️ ${botData.clans[war.challenger]?.name || war.challenger} vs ${botData.clans[war.defender]?.name || war.defender} · *${war.status}*`).join('\n') : 'No tienes guerras pendientes.';
-            return commandReply(sock, chatId, msg, 'clan', `⚔️ *GUERRAS DE CLANES*\n\n${listing}\n\nDesafiar: *${prefix}clan guerra desafiar <clan>*\nAceptar: *${prefix}clan guerra aceptar*\nCombatir: *${prefix}clan guerra combatir*`);
+            const sent = await commandReply(sock, chatId, msg, 'clan', `⚔️ *GUERRAS DE CLANES*\n\n${listing}\n\nDesafiar: *${prefix}clan guerra desafiar <clan>*\nAceptar: *${prefix}clan guerra aceptar*\nCombatir: *${prefix}clan guerra combatir*`);
+            await sendActionButtons(sock, chatId, '⚔️ Navegación de clan:', [
+                { label: '🏰 Info del clan', command: `${prefix}clan info` },
+                { label: '📋 Ver clanes', command: `${prefix}clan` },
+                { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+            ], sent || msg);
+            return sent;
         }
         if (['crear', 'create'].includes(action)) {
             const displayName = args.slice(1).join(' ').trim().slice(0, 20);
@@ -1363,11 +1385,23 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
             clan.xp = Number(clan.xp) || 0;
             clan.level = clanLevel(clan);
             clan.coins = Number(clan.coins) || 0;
-            return commandReply(sock, chatId, msg, 'clan', `🏰 *CLAN ${clan.name.toUpperCase()}*\n\n👑 Líder: @${numberOf(clan.owner)}\n👥 Miembros: *${clan.members.length}*\n⭐ Nivel: *${clan.level}* · XP: *${fmt(clan.xp)}*\n🪙 Tesorería: *${fmt(clan.coins)} ${COIN}*\n🏆 Victorias: *${clan.wins || 0}* · Derrotas: *${clan.losses || 0}*\n📅 Creado: *${new Date(clan.createdAt).toLocaleDateString('es-ES')}*`, { mentions: [clan.owner, ...clan.members] });
+            const sent = await commandReply(sock, chatId, msg, 'clan', `🏰 *CLAN ${clan.name.toUpperCase()}*\n\n👑 Líder: @${numberOf(clan.owner)}\n👥 Miembros: *${clan.members.length}*\n⭐ Nivel: *${clan.level}* · XP: *${fmt(clan.xp)}*\n🪙 Tesorería: *${fmt(clan.coins)} ${COIN}*\n🏆 Victorias: *${clan.wins || 0}* · Derrotas: *${clan.losses || 0}*\n📅 Creado: *${new Date(clan.createdAt).toLocaleDateString('es-ES')}*`, { mentions: [clan.owner, ...clan.members] });
+            await sendActionButtons(sock, chatId, '🏰 Acciones del clan:', [
+                { label: '⚔️ Guerras', command: `${prefix}clan guerra` },
+                { label: '📋 Ver clanes', command: `${prefix}clan` },
+                { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+            ], sent || msg);
+            return sent;
         }
         const clans = clanList(botData.clans);
         const listing = clans.length ? clans.slice(0, 10).map((clan, index) => `${index + 1}. 🏰 *${clan.name}* — ${clan.members.length} miembros`).join('\n') : 'Todavía no hay clanes creados.';
-        return commandReply(sock, chatId, msg, 'clan', `⚔️ *CLANES*\n\n${listing}\n\nCrear: *${prefix}clan crear <nombre>*\nUnirse: *${prefix}clan unirse <nombre>*\nSalir: *${prefix}clan salir*\nInfo: *${prefix}clan info [nombre]*\nGuerra: *${prefix}clan guerra desafiar <clan>*`);
+        const sent = await commandReply(sock, chatId, msg, 'clan', `⚔️ *CLANES*\n\n${listing}\n\nCrear: *${prefix}clan crear <nombre>*\nUnirse: *${prefix}clan unirse <nombre>*\nSalir: *${prefix}clan salir*\nInfo: *${prefix}clan info [nombre]*\nGuerra: *${prefix}clan guerra desafiar <clan>*`);
+        await sendActionButtons(sock, chatId, '⚔️ Accesos de clan:', [
+            { label: '🏰 Mi clan', command: `${prefix}clan info` },
+            { label: '⚔️ Guerras', command: `${prefix}clan guerra` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ], sent || msg);
+        return sent;
     }
 
     if (canonical === 'coinTop') {
@@ -1443,25 +1477,50 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
     }
     if (canonical === 'daily') {
         const wait = cooldown(user, 'lastDaily', 24 * 60 * 60 * 1000);
-        if (wait) return reply(sock, chatId, msg, `⏳ Ya recibiste tu recompensa del gremio. Regresa en *${timeLeft(wait)}*.`);
-        const streak = wait ? 0 : (Number(user.streak) || 0) + 1;
-        const reward = 30000 + (streak - 1) * 5000;
-        Object.assign(user, { coins: user.coins + reward, streak, lastDaily: Date.now() }); save();
-        return reply(sock, chatId, msg, `🎁 El gremio te entregó *${fmt(reward)} ${COIN}* por completar tu recompensa diaria.\n🔥 Racha actual: *${streak} días*\n\n${recommendedNextStep(user, prefix)}`);
+        if (wait) {
+            const sent = await reply(sock, chatId, msg, `⏳ Ya recibiste tu recompensa del gremio. Regresa en *${timeLeft(wait)}*.`);
+            return withRpgActions(sent, [
+                { label: '⏱️ Tiempos', command: `${prefix}einfo` },
+                { label: '📜 Misiones', command: `${prefix}misiones` },
+                { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+            ]);
+        }
+        const previousDay = Number(user.lastDaily) ? new Date(Number(user.lastDaily)).toISOString().slice(0, 10) : '';
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        const streak = previousDay === yesterday ? (Number(user.streak) || 0) + 1 : 1;
+        const reward = 500 + Math.min(9, Math.max(0, streak - 1)) * 50;
+        Object.assign(user, { coins: user.coins + reward, streak, lastDaily: Date.now() });
+        const progress = grantActivityProgress('daily', 5, false);
+        save();
+        const sent = await reply(sock, chatId, msg, `🎁 El gremio te entregó *${fmt(reward)} ${COIN}* por completar tu recompensa diaria.\n🔥 Racha actual: *${streak} días* (bono diario limitado)\n💰 Bolsa: *${fmt(user.coins)} ${COIN}*${progress.extraText}\n\n${recommendedNextStep(user, prefix)}`);
+        return withRpgActions(sent, [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '💼 Trabajar', command: `${prefix}work` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ]);
     }
     if (canonical === 'work' || canonical === 'crime' || canonical === 'slut') {
-        const config = canonical === 'work' ? { key: 'lastWork', wait: 60e3, gain: [1, 10000], loss: [1000, 5000], chance: .25, label: 'trabajo' } : canonical === 'crime' ? { key: 'lastCrime', wait: 5 * 60e3, gain: [3000, 18000], loss: [3000, 15000], chance: .25, label: 'crimen' } : { key: 'lastSlut', wait: 4 * 60e3, gain: [1000, 11000], loss: [2000, 8000], chance: .30, label: 'trabajo de riesgo' };
+        const config = canonical === 'work' ? { key: 'lastWork', wait: 60e3, gain: [100, 300], loss: [100, 500], chance: .25, label: 'trabajo' } : canonical === 'crime' ? { key: 'lastCrime', wait: 5 * 60e3, gain: [250, 650], loss: [200, 700], chance: .25, label: 'crimen' } : { key: 'lastSlut', wait: 4 * 60e3, gain: [200, 500], loss: [150, 500], chance: .30, label: 'trabajo de riesgo' };
         const wait = cooldown(user, config.key, config.wait);
         if (wait) return reply(sock, chatId, msg, `⏳ Debes esperar *${timeLeft(wait)}* para volver a usar este comando.`);
+        const dailyLimit = consumeAction(user, canonical, DAILY_ACTIVITY_LIMITS[canonical]);
+        if (!dailyLimit.ok) return reply(sock, chatId, msg, `🛡️ Completaste las *${dailyLimit.limit} tareas diarias* de este oficio. Vuelve mañana para seguir ganando oro.`);
         const lost = Math.random() < config.chance;
         const range = config[ lost ? 'loss' : 'gain' ];
         const baseValue = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
         const value = lost ? baseValue : Math.max(1, Math.floor(baseValue * classRewardMultiplier(user, canonical) * equipmentRewardMultiplier(user, canonical)));
         const real = lost ? Math.min(user.coins, value) : value;
         user.coins += lost ? -real : real;
-        user[config.key] = Date.now(); save();
+        user[config.key] = Date.now();
+        const progress = grantActivityProgress(canonical, 5);
+        save();
         const activity = randomJob(user, canonical, lost ? 'loss' : 'gain');
-        return reply(sock, chatId, msg, lost ? `💥 ${activity} *${fmt(real)} ${COIN}*.\n🪙 Bolsa del aventurero: *${fmt(user.coins)} ${COIN}*` : `✅ ${activity} *${fmt(real)} ${COIN}*.\n🪙 Bolsa del aventurero: *${fmt(user.coins)} ${COIN}*${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}`);
+        const sent = await reply(sock, chatId, msg, lost ? `💥 ${activity} *${fmt(real)} ${COIN}*.\n🪙 Bolsa del aventurero: *${fmt(user.coins)} ${COIN}*${progress.extraText}` : `✅ ${activity} *${fmt(real)} ${COIN}*.\n🪙 Bolsa del aventurero: *${fmt(user.coins)} ${COIN}*${classAdvantageText(user, canonical)}${equipmentAdvantageText(user, canonical)}${progress.extraText}`);
+        return withRpgActions(sent, [
+            { label: '📜 Misiones', command: `${prefix}misiones` },
+            { label: '⛏️ Oficios', command: `${prefix}minar` },
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` }
+        ]);
     }
     if (canonical === 'deposit' || canonical === 'withdraw') {
         const input = amount(args[0]);
@@ -1537,8 +1596,25 @@ async function runEconomy(sock, chatId, msg, command, q = '', botData, saveBotDa
         const fine = Math.min(user.coins, Math.floor(Math.random() * 4000) + 1000); user.coins -= fine; save(); return reply(sock, chatId, msg, `⚖️ Los guardias del reino te atraparon y perdiste *${fmt(fine)} ${COIN}*.`);
     }
     if (canonical === 'einfo') {
-        const rows = [['work', 'lastWork', 60e3], ['crime', 'lastCrime', 5 * 60e3], ['rob', 'lastRob', 10 * 60e3], ['daily', 'lastDaily', 24 * 60 * 60e3], ['slut', 'lastSlut', 4 * 60e3]].map(([label, key, ms]) => `${label}: ${cooldown(user, key, ms) ? timeLeft(cooldown(user, key, ms)) : 'disponible'}`).join('\n');
-        return reply(sock, chatId, msg, `⏱️ *TIEMPOS DE RECARGA DEL AVENTURERO*\n\n${rows}`);
+        const cooldownRows = [
+            ['Trabajo', 'lastWork', 60e3], ['Crimen', 'lastCrime', 5 * 60e3], ['Golpe', 'lastRob', 10 * 60e3],
+            ['Daily', 'lastDaily', 24 * 60 * 60e3], ['Trovador', 'lastSlut', 4 * 60e3],
+            ['Explorar', 'lastExplore', 75e3], ['Recolectar', 'lastGather', 60e3], ['Patrullar', 'lastPatrol', 120e3],
+            ['Minar', 'lastMine', 45e3], ['Pescar', 'lastFish', 60e3], ['Cazar', 'lastHunt', 50e3]
+        ].map(([label, key, ms]) => {
+            const remaining = cooldown(user, key, ms);
+            return `• ${label}: ${remaining ? timeLeft(remaining) : 'disponible'}`;
+        }).join('\n');
+        const actions = user.rpg?.featureState?.actions || {};
+        const limitRows = Object.entries(DAILY_ACTIVITY_LIMITS).map(([key, limit]) => `• ${key}: *${Math.min(limit, Number(actions[key]) || 0)}/${limit}*`).join('\n');
+        const dungeon = ensureDungeonState(user);
+        const sent = await reply(sock, chatId, msg, `⏱️ *TIEMPOS Y CUPOS DEL AVENTURERO*\n\n⚡ Energía: *${user.rpg.energy}/${user.rpg.maxEnergy}* (regenera 2 por minuto)\n\n*Recargas*\n${cooldownRows}\n\n*Cupos de hoy*\n${limitRows}\n🏰 Mazmorra: *${Math.min(3, Number(dungeon.runs) || 0)}/3*`);
+        await sendActionButtons(sock, chatId, '🧭 Continúa tu aventura:', [
+            { label: '🗂️ Menú RPG', command: `${prefix}rpgmenu` },
+            { label: '🎒 Inventario', command: `${prefix}inventario` },
+            { label: '🧑‍🌾 Mercader', command: `${prefix}mercader` }
+        ], sent || msg);
+        return sent;
     }
 }
 

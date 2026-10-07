@@ -83,6 +83,6 @@ test('Paladín obtiene la bonificación correcta en mazmorras y tiene equipo exc
     } finally {
         Math.random = originalRandom;
     }
-    assert.equal(user.coins, Math.floor(2200 * 1.15));
+    assert.equal(user.coins, Math.floor(550 * 1.15));
     assert.match(ctx.messages.at(-1).caption || ctx.messages.at(-1).text, /\+15% de recompensa/);
 });
