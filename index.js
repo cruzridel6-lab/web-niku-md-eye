@@ -676,7 +676,8 @@ if (tgBot) {
 // =================== WEB DASHBOARD SOCKET.IO ===================
 const io = socketIo(server, {
     cors: { origin: "*" },
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    maxHttpBufferSize: 14 * 1024 * 1024
 });
 
 app.use(express.json());
@@ -713,6 +714,16 @@ app.get('/moderacion', (req, res) => {
     sendIndexWithPreview(req, res);
 });
 
+app.get('/admin-public-images/:filename', (req, res) => {
+    const filename = String(req.params.filename || '');
+    if (!/^post-[a-f0-9]{24}\.(?:jpg|png|webp|gif)$/.test(filename)) return res.sendStatus(404);
+    const fullPath = path.join(PUBLIC_POSTS_DIR, filename);
+    if (!fs.existsSync(fullPath)) return res.sendStatus(404);
+    const type = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif' }[filename.split('.').pop()];
+    res.set({ 'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Type': type, 'X-Content-Type-Options': 'nosniff' });
+    res.sendFile(fullPath);
+});
+
 app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
@@ -731,6 +742,8 @@ const DATA_TEMP = `${DATA_FILE}.tmp`;
 fs.ensureDirSync(PERSISTENT_DIR);
 fs.ensureDirSync(AUTH_DIR);
 fs.ensureDirSync(UPLOADS_DIR);
+const PUBLIC_POSTS_DIR = path.join(UPLOADS_DIR, 'public-posts');
+fs.ensureDirSync(PUBLIC_POSTS_DIR);
 
 // En el primer arranque conserva estados anteriores de bot/, data/ o auth_info/.
 for (const legacyDir of LEGACY_DATA_DIRS) {
@@ -770,6 +783,7 @@ function loadBotDataFromDisk() {
     if (!botData.pvpDuels || typeof botData.pvpDuels !== 'object' || Array.isArray(botData.pvpDuels)) botData.pvpDuels = {};
     if (!botData.pvpDuelHistory || typeof botData.pvpDuelHistory !== 'object' || Array.isArray(botData.pvpDuelHistory)) botData.pvpDuelHistory = {};
     if (!Array.isArray(botData.adminReports)) botData.adminReports = [];
+    if (!Array.isArray(botData.publicPosts)) botData.publicPosts = [];
     if (!botData.auctions || typeof botData.auctions !== 'object' || Array.isArray(botData.auctions)) botData.auctions = {};
     if (!botData.profiles || typeof botData.profiles !== 'object') botData.profiles = {};
     if (!botData.pendingMarriages || typeof botData.pendingMarriages !== 'object' || Array.isArray(botData.pendingMarriages)) botData.pendingMarriages = {};
@@ -816,6 +830,8 @@ const userSockets = {};
 const messageLogs = {};
 const adminSockets = new Set();
 const publicRewardEvents = [];
+function publicPostsSnapshot() { return (botData.publicPosts || []).slice(0, 100).map(({ id, title, text, link, image, createdAt }) => ({ id, title, text, link, image, createdAt })); }
+function emitPublicPosts() { io.emit('public-posts', publicPostsSnapshot()); }
 function groupLocalClock(timeZone, now = new Date()) {
     try {
         const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(now);
@@ -2617,6 +2633,7 @@ io.on('connection', (socket) => {
     socket.emit('stats', getDashboardStats());
     socket.emit('public-leaderboard', publicLeaderboardSnapshot());
     socket.emit('public-auctions', publicAuctionsSnapshot());
+    socket.emit('public-posts', publicPostsSnapshot());
 
     // Admin auth
     socket.on('admin-auth', ({ username, password } = {}) => {
@@ -2634,6 +2651,7 @@ io.on('connection', (socket) => {
             socket.adminAttempts = 0;
             adminSockets.add(socket);
             socket.emit('admin-auth-success');
+            socket.emit('admin-posts-data', publicPostsSnapshot());
             socket.emit('admin-premium-data', premiumSnapshot());
             socket.emit('admin-reward-data', rewardSnapshot());
             socket.emit('admin-banned-data', bannedSnapshot());
@@ -2649,6 +2667,56 @@ io.on('connection', (socket) => {
             }
             socket.emit('admin-auth-fail');
         }
+    });
+
+    socket.on('admin-publish-post', async (data = {}) => {
+        if (!socket.authenticated) return socket.emit('admin-post-status', { ok: false, message: 'Inicia sesión como administrador.' });
+        const title = String(data.title || '').trim().slice(0, 100);
+        const text = String(data.text || '').trim().slice(0, 2000);
+        let link = String(data.link || '').trim().slice(0, 500);
+        if (!title && !text && !data.imageData && !link) return socket.emit('admin-post-status', { ok: false, message: 'Agrega contenido a la publicación.' });
+        if (link) {
+            try { const parsed = new URL(link); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid'); link = parsed.href; }
+            catch (_) { return socket.emit('admin-post-status', { ok: false, message: 'El enlace debe comenzar con https:// o http://.' }); }
+        }
+        let image = '';
+        if (data.imageData) {
+            const match = /^data:image\/(jpeg|png|webp|gif);base64,([A-Za-z0-9+/=]+)$/.exec(String(data.imageData));
+            if (!match) return socket.emit('admin-post-status', { ok: false, message: 'La imagen debe ser JPG, PNG, WEBP o GIF.' });
+            const buffer = Buffer.from(match[2], 'base64');
+            if (!buffer.length || buffer.length > 9 * 1024 * 1024) return socket.emit('admin-post-status', { ok: false, message: 'La imagen debe pesar 9 MB o menos.' });
+            const signatures = { jpeg: buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff, png: buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])), gif: buffer.subarray(0, 3).toString() === 'GIF', webp: buffer.length >= 12 && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP' };
+            if (!signatures[match[1]]) return socket.emit('admin-post-status', { ok: false, message: 'El archivo no parece ser una imagen válida.' });
+            const extension = { jpeg: 'jpg', png: 'png', webp: 'webp', gif: 'gif' }[match[1]];
+            const filename = `post-${crypto.randomBytes(12).toString('hex')}.${extension}`;
+            try {
+                await fs.promises.writeFile(path.join(PUBLIC_POSTS_DIR, filename), buffer, { flag: 'wx' });
+            } catch (error) {
+                console.error('[Publicaciones] No se pudo guardar la imagen:', error.message);
+                return socket.emit('admin-post-status', { ok: false, message: 'No se pudo guardar la imagen. Intenta de nuevo.' });
+            }
+            image = `/admin-public-images/${filename}`;
+        }
+        const post = { id: `post-${crypto.randomBytes(12).toString('hex')}`, title, text, link, image, createdAt: new Date().toISOString() };
+        botData.publicPosts.unshift(post);
+        botData.publicPosts = botData.publicPosts.slice(0, 100);
+        saveBotData();
+        emitPublicPosts();
+        for (const adminSocket of adminSockets) adminSocket.emit('admin-posts-data', publicPostsSnapshot());
+        socket.emit('admin-post-status', { ok: true, message: 'Publicación visible para todos.' });
+    });
+    socket.on('admin-delete-post', ({ id } = {}) => {
+        if (!socket.authenticated) return;
+        const post = botData.publicPosts.find(item => item.id === id);
+        if (!post) return;
+        botData.publicPosts = botData.publicPosts.filter(item => item.id !== id);
+        if (post.image) {
+            const filename = path.basename(post.image);
+            if (/^post-[a-f0-9]{24}\.(?:jpg|png|webp|gif)$/.test(filename)) fs.remove(path.join(PUBLIC_POSTS_DIR, filename)).catch(() => {});
+        }
+        saveBotData();
+        emitPublicPosts();
+        for (const adminSocket of adminSockets) adminSocket.emit('admin-posts-data', publicPostsSnapshot());
     });
 
     socket.on('admin-reports-data', () => { if (!socket.authenticated) return; emitAdminReports(socket); });
