@@ -665,6 +665,20 @@
   #connect #status{margin-top:12px;}
   #connect .code-wrap{margin-top:12px;}
   @media(max-width:420px){#connect .connect-phone-input{padding-left:5px!important;font-size:8px!important;}#connect .connect-request:focus-visible{outline-width:2px;}}
+
+  /* Navegación superior: columnas uniformes, iconos y etiquetas centrados. */
+  .nav-links a{display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1.2;}
+  .nav-links a i{display:inline-grid;place-items:center;width:1.15em;height:1.15em;flex:0 0 1.15em;line-height:1;text-align:center;}
+  .banner-nav{width:min(820px,calc(100% - 32px));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:10px;}
+  .banner-nav a{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;box-sizing:border-box;padding:10px 12px;text-align:center;line-height:1.15;white-space:nowrap;}
+  .banner-nav a i{display:inline-grid;place-items:center;width:1.15em;height:1.15em;flex:0 0 1.15em;line-height:1;text-align:center;}
+  .brand .mark{width:40px;height:40px;flex:0 0 40px;}
+  .brand .mark::after{inset:1px;border-radius:6px;background:url('icons/icon-512.png') center 22% / 320% no-repeat;filter:none;opacity:1;}
+  .hero-banner{max-height:340px;}
+  .hero-banner img{height:340px;object-position:center 12%;filter:brightness(1.15) saturate(1.1) contrast(1.06);}
+  @media(max-width:768px){.nav-links a{display:flex;justify-content:center;}.hero-banner{max-height:220px;}.hero-banner img{height:220px;}}
+  @media(max-width:460px){.hero-banner{max-height:150px;}.hero-banner img{height:150px;}}
+  @media(max-width:620px){.banner-nav{width:calc(100% - 22px);grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}.banner-nav a{min-height:46px;padding:8px;font-size:.7rem;}}
 </style>
 </head>
 <body>
