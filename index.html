@@ -574,6 +574,97 @@
   .admin-section-tag,.admin-live-pill{border-color:rgba(94,200,255,.4);color:var(--green);}
   .rpg-divider{background:linear-gradient(90deg,transparent,rgba(94,200,255,.7),rgba(156,140,255,.55),transparent);}
   @media(max-width:768px){body::after{opacity:.13;}section.panel{padding:20px 16px;}.hero-banner{box-shadow:0 12px 35px rgba(0,0,0,.4);}}
+
+  /* ---------- Vinculación: interfaz RPG de acero, pergamino y rubí ---------- */
+  #connect{
+    overflow:hidden;isolation:isolate;padding:23px 25px!important;border:2px solid #756e61!important;
+    border-radius:15px!important;
+    background:radial-gradient(ellipse at 50% -30%,rgba(208,183,132,.16),transparent 58%),
+      linear-gradient(145deg,#252724 0%,#111514 48%,#20201d 100%)!important;
+    box-shadow:0 15px 42px rgba(0,0,0,.52),inset 0 1px rgba(255,244,211,.2),inset 0 -8px 20px rgba(0,0,0,.42)!important;
+  }
+  #connect::before{content:none!important;}
+  #connect::after{content:"";position:absolute;z-index:-1;inset:6px;border:1px solid rgba(207,191,153,.3);border-radius:9px;pointer-events:none;}
+  #connect h2.connect-title{
+    display:flex;align-items:center;gap:10px;margin:0 0 17px;padding:0 2px;
+    color:#e9d49f;font-family:Georgia,"Times New Roman",serif;font-size:clamp(1rem,2.9vw,1.55rem);
+    font-weight:800;letter-spacing:.025em;text-shadow:0 2px 3px #000,0 0 14px rgba(231,193,113,.2);
+  }
+  #connect .connect-title i{
+    display:grid;place-items:center;width:31px;height:31px;flex:0 0 31px;border:2px solid #a99770;
+    border-radius:50%;background:linear-gradient(145deg,#262920,#101510);color:#e8d29d;font-size:17px;
+    box-shadow:0 0 0 3px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.15);
+  }
+  .connect-layout{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(260px,.92fr);align-items:center;gap:17px;}
+  .connect-steps{display:grid;gap:7px;margin:0;padding:0;list-style:none;counter-reset:connect-step;}
+  .connect-step{
+    counter-increment:connect-step;display:grid;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:10px;
+    min-height:48px;padding:7px 11px;border:1px solid #876d48;border-radius:7px;
+    background:linear-gradient(180deg,#e6d2aa 0%,#c5a678 53%,#a78354 100%);color:#211b14;
+    box-shadow:inset 0 1px rgba(255,250,225,.82),inset 0 -2px rgba(73,47,23,.35),0 3px 5px rgba(0,0,0,.42);
+    font-family:Georgia,"Times New Roman",serif;font-size:clamp(.72rem,1.25vw,.88rem);font-weight:700;line-height:1.2;
+  }
+  .connect-step::before{content:counter(connect-step) ".";color:#49351f;font-size:1.13rem;font-weight:900;text-align:center;text-shadow:0 1px rgba(255,255,255,.45);}
+  .connect-console{
+    position:relative;padding:15px 14px 13px;border:2px solid #706b61;border-radius:11px;
+    background:linear-gradient(145deg,rgba(47,49,45,.98),rgba(12,16,17,.98) 55%,rgba(33,33,30,.98));
+    box-shadow:inset 0 1px rgba(255,255,255,.16),inset 0 -5px 11px rgba(0,0,0,.5),0 8px 16px rgba(0,0,0,.32);
+  }
+  .connect-console::before,.connect-console::after{content:"";position:absolute;top:10px;width:11px;height:11px;transform:rotate(45deg);border:1px solid #c6a66f;background:linear-gradient(135deg,#e6cf98,#725b39 55%,#352c21);box-shadow:0 0 8px rgba(213,170,92,.3);}
+  .connect-console::before{left:10px;}.connect-console::after{right:10px;}
+  #connect .input-box{width:100%;max-width:none;gap:14px;margin:0;}
+  #connect .input-group i{left:15px;color:#d6bd83;}
+  #connect .input-group input{
+    min-height:47px;padding:12px 13px 12px 42px;border:2px solid #77766d;border-radius:8px;
+    background:linear-gradient(180deg,rgba(7,10,12,.95),rgba(23,26,27,.98));color:#f6efdc;
+    box-shadow:inset 0 3px 7px rgba(0,0,0,.65),0 1px rgba(255,255,255,.08);font-size:.84rem;
+  }
+  #connect .input-group input::placeholder{color:#b8b9b3;opacity:.82;}
+  #connect .input-group input:focus{border-color:#d1b77c;box-shadow:0 0 0 3px rgba(207,174,107,.17),inset 0 3px 7px rgba(0,0,0,.55);}
+  #connect #requestPairing{
+    min-height:48px;padding:11px 15px;border:2px solid #bb8b6a;border-radius:8px;
+    background:linear-gradient(180deg,#a94b4d 0%,#792c35 52%,#501c27 100%);color:#f8e7c8;
+    font-family:Georgia,"Times New Roman",serif;font-size:.87rem;font-weight:900;letter-spacing:.055em;
+    text-shadow:0 1px 2px #281014;box-shadow:0 0 0 3px rgba(0,0,0,.45),inset 0 1px rgba(255,231,207,.38),0 5px 10px rgba(0,0,0,.42);
+  }
+  #connect #requestPairing:hover{border-color:#e0bb83;box-shadow:0 0 0 3px rgba(0,0,0,.45),inset 0 1px rgba(255,231,207,.45),0 0 18px rgba(193,75,74,.38);transform:translateY(-1px);}
+  #connect #requestPairing:disabled{filter:saturate(.55);}
+  #connect #status{margin-top:13px;border-radius:6px;}
+  #connect .code-wrap{margin-top:14px;}
+  #connect .code-box{padding:12px;font-size:1.45rem;letter-spacing:5px;border-color:#c7aa70;color:#f3d58d;text-shadow:0 0 12px rgba(243,213,141,.38);}
+  #connect .copy-hint,#connect .waiting{color:#c1b89f;}
+  @media(max-width:700px){
+    #connect{padding:20px 17px!important;}
+    .connect-layout{grid-template-columns:minmax(0,1fr);gap:12px;}
+    .connect-step{min-height:43px;font-size:.82rem;}
+    .connect-console{padding:15px 13px 12px;}
+  }
+  @media(max-width:420px){#connect h2.connect-title{font-size:1rem;}.connect-step{grid-template-columns:24px minmax(0,1fr);gap:7px;padding:7px 8px;font-size:.76rem;}}
+
+  /* La referencia se conserva pixel a pixel; los controles reales flotan sobre sus zonas. */
+  #connect{width:min(100%,719px);margin:26px auto!important;padding:0!important;overflow:visible!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;}
+  #connect::before,#connect::after{content:none!important;}
+  #connect .connect-title.sr-only,#connect .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+  #connect .connect-layout.connect-artboard{position:relative;display:block;width:100%;max-width:719px;aspect-ratio:719/224;margin:0 auto;overflow:hidden;}
+  #connect .connect-reference-art{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:fill;user-select:none;pointer-events:none;}
+  #connect .connect-phone-input{
+    position:absolute;z-index:2;left:59.1%;top:32.5%;width:37.5%;height:18%;box-sizing:border-box;
+    padding:0 8px!important;border:1px solid transparent!important;border-radius:4px!important;
+    background:transparent!important;color:#f3eee4!important;box-shadow:none!important;
+    font-family:Arial,sans-serif!important;font-size:clamp(8px,1.7vw,13px)!important;letter-spacing:.02em;
+  }
+  #connect .connect-phone-input::placeholder{color:transparent!important;opacity:0!important;}
+  #connect .connect-phone-input:focus{outline:none;border-color:rgba(229,199,137,.82)!important;box-shadow:0 0 0 2px rgba(229,199,137,.25)!important;}
+  #connect .connect-request{
+    position:absolute;z-index:3;left:56.2%;top:63.8%;width:41%;height:30%;min-height:0!important;
+    padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;
+    box-shadow:none!important;color:transparent!important;font-size:0!important;cursor:pointer;
+  }
+  #connect .connect-request:hover,#connect .connect-request:disabled{transform:none!important;background:transparent!important;box-shadow:none!important;}
+  #connect .connect-request:focus-visible{outline:3px solid #f4d899;outline-offset:2px;border-radius:8px!important;}
+  #connect #status{margin-top:12px;}
+  #connect .code-wrap{margin-top:12px;}
+  @media(max-width:420px){#connect .connect-phone-input{padding-left:5px!important;font-size:8px!important;}#connect .connect-request:focus-visible{outline-width:2px;}}
 </style>
 </head>
 <body>
@@ -694,31 +785,24 @@
     </div>
   </section>
 
-  <section id="connect" class="panel" data-label="./conectar">
-    <h2><i class="fas fa-link"></i> Conectar con WhatsApp</h2>
-    <div class="instructions">
-      <h3>Cómo conectar tu número</h3>
-      <ol>
-        <li>Escribe tu número con código de país, sin «+», espacios ni paréntesis.</li>
-        <li>Pulsa «Solicitar código de vinculación».</li>
-        <li>Copia el código de ocho dígitos.</li>
-        <li>Abre WhatsApp → Ajustes → Dispositivos vinculados.</li>
-        <li>Introduce el código cuando WhatsApp lo solicite.</li>
+  <section id="connect" class="panel" data-label="./conectar" aria-label="Pilares de vinculación de WhatsApp">
+    <h2 class="connect-title sr-only">Pilares de vinculación</h2>
+    <div class="connect-layout connect-artboard">
+      <img class="connect-reference-art" src="connection-pillars.jpg" width="719" height="224" alt="" aria-hidden="true">
+      <ol class="sr-only" aria-label="Pasos para vincular WhatsApp">
+        <li>Escribe tu número con código de país, sin paréntesis.</li>
+        <li>Pulsa Solicitar código de vinculación.</li>
+        <li>Introduce el código cuando te lo pida WhatsApp.</li>
       </ol>
+      <label class="sr-only" for="phone">Número de WhatsApp con código de país</label>
+      <input class="connect-phone-input" type="tel" id="phone" inputmode="tel" autocomplete="tel" aria-label="Número de WhatsApp con código de país" placeholder="Ej.: 549...">
+      <button class="connect-request" id="requestPairing" type="button" aria-label="Solicitar código de vinculación">
+        <span class="sr-only">Solicitar código de vinculación</span>
+      </button>
     </div>
-
-    <div class="input-box">
-      <div class="input-group">
-        <i class="fas fa-phone"></i>
-        <input type="tel" id="phone" placeholder="Ej.: 5491112345678 (con código de país)">
-      </div>
-      <button class="btn" id="requestPairing"><i class="fas fa-key"></i> Solicitar código</button>
-    </div>
-
-    <div id="status"></div>
-
+    <div id="status" role="status" aria-live="polite"></div>
     <div class="code-wrap" id="codeWrap">
-      <div class="code-box" id="pairingCode" onclick="copyCode()">0000 0000</div>
+      <div class="code-box" id="pairingCode" role="button" tabindex="0" onclick="copyCode()">0000 0000</div>
       <div class="copy-hint">Toca el código para copiarlo</div>
       <div class="waiting"><span class="dot"></span> Esperando la vinculación del dispositivo...</div>
     </div>
