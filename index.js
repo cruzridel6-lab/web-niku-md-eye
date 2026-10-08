@@ -677,7 +677,7 @@ if (tgBot) {
 const io = socketIo(server, {
     cors: { origin: "*" },
     transports: ['websocket', 'polling'],
-    maxHttpBufferSize: 8 * 1024 * 1024
+    maxHttpBufferSize: 14 * 1024 * 1024
 });
 
 app.use(express.json());
@@ -2684,7 +2684,7 @@ io.on('connection', (socket) => {
             const match = /^data:image\/(jpeg|png|webp|gif);base64,([A-Za-z0-9+/=]+)$/.exec(String(data.imageData));
             if (!match) return socket.emit('admin-post-status', { ok: false, message: 'La imagen debe ser JPG, PNG, WEBP o GIF.' });
             const buffer = Buffer.from(match[2], 'base64');
-            if (!buffer.length || buffer.length > 5 * 1024 * 1024) return socket.emit('admin-post-status', { ok: false, message: 'La imagen debe pesar 5 MB o menos.' });
+            if (!buffer.length || buffer.length > 9 * 1024 * 1024) return socket.emit('admin-post-status', { ok: false, message: 'La imagen debe pesar 9 MB o menos.' });
             const signatures = { jpeg: buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff, png: buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])), gif: buffer.subarray(0, 3).toString() === 'GIF', webp: buffer.length >= 12 && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP' };
             if (!signatures[match[1]]) return socket.emit('admin-post-status', { ok: false, message: 'El archivo no parece ser una imagen válida.' });
             const extension = { jpeg: 'jpg', png: 'png', webp: 'webp', gif: 'gif' }[match[1]];
