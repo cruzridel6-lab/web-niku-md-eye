@@ -679,6 +679,34 @@
   @media(max-width:768px){.nav-links a{display:flex;justify-content:center;}.hero-banner{max-height:220px;}.hero-banner img{height:220px;}}
   @media(max-width:460px){.hero-banner{max-height:150px;}.hero-banner img{height:150px;}}
   @media(max-width:620px){.banner-nav{width:calc(100% - 22px);grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}.banner-nav a{min-height:46px;padding:8px;font-size:.7rem;}}
+
+  .public-publications-panel{margin-bottom:22px;}
+  .public-posts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:14px;}
+  .public-post-card{overflow:hidden;border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.025);}
+  .public-post-image{display:block;width:100%;max-height:420px;object-fit:cover;background:rgba(0,0,0,.18);}
+  .public-post-content{padding:17px;}
+  .public-post-content h3{font-size:1rem;margin:0 0 8px;color:var(--text);}
+  .public-post-content p{font-size:.82rem;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 12px;}
+  .public-post-meta{color:var(--muted);font-size:.67rem;margin-bottom:10px;}
+  .public-post-link{display:inline-flex;align-items:center;gap:7px;color:var(--green);font-size:.76rem;font-weight:700;text-decoration:none;overflow-wrap:anywhere;}
+  .public-post-link:hover{text-decoration:underline;}
+  .public-posts-empty{grid-column:1/-1;padding:22px;text-align:center;border:1px dashed var(--border);border-radius:14px;color:var(--muted);font-size:.8rem;}
+  .admin-post-form{display:grid;gap:13px;}
+  .admin-post-form label{display:grid;gap:7px;color:var(--text);font-size:.75rem;font-weight:700;}
+  .admin-post-form label span{font-size:.66rem;color:var(--muted);font-weight:400;}
+  .admin-post-form input,.admin-post-form textarea{width:100%;border:1px solid var(--border);border-radius:10px;background:rgba(0,0,0,.22);color:var(--text);font:inherit;font-size:.8rem;padding:11px 13px;}
+  .admin-post-form textarea{resize:vertical;min-height:90px;}
+  .admin-post-form input[type=file]{font-size:.7rem;}
+  .admin-post-form .btn{width:max-content;max-width:100%;}
+  .admin-posts-management{margin-top:14px;}
+  .admin-posts-list{display:grid;gap:9px;}
+  .admin-post-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:rgba(0,0,0,.16);}
+  .admin-post-row-main{min-width:0;overflow-wrap:anywhere;}
+  .admin-post-row-main strong{display:block;font-size:.76rem;color:var(--text);}
+  .admin-post-row-main small{display:block;margin-top:3px;color:var(--muted);font-size:.65rem;}
+  .admin-post-delete{flex:none;border:1px solid rgba(255,113,149,.42);background:transparent;color:var(--danger);border-radius:7px;padding:7px 10px;font:inherit;font-size:.66rem;cursor:pointer;}
+  @media(max-width:620px){.admin-post-row{align-items:flex-start;flex-direction:column;}.admin-post-form .btn{width:100%;}}
+
 </style>
 </head>
 <body>
@@ -726,18 +754,16 @@
       <div class="tag">automatización de WhatsApp</div>
     </div>
   </div>
-  <div class="nav-links" id="navLinks"><a href="#features"><i class="fas fa-scroll"></i> Aventuras</a><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a><a href="/moderacion"><i class="fas fa-hashtag"></i> Moderación</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
+  <div class="nav-links" id="navLinks"><a href="#connect"><i class="fas fa-link"></i> Invocar bot</a><a href="#leaderboards"><i class="fas fa-trophy"></i> Rankings</a><a href="/moderacion"><i class="fas fa-hashtag"></i> Moderación</a><a id="adminNavLink" href="/admin"><i class="fas fa-shield-halved"></i> Admin</a></div>
   <button class="nav-toggle" id="navToggle" type="button" aria-label="Abrir navegación"><i class="fas fa-bars"></i></button>
 </nav>
 <div class="hero-banner" role="img" aria-label="Banner oficial de NIKU MD">
   <img src="Gemini_Generated_Image_dcxxqzdcxxqzdcxx.jpeg" alt="Banner oficial de NIKU MD BOT">
 </div>
 <div class="banner-nav" aria-label="Navegación principal">
-  <a href="#features"><i class="fas fa-star"></i> Funciones</a>
-
   <a href="#connect"><i class="fas fa-link"></i> Conectar</a>
   <a href="#links"><i class="fas fa-broadcast-tower"></i> Canales</a>
-  <a href="#faq"><i class="fas fa-circle-question"></i> Ayuda</a>
+
 </div>
 <header>
   <div class="eyebrow" id="nodeStatus"><span class="pulse"></span> SESIÓN LISTA // NODO EN LÍNEA</div>
@@ -745,7 +771,6 @@
   <p class="sub">Un núcleo rápido y minimalista para automatizar WhatsApp, creado y mantenido por <strong>ɴɪᴋᴜMDꫂꤪꤨᴼᶠᶜ</strong>.</p>
   <div class="hero-actions">
     <a class="btn" href="#connect"><i class="fas fa-link"></i> Conectar mi número</a>
-    <a class="btn btn-outline" href="#features"><i class="fas fa-compass"></i> Explorar funciones</a>
   </div>
   <div class="quick-strip" aria-label="Ventajas principales">
     <div class="quick-item"><i class="fas fa-bolt"></i>Bot NIKU MD activo</div>
@@ -779,24 +804,9 @@
 </header>
 
 <main>
-  <section id="features" class="panel" data-label="./funciones">
-    <h2><i class="fas fa-star"></i> Funciones</h2>
-    <div class="feature-grid">
-      <div class="feature-item"><i class="fas fa-reply"></i><h3>Respuestas automáticas</h3><p>Respuestas inteligentes basadas en activadores configurables.</p></div>
-      <div class="feature-item"><i class="fas fa-image"></i><h3>Herramientas multimedia</h3><p>Descarga, convierte y gestiona archivos multimedia fácilmente.</p></div>
-      <div class="feature-item"><i class="fas fa-puzzle-piece"></i><h3>Sistema de comandos</h3><p>Amplía el bot con comandos y automatizaciones personalizadas.</p></div>
-      <div class="feature-item"><i class="fas fa-gavel"></i><h3>Casa de subastas</h3><p>Publica botín de mazmorras, puja con Monedas de oro y sigue el mercado en vivo.</p></div>
-      <div class="feature-item"><i class="fas fa-shield-alt"></i><h3>Protección</h3><p>Controles integrados para cuidar tus sesiones y tu privacidad.</p></div>
-    </div>
-  </section>
-
-  <section id="workflow" class="panel" data-label="./inicio-rápido">
-    <h2><i class="fas fa-route"></i> Empieza en tres pasos</h2>
-    <div class="steps-grid">
-      <article class="step-card"><div class="step-number">01</div><h3>Conecta</h3><p>Introduce tu número y vincula el dispositivo desde WhatsApp.</p></article>
-      <article class="step-card"><div class="step-number">02</div><h3>Configura</h3><p>Explora las funciones y adapta el bot a tu forma de trabajar.</p></article>
-      <article class="step-card"><div class="step-number">03</div><h3>Automatiza</h3><p>Deja que los comandos respondan y gestionen tus tareas diarias.</p></article>
-    </div>
+  <section id="publications" class="panel public-publications-panel">
+    <h2><i class="fas fa-bullhorn"></i> Novedades</h2>
+    <div id="publicPostsList" class="public-posts-grid"><div class="public-posts-empty">Todavía no hay publicaciones.</div></div>
   </section>
 
   <section id="connect" class="panel" data-label="./conectar" aria-label="Pilares de vinculación de WhatsApp">
@@ -830,15 +840,6 @@
     </div>
   </section>
 
-  <section id="faq" class="panel" data-label="./ayuda">
-    <h2><i class="fas fa-circle-question"></i> Preguntas frecuentes</h2>
-    <div class="faq-list">
-      <details><summary>¿Qué necesito para conectar mi número?</summary><p>Tu número de WhatsApp con código de país y acceso a «Dispositivos vinculados».</p></details>
-      <details><summary>¿Dónde recibo novedades y soporte?</summary><p>En los canales oficiales de WhatsApp y Telegram disponibles arriba.</p></details>
-      <details><summary>¿Puedo ver cuántas conexiones hay activas?</summary><p>Sí. El panel actualiza las conexiones y usuarios conectados en tiempo real cuando el servidor está disponible.</p></details>
-    </div>
-  </section>
-
   <section id="admin" class="panel" data-label="./admin">
     <h2><i class="fas fa-shield-halved"></i> Panel administrativo</h2>
     <div class="admin-head">
@@ -859,6 +860,23 @@
       </form>
     </div>
     <div id="adminConsole">
+      <details class="admin-fold" open>
+        <summary><span><i class="fas fa-bullhorn"></i> Publicaciones del sitio</span><small>Publica novedades para todos los visitantes</small></summary>
+        <div class="admin-fold-body">
+          <div class="admin-card">
+            <div class="admin-card-head"><div><h3>Crear publicación</h3><p>Agrega texto, una imagen y/o un enlace. Se publicará en vivo en la página principal.</p></div><span class="admin-section-tag">PÚBLICO</span></div>
+            <form id="adminPostForm" class="admin-post-form">
+              <label>Título <span>(opcional)</span><input id="adminPostTitle" type="text" maxlength="100" placeholder="Título de la publicación"></label>
+              <label>Texto <span>(opcional)</span><textarea id="adminPostText" maxlength="2000" rows="4" placeholder="Escribe una novedad o anuncio..."></textarea></label>
+              <label>Enlace <span>(opcional, solo http/https)</span><input id="adminPostLink" type="url" maxlength="500" placeholder="https://ejemplo.com"></label>
+              <label>Imagen <span>(JPG, PNG, WEBP o GIF; máximo 5 MB)</span><input id="adminPostImage" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+              <button id="adminPostSubmit" class="btn" type="submit"><i class="fas fa-paper-plane"></i> Publicar para todos</button>
+              <div id="adminPostStatus" class="premium-status" aria-live="polite"></div>
+            </form>
+          </div>
+          <div class="admin-card admin-posts-management"><div class="admin-card-head"><div><h3>Publicaciones activas</h3><p>Elimina una publicación para retirarla de la página pública.</p></div></div><div id="adminPostsList" class="admin-posts-list"><div class="console-empty">Cargando publicaciones...</div></div></div>
+        </div>
+      </details>
       <div class="admin-kpis">
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-link"></i> Sesiones activas</span><strong id="adminActiveSessions" class="admin-kpi-value">0</strong></div>
         <div class="admin-kpi"><span class="admin-kpi-label"><i class="fas fa-users"></i> Usuarios conectados</span><strong id="adminConnectedUsers" class="admin-kpi-value">0</strong></div>
@@ -1069,6 +1087,15 @@ const publicPvpHistory = document.getElementById('publicPvpHistory');
 const publicRewardEvents = document.getElementById('publicRewardEvents');
 const publicInvestmentsList = document.getElementById('publicInvestmentsList');
 const publicAuctionsList = document.getElementById('publicAuctionsList');
+const publicPostsList = document.getElementById('publicPostsList');
+const adminPostForm = document.getElementById('adminPostForm');
+const adminPostTitle = document.getElementById('adminPostTitle');
+const adminPostText = document.getElementById('adminPostText');
+const adminPostLink = document.getElementById('adminPostLink');
+const adminPostImage = document.getElementById('adminPostImage');
+const adminPostSubmit = document.getElementById('adminPostSubmit');
+const adminPostStatus = document.getElementById('adminPostStatus');
+const adminPostsList = document.getElementById('adminPostsList');
 const adminEconomyMetrics = document.getElementById('adminEconomyMetrics');
 const adminEconomyChart = document.getElementById('adminEconomyChart');
 const adminInvestmentList = document.getElementById('adminInvestmentList');
@@ -1232,6 +1259,27 @@ function renderPublicBots(bots=[]){
   });
   if(publicBotsLive) publicBotsLive.textContent=`${bots.length} en línea`;
 }
+adminPostForm?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(adminPostSubmit) adminPostSubmit.disabled=true;
+  if(adminPostStatus) adminPostStatus.textContent='Preparando publicación...';
+  try{
+    let imageData='';
+    const file=adminPostImage?.files?.[0];
+    if(file){
+      if(!['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)) throw new Error('Elige una imagen JPG, PNG, WEBP o GIF.');
+      if(file.size>5*1024*1024) throw new Error('La imagen debe pesar 5 MB o menos.');
+      imageData=await new Promise((resolve,reject)=>{ const reader=new FileReader(); reader.onload=()=>resolve(reader.result); reader.onerror=()=>reject(new Error('No se pudo leer la imagen.')); reader.readAsDataURL(file); });
+    }
+    socket.emit('admin-publish-post',{title:adminPostTitle?.value||'',text:adminPostText?.value||'',link:adminPostLink?.value||'',imageData});
+  }catch(error){ if(adminPostStatus) adminPostStatus.textContent=error.message; if(adminPostSubmit) adminPostSubmit.disabled=false; }
+});
+adminPostsList?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-delete-public-post]');
+  if(!button || !confirm('¿Eliminar esta publicación de la página para todos?')) return;
+  socket.emit('admin-delete-post',{id:button.dataset.deletePublicPost});
+});
+
 if(adminLoginForm){
   adminLoginForm.addEventListener('submit',(event)=>{
     event.preventDefault();
@@ -1258,12 +1306,33 @@ adminLogout?.addEventListener('click',()=>{
 });
 socket.on('public-leaderboard',renderPublicLeaderboard);
 socket.on('public-reward-event',renderPublicRewardEvent);
+function renderPublicPosts(posts=[]){
+  if(!publicPostsList) return;
+  if(!posts.length){ publicPostsList.innerHTML='<div class="public-posts-empty">Todavía no hay publicaciones.</div>'; return; }
+  publicPostsList.innerHTML=posts.map(post=>{
+    const title=escapeAdminHtml(post.title||'');
+    const image=post.image?`<img class="public-post-image" src="${escapeAdminHtml(post.image)}" alt="${title||'Imagen de publicación'}" loading="lazy">`:'';
+    const heading=title?`<h3>${title}</h3>`:'';
+    const text=post.text?`<p>${escapeAdminHtml(post.text)}</p>`:'';
+    const link=post.link?`<a class="public-post-link" href="${escapeAdminHtml(post.link)}" target="_blank" rel="noopener noreferrer">Abrir enlace <i class="fas fa-arrow-up-right-from-square"></i></a>`:'';
+    const date=post.createdAt?new Date(post.createdAt).toLocaleString('es-ES'):'Publicación';
+    return `<article class="public-post-card">${image}<div class="public-post-content"><div class="public-post-meta">${escapeAdminHtml(date)}</div>${heading}${text}${link}</div></article>`;
+  }).join('');
+}
+function renderAdminPosts(posts=[]){
+  if(!adminPostsList) return;
+  if(!posts.length){ adminPostsList.innerHTML='<div class="console-empty">No hay publicaciones activas.</div>'; return; }
+  adminPostsList.innerHTML=posts.map(post=>`<div class="admin-post-row"><div class="admin-post-row-main"><strong>${escapeAdminHtml(post.title||post.text||'Publicación con imagen/enlace').slice(0,140)}</strong><small>${post.createdAt?escapeAdminHtml(new Date(post.createdAt).toLocaleString('es-ES')):''}${post.image?' · Imagen':''}${post.link?' · Enlace':''}</small></div><button class="admin-post-delete" type="button" data-delete-public-post="${escapeAdminHtml(post.id)}">Eliminar</button></div>`).join('');
+}
 socket.on('public-auctions',renderPublicAuctions);
 socket.on('admin-economy-data',renderAdminEconomy);
 socket.on('admin-bots-data',renderAdminBots);
 socket.on('admin-users-data',renderAdminUsers);
 function renderAdminReports(reports=[]){ if(!adminReportsList) return; if(!reports.length){ adminReportsList.innerHTML='<div class="console-empty">No hay reportes recibidos.</div>'; return; } adminReportsList.innerHTML=reports.map(report=>{ const date=report.createdAt?new Date(report.createdAt).toLocaleString('es-ES'):'Fecha desconocida'; return `<div class="admin-report-row ${report.status==='handled'?'handled':''}"><div class="admin-report-main"><div class="admin-report-meta">${report.status==='handled'?'Atendido':'Nuevo'} · ${escapeAdminHtml(date)}</div><div class="admin-report-message">Remitente: <strong>+${escapeAdminHtml(report.reporter||'desconocido')}</strong>${report.message?' · '+escapeAdminHtml(report.message):''}</div></div><div class="admin-report-actions"><button type="button" data-report-status="${escapeAdminHtml(report.id)}" data-status="${report.status==='handled'?'new':'handled'}">${report.status==='handled'?'Reabrir':'Atender'}</button><button type="button" data-delete-report="${escapeAdminHtml(report.id)}">Borrar</button></div></div>`;}).join(''); }
 socket.on('admin-reports-data',renderAdminReports);
+socket.on('public-posts',renderPublicPosts);
+socket.on('admin-posts-data',renderAdminPosts);
+socket.on('admin-post-status',(result={})=>{ if(adminPostStatus) adminPostStatus.textContent=result.message||''; if(adminPostSubmit) adminPostSubmit.disabled=false; if(result.ok){ adminPostForm?.reset(); showToast(result.message||'Publicación publicada'); } });
 
 socket.on('admin-users-status',(result={})=>{ if(result.message) showToast(`${result.ok ? '✅' : '⚠️'} ${result.message}`); });
 socket.on('admin-promo-status',(data={})=>{
